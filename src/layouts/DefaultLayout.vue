@@ -4,6 +4,7 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import MobileNavBar from '@/components/layout/MobileNavBar.vue'
 import SideBar from '@/components/layout/SideBar.vue'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import { useChatStore } from '@/features/chat/stores/chat'
 
 // O chat fica ligado em todas as páginas logadas para avisar de mensagens novas.
@@ -15,7 +16,11 @@ onBeforeUnmount(() => chat.stop())
 
 <template>
   <div class="layout">
-    <AppHeader class="layout__header" />
+    <AppHeader class="layout__header">
+      <template #actions>
+        <ThemeToggle />
+      </template>
+    </AppHeader>
     <SideBar class="layout__sidebar" />
     <main class="layout__main">
       <RouterView />
