@@ -1,13 +1,26 @@
 <script setup>
-import { computed, nextTick, reactive, ref, useId, watch } from 'vue'
-import { LoaderCircle, Trash2, X } from 'lucide-vue-next'
+import { computed, nextTick, reactive, ref, useId, useTemplateRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  CalendarDays,
+  Copy,
+  ExternalLink,
+  Hash,
+  Link,
+  LoaderCircle,
+  Trash2,
+  UserRound,
+  X,
+} from 'lucide-vue-next'
 import ActionMenu from '@/components/ui/ActionMenu.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
-import BaseModal from '@/components/ui/BaseModal.vue'
+import BaseDrawer from '@/components/ui/BaseDrawer.vue'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import TaskChecklist from '@/components/tasks/TaskChecklist.vue'
 import TaskComments from '@/components/tasks/TaskComments.vue'
 import TaskLinks from '@/components/tasks/TaskLinks.vue'
+import { useTaskLink } from '@/composables/useTaskLink'
 import { useKanbanStore } from '@/stores/kanban'
 import { useTaskDetailStore } from '@/stores/taskDetail'
 import { apiFieldErrors } from '@/utils/apiErrors'
@@ -22,25 +35,25 @@ const { taskId, today } = defineProps({
 
 const emit = defineEmits(['close'])
 
-// Contêiner do modal: coordena a store do quadro (tarefa no card) e a da tarefa aberta.
+// Contêiner do painel: coordena a store do quadro (card) e a da tarefa aberta.
 const kanban = useKanbanStore()
 const detail = useTaskDetailStore()
+const route = useRoute()
+const router = useRouter()
+const { copyLink, copyId, openInNewTab } = useTaskLink()
 
 const ids = { title: useId(), field: useId() }
+const drawer = useTemplateRef('drawer')
 const titleInput = ref(null)
+const descriptionInput = ref(null)
+const dateInput = ref(null)
 const editingTitle = ref(false)
+const editingDescription = ref(false)
 const confirmDelete = reactive({ open: false, busy: false })
 
 // Rascunho por campo: em erro, o valor digitado continua na tela.
-const draft = reactive({
-  title: '',
-  description: '',
-  column: '',
-  assignee: '',
-  priority: '',
-  due_date: '',
-})
-// idle | saving | saved | error, com a mensagem do servidor quando houver
+const draft = reactive({ title: '', description: '', column: null, assignee: null, priority: '' })
+// idle | saving | saved | error
 const fieldState = reactive({})
 const fieldError = reactive({})
 
@@ -48,19 +61,43 @@ const task = computed(() => detail.task)
 const column = computed(() => kanban.columnsById.get(task.value?.column))
 const done = computed(() => column.value?.category === 'done')
 const due = computed(() => dueInfo(task.value?.due_date, today, done.value))
-const priorityLabel = computed(
-  () => PRIORITIES.find((item) => item.value === task.value?.priority)?.label ?? '',
+const dueLong = computed(() =>
+  task.value?.due_date
+    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(
+        new Date(`${task.value.due_date}T12:00:00`),
+      )
+    : '',
 )
-const menuItems = [{ id: 'delete', label: 'Excluir tarefa', icon: Trash2, danger: true }]
+
+const columnOptions = computed(() =>
+  kanban.columns.map((option) => ({ value: option.id, label: option.name, dot: option.category })),
+)
+const priorityOptions = PRIORITIES.map((priority) => ({ ...priority, dot: priority.value }))
+const assigneeOptions = computed(() => [
+  { value: null, label: 'Sem responsável', icon: UserRound },
+  ...kanban.members.map((member) => ({
+    value: member.user,
+    label: member.user_name || member.user_email,
+    avatar: { name: member.user_name || member.user_email, src: '' },
+  })),
+])
+
+const menuItems = [
+  { id: 'open-tab', label: 'Abrir em nova aba', icon: ExternalLink },
+  { id: 'copy-link', label: 'Copiar link', icon: Link },
+  { id: 'copy-id', label: 'Copiar ID', icon: Hash },
+  { id: 'duplicate', label: 'Duplicar tarefa', icon: Copy },
+  { id: 'sep', separator: true },
+  { id: 'delete', label: 'Excluir tarefa', icon: Trash2, danger: true },
+]
 
 function resetDraft(data) {
   Object.assign(draft, {
     title: data.title,
     description: data.description ?? '',
-    column: String(data.column),
-    assignee: data.assignee == null ? '' : String(data.assignee),
+    column: data.column,
+    assignee: data.assignee ?? null,
     priority: data.priority,
-    due_date: data.due_date ?? '',
   })
 }
 
@@ -75,6 +112,7 @@ watch(
     if (!task.value) return
     resetDraft(task.value)
     editingTitle.value = false
+    editingDescription.value = false
     for (const key of Object.keys(fieldState)) delete fieldState[key]
     for (const key of Object.keys(fieldError)) delete fieldError[key]
   },
@@ -87,7 +125,7 @@ function markSaved(field) {
   clearTimeout(savedTimers[field])
   savedTimers[field] = setTimeout(() => {
     if (fieldState[field] === 'saved') fieldState[field] = 'idle'
-  }, 2000)
+  }, 1800)
 }
 
 // PATCH só com o campo alterado (o backend valida o prazo apenas quando ele muda).
@@ -97,17 +135,19 @@ async function saveField(field, value) {
   fieldError[field] = ''
   try {
     const data = await kanban.updateTaskFields(id, { [field]: value })
-    if (id !== taskId) return
+    if (id !== taskId) return false
     detail.setTask(data)
     markSaved(field)
+    return true
   } catch (cause) {
-    if (id !== taskId) return
+    if (id !== taskId) return false
     fieldState[field] = 'error'
     fieldError[field] = apiFieldErrors(cause, [field])[field] ?? ''
+    return false
   }
 }
 
-// Título
+// Título: clique para editar, Enter/sair salva, Esc cancela.
 
 async function startTitleEdit() {
   draft.title = task.value.title
@@ -127,38 +167,49 @@ function cancelTitleEdit() {
 async function commitTitle() {
   if (!editingTitle.value) return
   const title = draft.title.trim()
-  if (!title) {
+  if (!title || title.length > TITLE_MAX) {
     fieldState.title = 'error'
-    fieldError.title = 'Informe o título da tarefa.'
-    return
-  }
-  if (title.length > TITLE_MAX) {
-    fieldState.title = 'error'
-    fieldError.title = `Use no máximo ${TITLE_MAX} caracteres.`
+    fieldError.title = !title
+      ? 'Dê um título para a tarefa.'
+      : `Use no máximo ${TITLE_MAX} caracteres.`
     return
   }
   if (title === task.value.title) {
     editingTitle.value = false
     return
   }
-  await saveField('title', title)
-  if (fieldState.title !== 'error') editingTitle.value = false
+  if (await saveField('title', title)) editingTitle.value = false
 }
 
-// Descrição: salva ao sair do campo, se mudou.
-function commitDescription() {
+// Descrição: texto que vira campo ao clicar; salva ao sair, Esc descarta.
+
+async function startDescriptionEdit() {
+  draft.description = task.value.description ?? ''
+  editingDescription.value = true
+  await nextTick()
+  descriptionInput.value?.focus()
+}
+
+async function commitDescription() {
+  if (!editingDescription.value) return
   const description = draft.description.trim()
-  if (description === (task.value.description ?? '')) return
-  saveField('description', description)
+  if (description === (task.value.description ?? '')) {
+    editingDescription.value = false
+    return
+  }
+  if (await saveField('description', description)) editingDescription.value = false
 }
 
-// Status = coluna: usa o mesmo endpoint do arrasto, indo para o fim da coluna escolhida.
-async function changeColumn() {
+function cancelDescription() {
+  draft.description = task.value.description ?? ''
+  editingDescription.value = false
+}
+
+// Status = coluna: mesmo endpoint do arrasto, indo para o fim da coluna escolhida.
+async function changeColumn(columnId) {
   const id = taskId
-  const columnId = Number(draft.column)
   const target = (kanban.tasksByColumn.get(columnId) ?? []).filter((item) => item.id !== id)
   fieldState.column = 'saving'
-  fieldError.column = ''
   try {
     await kanban.moveTask(id, columnId, target.length)
     if (id !== taskId) return
@@ -168,28 +219,51 @@ async function changeColumn() {
   } catch {
     if (id !== taskId) return
     fieldState.column = 'error'
+    draft.column = task.value.column
   }
 }
 
-function changeAssignee() {
-  saveField('assignee', draft.assignee ? Number(draft.assignee) : null)
+// Prazo: o texto abre o seletor nativo de data (input escondido).
+function openDatePicker() {
+  const input = dateInput.value
+  if (!input) return
+  if (typeof input.showPicker === 'function') input.showPicker()
+  else input.focus()
 }
 
-function changePriority() {
-  saveField('priority', draft.priority)
+function changeDueDate(event) {
+  const value = event.target.value || null
+  if (value === (task.value.due_date ?? null)) return
+  saveField('due_date', value)
 }
 
-function changeDueDate() {
-  if ((draft.due_date || null) === (task.value.due_date ?? null)) return
-  saveField('due_date', draft.due_date || null)
+// Menu ⋯
+
+async function duplicate() {
+  const source = task.value
+  try {
+    const copy = await kanban.createTask({
+      title: `${source.title} (cópia)`.slice(0, TITLE_MAX),
+      description: source.description ?? '',
+      column: source.column,
+      priority: source.priority,
+      assignee: source.assignee ?? null,
+      // Prazo vencido não pode ser gravado de novo: a cópia fica sem prazo.
+      due_date: source.due_date && source.due_date >= today ? source.due_date : null,
+    })
+    router.push({ query: { ...route.query, task: String(copy.id) } })
+  } catch {
+    // Toast exibido pela store.
+  }
 }
 
-function clearDueDate() {
-  draft.due_date = ''
-  changeDueDate()
+function onMenu(action) {
+  if (action === 'open-tab') openInNewTab(taskId)
+  else if (action === 'copy-link') copyLink(taskId)
+  else if (action === 'copy-id') copyId(taskId)
+  else if (action === 'duplicate') duplicate()
+  else if (action === 'delete') confirmDelete.open = true
 }
-
-// Exclusão
 
 async function deleteTask() {
   confirmDelete.busy = true
@@ -198,454 +272,484 @@ async function deleteTask() {
     confirmDelete.open = false
     emit('close')
   } catch {
-    // Toast exibido pela store; o modal continua aberto.
+    // Toast exibido pela store; o painel continua aberto.
   } finally {
     confirmDelete.busy = false
   }
 }
 
-function onMenu(action) {
-  if (action === 'delete') confirmDelete.open = true
-}
+const statusText = (field) => ({ saving: 'Salvando…', saved: 'Salvo' })[fieldState[field]] ?? ''
 </script>
 
 <template>
-  <BaseModal size="lg" hide-header :labelledby="ids.title" @close="emit('close')">
-    <template #header>
-      <header class="task-details__header">
-        <div v-if="task" class="task-details__heading">
-          <span class="task-details__id">#{{ task.id }}</span>
-          <div v-if="editingTitle" class="task-details__title-edit">
+  <BaseDrawer ref="drawer" :labelledby="ids.title" @close="emit('close')">
+    <header class="details__bar">
+      <span class="details__crumb">{{ column?.name ?? 'Tarefa' }}</span>
+      <div class="details__bar-actions">
+        <button
+          v-if="task"
+          type="button"
+          class="details__icon-button"
+          aria-label="Copiar link da tarefa"
+          title="Copiar link"
+          @click="copyLink(taskId)"
+        >
+          <Link :size="17" aria-hidden="true" />
+        </button>
+        <ActionMenu
+          v-if="task"
+          :label="`Mais ações da tarefa ${task.title}`"
+          :items="menuItems"
+          @select="onMenu"
+        />
+        <button
+          type="button"
+          class="details__icon-button"
+          aria-label="Fechar"
+          @click="drawer?.close()"
+        >
+          <X :size="19" aria-hidden="true" />
+        </button>
+      </div>
+    </header>
+
+    <div class="details__scroll">
+      <div v-if="detail.status === 'loading'" class="details__state" role="status">
+        <LoaderCircle class="details__spinner" :size="20" aria-hidden="true" />
+        Carregando tarefa…
+      </div>
+      <div v-else-if="detail.status === 'missing'" class="details__state" role="alert">
+        <h2 :id="ids.title">Tarefa não encontrada</h2>
+        <p>{{ detail.error }}</p>
+        <BaseButton variant="secondary" @click="drawer?.close()">Voltar ao quadro</BaseButton>
+      </div>
+      <div v-else-if="detail.status === 'error'" class="details__state" role="alert">
+        <h2 :id="ids.title">Não foi possível abrir a tarefa</h2>
+        <p>{{ detail.error }}</p>
+        <BaseButton variant="secondary" @click="detail.open(taskId)">Tentar novamente</BaseButton>
+      </div>
+
+      <article v-else-if="task" class="details">
+        <div class="details__heading">
+          <div v-if="editingTitle" class="details__title-edit">
             <label :for="`${ids.field}-title`" class="visually-hidden">Título da tarefa</label>
-            <input
+            <textarea
               :id="`${ids.field}-title`"
               ref="titleInput"
               v-model="draft.title"
-              class="task-details__title-input"
+              class="details__title-input"
+              rows="2"
               :maxlength="TITLE_MAX"
               :aria-invalid="fieldState.title === 'error'"
-              :aria-describedby="fieldError.title ? `${ids.field}-title-error` : undefined"
               @keydown.enter.prevent="commitTitle"
               @keydown.esc.stop.prevent="cancelTitleEdit"
               @blur="commitTitle"
             />
-            <small
-              v-if="fieldError.title"
-              :id="`${ids.field}-title-error`"
-              class="task-details__error"
-              >{{ fieldError.title }}</small
-            >
+            <small v-if="fieldError.title" class="details__error">{{ fieldError.title }}</small>
           </div>
-          <h2 v-else :id="ids.title" class="task-details__title">
+          <h2 v-else :id="ids.title" class="details__title">
             <button
               type="button"
-              class="task-details__title-button"
-              title="Clique para editar o título"
+              class="details__title-button"
+              title="Editar título"
               @click="startTitleEdit"
             >
               {{ task.title }}
-              <span class="visually-hidden">(editar título)</span>
             </button>
           </h2>
-          <span class="task-details__status" aria-live="polite">
-            <template v-if="fieldState.title === 'saving'">Salvando…</template>
-            <template v-else-if="fieldState.title === 'saved'">Salvo</template>
-          </span>
-        </div>
-        <h2 v-else :id="ids.title" class="task-details__title">Detalhes da tarefa</h2>
-
-        <div class="task-details__actions">
-          <ActionMenu
-            v-if="task"
-            :label="`Ações da tarefa ${task.title}`"
-            :items="menuItems"
-            @select="onMenu"
-          />
-          <button
-            type="button"
-            class="task-details__close"
-            aria-label="Fechar"
-            @click="emit('close')"
-          >
-            <X :size="20" aria-hidden="true" />
-          </button>
-        </div>
-      </header>
-    </template>
-
-    <div v-if="detail.status === 'loading'" class="task-details__state" role="status">
-      <LoaderCircle class="task-details__spinner" :size="20" aria-hidden="true" />
-      Carregando tarefa…
-    </div>
-    <div v-else-if="detail.status === 'missing'" class="task-details__state" role="alert">
-      <p>{{ detail.error }}</p>
-      <BaseButton variant="secondary" @click="emit('close')">Voltar ao quadro</BaseButton>
-    </div>
-    <div v-else-if="detail.status === 'error'" class="task-details__state" role="alert">
-      <p>{{ detail.error }}</p>
-      <BaseButton variant="secondary" @click="detail.open(taskId)">Tentar novamente</BaseButton>
-    </div>
-
-    <div v-else-if="task" class="task-details">
-      <section class="task-details__section">
-        <div class="task-details__label-row">
-          <label :for="`${ids.field}-description`" class="task-details__section-title">
-            Descrição
-          </label>
-          <span class="task-details__status" aria-live="polite">
-            <template v-if="fieldState.description === 'saving'">Salvando…</template>
-            <template v-else-if="fieldState.description === 'saved'">Salvo</template>
-          </span>
-        </div>
-        <textarea
-          :id="`${ids.field}-description`"
-          v-model="draft.description"
-          class="task-details__description"
-          rows="3"
-          placeholder="Adicione uma descrição…"
-          :aria-invalid="fieldState.description === 'error'"
-          @blur="commitDescription"
-        />
-        <small v-if="fieldError.description" class="task-details__error">{{
-          fieldError.description
-        }}</small>
-      </section>
-
-      <dl class="task-details__fields">
-        <div class="task-details__row">
-          <dt><label :for="`${ids.field}-column`">Status</label></dt>
-          <dd>
-            <select
-              :id="`${ids.field}-column`"
-              v-model="draft.column"
-              class="task-details__control"
-              :disabled="fieldState.column === 'saving'"
-              @change="changeColumn"
-            >
-              <option v-for="option in kanban.columns" :key="option.id" :value="String(option.id)">
-                {{ option.name }}
-              </option>
-            </select>
-            <span class="task-details__status" aria-live="polite">
-              <template v-if="fieldState.column === 'saving'">Salvando…</template>
-              <template v-else-if="fieldState.column === 'saved'">Salvo</template>
-            </span>
-          </dd>
+          <p class="details__id">
+            #{{ task.id }}
+            <span class="details__status" aria-live="polite">{{ statusText('title') }}</span>
+          </p>
         </div>
 
-        <div class="task-details__row">
-          <dt><label :for="`${ids.field}-assignee`">Responsável</label></dt>
-          <dd>
-            <select
-              :id="`${ids.field}-assignee`"
-              v-model="draft.assignee"
-              class="task-details__control"
-              :aria-invalid="fieldState.assignee === 'error'"
-              @change="changeAssignee"
-            >
-              <option value="">Sem responsável</option>
-              <option
-                v-for="member in kanban.members"
-                :key="member.id"
-                :value="String(member.user)"
-              >
-                {{ member.user_name || member.user_email }}
-              </option>
-            </select>
-            <span class="task-details__status" aria-live="polite">
-              <template v-if="fieldState.assignee === 'saving'">Salvando…</template>
-              <template v-else-if="fieldState.assignee === 'saved'">Salvo</template>
-            </span>
-            <small v-if="fieldError.assignee" class="task-details__error">{{
-              fieldError.assignee
-            }}</small>
-          </dd>
-        </div>
-
-        <div class="task-details__row">
-          <dt><label :for="`${ids.field}-priority`">Prioridade</label></dt>
-          <dd>
-            <span
-              class="task-details__priority"
-              :class="`task-details__priority--${task.priority}`"
-            >
-              {{ priorityLabel }}
-            </span>
-            <select
-              :id="`${ids.field}-priority`"
-              v-model="draft.priority"
-              class="task-details__control"
-              @change="changePriority"
-            >
-              <option v-for="priority in PRIORITIES" :key="priority.value" :value="priority.value">
-                {{ priority.label }}
-              </option>
-            </select>
-            <span class="task-details__status" aria-live="polite">
-              <template v-if="fieldState.priority === 'saving'">Salvando…</template>
-              <template v-else-if="fieldState.priority === 'saved'">Salvo</template>
-            </span>
-          </dd>
-        </div>
-
-        <div class="task-details__row">
-          <dt><label :for="`${ids.field}-due`">Prazo</label></dt>
-          <dd>
-            <input
-              :id="`${ids.field}-due`"
-              v-model="draft.due_date"
-              type="date"
-              class="task-details__control"
-              :min="today"
-              :aria-invalid="fieldState.due_date === 'error'"
-              :aria-describedby="`${ids.field}-due-relative`"
-              @change="changeDueDate"
+        <div class="details__description">
+          <template v-if="editingDescription">
+            <label :for="`${ids.field}-description`" class="visually-hidden">Descrição</label>
+            <textarea
+              :id="`${ids.field}-description`"
+              ref="descriptionInput"
+              v-model="draft.description"
+              class="details__description-input"
+              rows="4"
+              placeholder="Adicione uma descrição…"
+              @keydown.esc.stop.prevent="cancelDescription"
+              @blur="commitDescription"
             />
-            <span
-              :id="`${ids.field}-due-relative`"
-              class="task-details__relative"
-              :class="`task-details__relative--${due.tone}`"
-            >
-              <template v-if="!task.due_date">Sem prazo</template>
-              <template v-else-if="due.relative">({{ due.relative }})</template>
-              <template v-else-if="done">Concluída</template>
-            </span>
-            <button
-              v-if="task.due_date"
-              type="button"
-              class="task-details__clear"
-              @click="clearDueDate"
-            >
-              Remover prazo
-            </button>
-            <span class="task-details__status" aria-live="polite">
-              <template v-if="fieldState.due_date === 'saving'">Salvando…</template>
-              <template v-else-if="fieldState.due_date === 'saved'">Salvo</template>
-            </span>
-            <small v-if="fieldError.due_date" class="task-details__error">{{
-              fieldError.due_date
+            <small v-if="fieldError.description" class="details__error">{{
+              fieldError.description
             }}</small>
-          </dd>
+          </template>
+          <button
+            v-else
+            type="button"
+            class="details__description-text"
+            :class="{ 'details__description-text--empty': !task.description }"
+            @click="startDescriptionEdit"
+          >
+            {{ task.description || 'Adicionar descrição…' }}
+            <span class="visually-hidden">(editar descrição)</span>
+          </button>
+          <span class="details__status" aria-live="polite">{{ statusText('description') }}</span>
         </div>
-      </dl>
 
-      <TaskChecklist />
-      <TaskComments />
-      <TaskLinks />
+        <dl class="details__props">
+          <div class="details__prop">
+            <dt>Status</dt>
+            <dd>
+              <BaseSelect
+                v-model="draft.column"
+                label="Status"
+                hide-label
+                variant="ghost"
+                :options="columnOptions"
+                :disabled="fieldState.column === 'saving'"
+                @change="changeColumn"
+              />
+              <span class="details__status" aria-live="polite">{{ statusText('column') }}</span>
+            </dd>
+          </div>
+          <div class="details__prop">
+            <dt>Responsável</dt>
+            <dd>
+              <BaseSelect
+                v-model="draft.assignee"
+                label="Responsável"
+                hide-label
+                variant="ghost"
+                :options="assigneeOptions"
+                :invalid="fieldState.assignee === 'error'"
+                @change="saveField('assignee', $event)"
+              />
+              <span class="details__status" aria-live="polite">{{ statusText('assignee') }}</span>
+              <small v-if="fieldError.assignee" class="details__error">{{
+                fieldError.assignee
+              }}</small>
+            </dd>
+          </div>
+          <div class="details__prop">
+            <dt>Prioridade</dt>
+            <dd>
+              <BaseSelect
+                v-model="draft.priority"
+                label="Prioridade"
+                hide-label
+                variant="ghost"
+                :options="priorityOptions"
+                @change="saveField('priority', $event)"
+              />
+              <span class="details__status" aria-live="polite">{{ statusText('priority') }}</span>
+            </dd>
+          </div>
+          <div class="details__prop">
+            <dt><label :for="`${ids.field}-due`">Prazo</label></dt>
+            <dd class="details__due">
+              <button type="button" class="details__due-button" @click="openDatePicker">
+                <CalendarDays :size="16" aria-hidden="true" />
+                <span v-if="task.due_date">{{ dueLong }}</span>
+                <span v-else class="details__muted">Definir prazo</span>
+              </button>
+              <input
+                :id="`${ids.field}-due`"
+                ref="dateInput"
+                class="details__date-input"
+                type="date"
+                :value="task.due_date ?? ''"
+                :min="today"
+                tabindex="-1"
+                @change="changeDueDate"
+              />
+              <span
+                v-if="due.relative"
+                class="details__relative"
+                :class="`details__relative--${due.tone}`"
+              >
+                ({{ due.relative }})
+              </span>
+              <button
+                v-if="task.due_date"
+                type="button"
+                class="details__clear"
+                aria-label="Remover prazo"
+                @click="saveField('due_date', null)"
+              >
+                <X :size="14" aria-hidden="true" />
+              </button>
+              <span class="details__status" aria-live="polite">{{ statusText('due_date') }}</span>
+              <small v-if="fieldError.due_date" class="details__error">{{
+                fieldError.due_date
+              }}</small>
+            </dd>
+          </div>
+        </dl>
+
+        <TaskChecklist class="details__section" />
+        <TaskComments class="details__section" />
+        <TaskLinks class="details__section" />
+      </article>
     </div>
 
     <ConfirmDialog
       v-if="confirmDelete.open"
       title="Excluir tarefa"
-      :message="`Excluir a tarefa “${task?.title}”? Checklist, comentários e links dela também serão removidos.`"
+      :message="`Excluir “${task?.title}”? Checklist, comentários e links dela também serão removidos.`"
       confirm-label="Excluir tarefa"
       :busy="confirmDelete.busy"
       @confirm="deleteTask"
       @cancel="confirmDelete.open = false"
     />
-  </BaseModal>
+  </BaseDrawer>
 </template>
 
 <style scoped>
-.task-details__header {
+.details__bar {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-5) var(--space-6) 0;
+  min-height: 3.5rem;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
 }
-.task-details__heading {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: 0;
-}
-.task-details__id {
+.details__crumb {
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
-.task-details__title {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  overflow-wrap: anywhere;
-}
-.task-details__title-button {
-  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2));
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  color: var(--color-text);
-  font: inherit;
-  text-align: left;
-}
-.task-details__title-button:hover {
-  background: var(--color-bg-hover);
-}
-.task-details__title-edit {
+.details__bar-actions {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.task-details__title-input {
-  padding: var(--space-1) var(--space-2);
-  color: var(--color-text);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-}
-.task-details__actions {
-  display: flex;
-  flex-shrink: 0;
   align-items: center;
   gap: var(--space-1);
 }
-.task-details__close {
+.details__icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: calc(var(--space-10) + var(--space-1));
-  height: calc(var(--space-10) + var(--space-1));
-  margin-right: calc(-1 * var(--space-2));
-  border-radius: var(--radius-md);
+  width: 2.25rem;
+  height: 2.25rem;
   color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
 }
-.task-details__close:hover {
+.details__icon-button:hover {
   color: var(--color-text);
   background: var(--color-bg-hover);
 }
-.task-details__state {
+.details__scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.details__state {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-8) var(--space-4);
+  padding: var(--space-10) var(--space-6);
   color: var(--color-text-secondary);
   text-align: center;
 }
-.task-details__spinner {
-  animation: spin 0.8s linear infinite;
+.details__state h2 {
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
 }
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.details__spinner {
+  animation: details-spin 0.8s linear infinite;
 }
-.task-details {
+.details {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6) var(--space-8);
 }
-.task-details__section {
+.details__heading {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
-.task-details__label-row {
+.details__title {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.015em;
+}
+.details__title-button {
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2));
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text);
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-sm);
+}
+.details__title-button:hover {
+  background: var(--color-bg-hover);
+}
+.details__title-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.details__title-input {
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  resize: none;
+  border-color: var(--color-primary);
+}
+.details__title-input:focus,
+.details__description-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+.details__id {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-}
-.task-details__section-title {
+  color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
-.task-details__description {
+.details__description {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-4);
+}
+.details__description-text {
+  margin: 0 calc(-1 * var(--space-2));
+  padding: var(--space-2);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-sm);
+}
+.details__description-text:hover {
+  background: var(--color-bg-hover);
+}
+.details__description-text--empty {
+  color: var(--color-text-secondary);
+}
+.details__description-input {
   padding: var(--space-2) var(--space-3);
   color: var(--color-text);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-base);
+  border-color: var(--color-primary);
 }
-.task-details__fields {
+.details__props {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-1);
+  margin-top: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
 }
-.task-details__row {
+.details__prop {
   display: grid;
-  grid-template-columns: 8rem minmax(0, 1fr);
+  grid-template-columns: 7rem minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-3);
+  min-height: 2.5rem;
 }
-.task-details__row dt {
+.details__prop dt {
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
-.task-details__row dd {
+.details__prop dd {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2) var(--space-3);
+  gap: var(--space-1) var(--space-2);
   min-width: 0;
 }
-.task-details__control {
-  width: auto;
-  min-width: 11rem;
-  max-width: 100%;
-  min-height: 2.5rem;
-  padding: var(--space-1) var(--space-3);
+.details__due {
+  position: relative;
+}
+.details__due-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.25rem;
+  margin-left: calc(-1 * var(--space-2));
+  padding: var(--space-1) var(--space-2);
   color: var(--color-text);
   font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
 }
-.task-details__control:hover:not(:disabled) {
-  border-color: var(--color-primary);
+.details__due-button:hover {
+  background: var(--color-bg-hover);
 }
-.task-details__control[aria-invalid='true'],
-.task-details__title-input[aria-invalid='true'],
-.task-details__description[aria-invalid='true'] {
-  border-color: var(--color-danger);
+.details__due-button svg {
+  color: var(--color-text-secondary);
 }
-.task-details__priority {
-  padding: 0.125rem var(--space-2);
-  border-radius: var(--radius-sm);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+/* Input nativo só para o seletor de data do sistema; fica sob o botão, invisível. */
+.details__date-input {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
 }
-.task-details__priority--high {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-}
-.task-details__priority--medium {
-  color: var(--color-warning);
-  background: var(--color-warning-soft);
-}
-.task-details__priority--low {
-  color: var(--color-success);
-  background: var(--color-success-soft);
-}
-.task-details__relative {
+.details__relative {
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
-.task-details__relative--soon {
+.details__relative--soon {
   color: var(--color-warning);
 }
-.task-details__relative--late {
+.details__relative--late {
   color: var(--color-status-late);
   font-weight: var(--font-weight-semibold);
 }
-.task-details__clear {
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
-  text-decoration: underline;
-}
-.task-details__status {
+.details__clear {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1);
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-full);
+}
+.details__clear:hover {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+.details__muted {
+  color: var(--color-text-secondary);
+}
+.details__status {
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
 }
-.task-details__error {
+.details__error {
   flex-basis: 100%;
   color: var(--color-danger);
   font-size: var(--font-size-xs);
 }
-@media (max-width: 599px) {
-  .task-details__header {
-    padding-inline: var(--space-4);
+.details__section {
+  padding-block: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+.details__section:last-child {
+  border-bottom: 0;
+}
+@keyframes details-spin {
+  to {
+    transform: rotate(360deg);
   }
-  .task-details__row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-1);
+}
+@media (max-width: 599px) {
+  .details,
+  .details__bar {
+    padding-inline: var(--space-4);
   }
 }
 </style>

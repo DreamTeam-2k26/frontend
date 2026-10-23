@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, reactive, ref, useId } from 'vue'
-import { Pencil, Send, Trash2 } from 'lucide-vue-next'
+import { LoaderCircle, Pencil, Send, Trash2 } from 'lucide-vue-next'
 import ActionMenu from '@/components/ui/ActionMenu.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
@@ -28,9 +28,13 @@ const removing = reactive({ comment: null, busy: false })
 
 const userId = computed(() => auth.user?.id ?? null)
 const now = new Date()
+// Mais recentes primeiro, logo abaixo do campo; "Ver todos" mostra o histórico inteiro.
+const PREVIEW = 3
+const showAll = ref(false)
 const ordered = computed(() =>
-  [...detail.comments].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id - b.id),
+  [...detail.comments].sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id),
 )
+const visible = computed(() => (showAll.value ? ordered.value : ordered.value.slice(0, PREVIEW)))
 
 const tooLong = (text) => text.length > BODY_MAX
 const edited = (comment) => new Date(comment.updated_at) - new Date(comment.created_at) > 1000
@@ -107,9 +111,20 @@ function onMenu(comment, action) {
 
 <template>
   <section class="comments" :aria-labelledby="ids.title">
-    <h3 :id="ids.title" class="comments__title">
-      Comentários <span class="comments__count">({{ detail.comments.length }})</span>
-    </h3>
+    <header class="comments__header">
+      <h3 :id="ids.title" class="comments__title">
+        Comentários <span class="comments__count">({{ detail.comments.length }})</span>
+      </h3>
+      <button
+        v-if="ordered.length > PREVIEW"
+        type="button"
+        class="comments__toggle"
+        :aria-expanded="showAll"
+        @click="showAll = !showAll"
+      >
+        {{ showAll ? 'Ver menos' : 'Ver todos' }}
+      </button>
+    </header>
 
     <form class="comments__composer" novalidate @submit.prevent="send">
       <UserAvatar
@@ -118,19 +133,33 @@ function onMenu(comment, action) {
         size="sm"
       />
       <div class="comments__field">
-        <label :for="ids.field" class="visually-hidden">Escreva um comentário</label>
-        <textarea
-          :id="ids.field"
-          v-model="body"
-          class="comments__input"
-          rows="2"
-          placeholder="Escreva um comentário… (Enter envia, Shift+Enter quebra linha)"
-          :disabled="sending"
-          :aria-invalid="Boolean(error)"
-          :aria-describedby="error ? `${ids.field}-error` : undefined"
-          @keydown.enter.exact.prevent="send"
-        />
+        <div class="comments__pill" :class="{ 'comments__pill--invalid': error }">
+          <label :for="ids.field" class="visually-hidden">Escreva um comentário</label>
+          <textarea
+            :id="ids.field"
+            v-model="body"
+            class="comments__input"
+            rows="1"
+            placeholder="Escreva um comentário…"
+            :disabled="sending"
+            :aria-invalid="Boolean(error)"
+            :aria-describedby="`${ids.field}-hint${error ? ` ${ids.field}-error` : ''}`"
+            @keydown.enter.exact.prevent="send"
+          />
+          <button
+            type="submit"
+            class="comments__send"
+            :disabled="!body.trim() || sending"
+            aria-label="Enviar comentário"
+          >
+            <LoaderCircle v-if="sending" class="comments__spin" :size="16" aria-hidden="true" />
+            <Send v-else :size="16" aria-hidden="true" />
+          </button>
+        </div>
         <div class="comments__field-footer">
+          <small :id="`${ids.field}-hint`" class="comments__hint">
+            Enter envia; Shift + Enter quebra a linha
+          </small>
           <small v-if="error" :id="`${ids.field}-error`" class="comments__error">{{ error }}</small>
           <small
             v-if="body.length >= COUNTER_FROM"
@@ -139,16 +168,13 @@ function onMenu(comment, action) {
           >
             {{ body.length }}/{{ BODY_MAX }}
           </small>
-          <BaseButton type="submit" :loading="sending" :disabled="!body.trim()">
-            <Send :size="16" aria-hidden="true" /> Enviar
-          </BaseButton>
         </div>
       </div>
     </form>
 
     <p v-if="!ordered.length" class="comments__empty">Nenhum comentário ainda.</p>
-    <ul v-else class="comments__list">
-      <li v-for="comment in ordered" :key="comment.id" class="comments__item">
+    <TransitionGroup v-else tag="ul" name="comment" class="comments__list">
+      <li v-for="comment in visible" :key="comment.id" class="comments__item">
         <UserAvatar
           :name="comment.author_name || ''"
           :src="comment.author_profile_picture || ''"
@@ -206,7 +232,7 @@ function onMenu(comment, action) {
           <p v-else class="comments__body">{{ comment.body }}</p>
         </div>
       </li>
-    </ul>
+    </TransitionGroup>
 
     <ConfirmDialog
       v-if="removing.comment"
@@ -226,13 +252,26 @@ function onMenu(comment, action) {
   flex-direction: column;
   gap: var(--space-4);
 }
+.comments__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .comments__title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
 }
 .comments__count {
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-regular);
+}
+.comments__toggle {
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+.comments__toggle:hover {
+  text-decoration: underline;
 }
 .comments__composer,
 .comments__item {
@@ -245,33 +284,92 @@ function onMenu(comment, action) {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
   min-width: 0;
 }
+/* Campo em pílula com o botão de enviar embutido. */
+.comments__pill {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  background: var(--color-bg-subtle);
+  border: 1px solid transparent;
+  border-radius: 1.25rem;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.comments__pill:focus-within {
+  background: var(--color-input-bg);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
+}
+.comments__pill--invalid {
+  border-color: var(--color-danger);
+}
 .comments__input {
-  padding: var(--space-2) var(--space-3);
+  flex: 1;
+  min-height: 2.25rem;
+  max-height: 10rem;
+  padding: var(--space-2) 0;
   color: var(--color-text);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-base);
+  background: transparent;
+  border: 0;
+  resize: none;
+  field-sizing: content;
 }
-.comments__input[aria-invalid='true'] {
-  border-color: var(--color-danger);
+.comments__input:focus {
+  outline: none;
+}
+.comments__send {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--color-on-primary);
+  background: var(--color-button-primary-bg);
+  border-radius: var(--radius-full);
+  transition:
+    background-color 0.15s ease,
+    transform 0.1s ease,
+    opacity 0.15s ease;
+}
+.comments__send:hover:not(:disabled) {
+  background: var(--color-button-primary-hover);
+}
+.comments__send:active:not(:disabled) {
+  transform: scale(0.92);
+}
+.comments__send:disabled {
+  opacity: 0.35;
+}
+.comments__spin {
+  animation: comments-spin 0.8s linear infinite;
 }
 .comments__field-footer {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--space-3);
+  padding: 0 var(--space-4);
+}
+.comments__hint,
+.comments__counter {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
 }
 .comments__error {
-  margin-right: auto;
   color: var(--color-danger);
   font-size: var(--font-size-xs);
 }
 .comments__counter {
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
+  margin-left: auto;
 }
 .comments__counter--over {
   color: var(--color-danger);
@@ -291,7 +389,7 @@ function onMenu(comment, action) {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-1) var(--space-2);
-  min-height: 2.25rem;
+  min-height: 2rem;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
 }
@@ -307,6 +405,7 @@ function onMenu(comment, action) {
 .comments__body {
   color: var(--color-text);
   font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -315,9 +414,33 @@ function onMenu(comment, action) {
   flex-direction: column;
   gap: var(--space-2);
 }
+.comments__edit .comments__input {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-input-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-md);
+}
 .comments__edit-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+.comment-enter-active,
+.comment-leave-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+.comment-enter-from {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+.comment-leave-to {
+  opacity: 0;
+}
+@keyframes comments-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

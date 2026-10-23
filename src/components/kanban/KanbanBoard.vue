@@ -1,32 +1,39 @@
 <script setup>
 import { useTemplateRef } from 'vue'
-import { Plus } from 'lucide-vue-next'
+import ColumnComposer from '@/components/kanban/ColumnComposer.vue'
 import KanbanColumn from '@/components/kanban/KanbanColumn.vue'
 import { useBoardDrag } from '@/composables/useBoardDrag'
 
+const composerOpen = defineModel('composerOpen', { type: Boolean, default: false })
+
 defineProps({
-  columns: { type: Array, required: true },
-  // Map columnId -> tarefas visíveis.
-  visibleByColumn: { type: Map, required: true },
-  // Map columnId -> todas as tarefas (para contagem real).
-  tasksByColumn: { type: Map, required: true },
+  // Faixas de buildLanes (tarefas visíveis, já filtradas e ordenadas).
+  lanes: { type: Array, required: true },
+  // Map laneId -> total de tarefas da faixa sem filtro.
+  totals: { type: Map, required: true },
   today: { type: String, required: true },
   filtered: { type: Boolean, default: false },
+  // Gestão de colunas (dono/administrador, agrupamento por status).
   canManage: { type: Boolean, default: false },
+  columns: { type: Array, required: true },
+  columnsById: { type: Map, required: true },
+  composerSaving: { type: Boolean, default: false },
+  composerError: { type: String, default: '' },
 })
 
 const emit = defineEmits({
   'open-task': (id) => id != null,
-  'add-task': (columnId) => columnId != null,
+  'add-task': (lane) => lane?.id != null,
+  'task-action': (payload) => payload?.taskId != null,
   'manage-column': (payload) => payload?.column != null && Boolean(payload.action),
-  'add-column': null,
-  // index: posição entre os cards visíveis sem a tarefa; null = fim da coluna.
-  'move-task': (payload) => payload?.taskId != null && payload?.columnId != null,
+  // index: posição entre os cards visíveis sem a tarefa movida
+  'move-task': (payload) => payload?.taskId != null && payload?.laneId != null,
+  'create-column': (payload) => Boolean(payload?.name),
 })
 
 const board = useTemplateRef('board')
 const { drag, onPointerDown } = useBoardDrag(board, {
-  onDrop: (taskId, columnId, index) => emit('move-task', { taskId, columnId, index }),
+  onDrop: (taskId, laneId, index) => emit('move-task', { taskId, laneId, index }),
 })
 </script>
 
@@ -35,32 +42,38 @@ const { drag, onPointerDown } = useBoardDrag(board, {
     ref="board"
     class="kanban-board"
     role="region"
-    aria-label="Colunas do quadro"
+    aria-label="Quadro de tarefas"
     tabindex="0"
     @pointerdown="onPointerDown"
   >
-    <KanbanColumn
-      v-for="(column, index) in columns"
-      :key="column.id"
-      :column="column"
-      :tasks="visibleByColumn.get(column.id) ?? []"
-      :total="tasksByColumn.get(column.id)?.length ?? 0"
-      :today="today"
-      :filtered="filtered"
-      :can-manage="canManage"
-      :first="index === 0"
-      :last="index === columns.length - 1"
-      :columns="columns"
-      :drag-task-id="drag.taskId"
-      :drop-index="drag.columnId === column.id ? drag.index : null"
-      @open-task="emit('open-task', $event)"
-      @add-task="emit('add-task', column.id)"
-      @move-task="emit('move-task', $event)"
-      @manage="emit('manage-column', { column, action: $event })"
+    <TransitionGroup name="lane">
+      <KanbanColumn
+        v-for="(lane, index) in lanes"
+        :key="lane.id"
+        :lane="lane"
+        :total="totals.get(lane.id) ?? 0"
+        :today="today"
+        :filtered="filtered"
+        :can-manage="canManage && lane.kind === 'column'"
+        :first="index === 0"
+        :last="index === lanes.length - 1"
+        :columns="columns"
+        :columns-by-id="columnsById"
+        :drag-task-id="drag.taskId"
+        :drop-index="drag.laneId === lane.id ? drag.index : null"
+        @open-task="emit('open-task', $event)"
+        @add-task="emit('add-task', lane)"
+        @task-action="emit('task-action', $event)"
+        @manage="emit('manage-column', { column: lane.column, ...$event })"
+      />
+    </TransitionGroup>
+    <ColumnComposer
+      v-if="canManage"
+      v-model:open="composerOpen"
+      :saving="composerSaving"
+      :error="composerError"
+      @create="emit('create-column', $event)"
     />
-    <button v-if="canManage" type="button" class="kanban-board__add" @click="emit('add-column')">
-      <Plus :size="18" aria-hidden="true" /> Nova coluna
-    </button>
   </div>
 </template>
 
@@ -73,7 +86,7 @@ const { drag, onPointerDown } = useBoardDrag(board, {
   align-items: flex-start;
   gap: var(--space-4);
   min-width: 0;
-  padding-bottom: var(--space-3);
+  padding-bottom: var(--space-4);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x proximity;
@@ -81,25 +94,30 @@ const { drag, onPointerDown } = useBoardDrag(board, {
 .kanban-board > * {
   scroll-snap-align: start;
 }
-.kanban-board__add {
-  display: inline-flex;
-  flex: 0 0 14rem;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: 3.5rem;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-}
-.kanban-board__add:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-bg-hover);
-}
 .kanban-board:focus-visible {
   outline-offset: 2px;
+}
+
+/* Colunas novas crescem no lugar; reordenar desliza. */
+.lane-move {
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lane-enter-active {
+  animation: lane-in 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lane-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+.lane-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+@keyframes lane-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
 }
 </style>

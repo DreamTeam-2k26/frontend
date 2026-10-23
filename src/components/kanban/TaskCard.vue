@@ -1,12 +1,17 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, shallowRef, watch } from 'vue'
 import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
+  ArrowRightLeft,
   CalendarDays,
+  CalendarX2,
   CircleCheck,
+  ExternalLink,
+  Link,
   ListChecks,
+  MessageSquare,
+  PanelRight,
+  Trash2,
+  UserRound,
 } from 'lucide-vue-next'
 import ActionMenu from '@/components/ui/ActionMenu.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
@@ -17,63 +22,108 @@ const {
   today,
   done = false,
   columns = [],
-  canMoveUp = false,
-  canMoveDown = false,
 } = defineProps({
   task: { type: Object, required: true },
   // Data de hoje (YYYY-MM-DD) calculada uma vez pela página.
   today: { type: String, required: true },
   // Coluna de categoria "done": tarefa concluída.
   done: { type: Boolean, default: false },
-  // Colunas do quadro, para o menu "Mover" (alternativa ao arrasto).
+  // Colunas do quadro, para "Mover para coluna" (alternativa ao arrasto).
   columns: { type: Array, default: () => [] },
-  canMoveUp: { type: Boolean, default: false },
-  canMoveDown: { type: Boolean, default: false },
 })
 
-// move: 'up' | 'down' | id da coluna de destino
+// action: 'open-tab' | 'copy-link' | 'delete' | 'move:<id da coluna>'
 const emit = defineEmits({
   open: (id) => id != null,
-  move: (target) => target === 'up' || target === 'down' || typeof target === 'number',
+  action: (payload) => payload?.taskId != null && typeof payload.action === 'string',
 })
 
-const moveItems = computed(() => [
-  { id: 'up', label: 'Mover para cima', icon: ArrowUp, disabled: !canMoveUp },
-  { id: 'down', label: 'Mover para baixo', icon: ArrowDown, disabled: !canMoveDown },
-  ...columns
-    .filter((column) => column.id !== task.column)
-    .map((column) => ({ id: column.id, label: `Mover para ${column.name}`, icon: ArrowRight })),
-])
-
-const priorityLabel = computed(
-  () => PRIORITIES.find((item) => item.value === task.priority)?.label ?? '',
-)
+const priority = computed(() => PRIORITIES.find((item) => item.value === task.priority))
 const due = computed(() => dueInfo(task.due_date, today, done))
 const late = computed(() => !done && task.is_overdue)
-const hasChecklist = computed(() => task.checklist_total > 0)
+const checklistComplete = computed(
+  () => task.checklist_total > 0 && task.checklist_done === task.checklist_total,
+)
+
+const menuItems = computed(() => [
+  { id: 'open', label: 'Abrir', icon: PanelRight, shortcut: 'Enter' },
+  { id: 'open-tab', label: 'Abrir em nova aba', icon: ExternalLink },
+  { id: 'copy-link', label: 'Copiar link', icon: Link },
+  { id: 'sep-1', separator: true },
+  {
+    id: 'move',
+    label: 'Mover para coluna',
+    icon: ArrowRightLeft,
+    children: columns.map((column) => ({
+      id: `move:${column.id}`,
+      label: column.name,
+      tone: column.category,
+      checked: column.id === task.column,
+    })),
+  },
+  { id: 'sep-2', separator: true },
+  { id: 'delete', label: 'Excluir tarefa', icon: Trash2, danger: true, shortcut: 'Del' },
+])
+
+function onMenu(id) {
+  if (id === 'open') emit('open', task.id)
+  else emit('action', { taskId: task.id, action: id })
+}
+
+// Atalhos com o card em foco: Delete/Backspace pede para excluir (Enter já abre pelo botão do título).
+function onKeydown(event) {
+  if (event.target.closest('[data-no-drag]')) return
+  if (event.key === 'Delete' || event.key === 'Backspace') {
+    event.preventDefault()
+    emit('action', { taskId: task.id, action: 'delete' })
+  }
+}
+
+// Card que chega em "Concluído" comemora com um pulso curto no check.
+const celebrating = shallowRef(false)
+let celebrateTimer = 0
+watch(
+  () => done,
+  (isDone, wasDone) => {
+    if (!isDone || wasDone) return
+    celebrating.value = true
+    clearTimeout(celebrateTimer)
+    celebrateTimer = setTimeout(() => (celebrating.value = false), 700)
+  },
+)
+onBeforeUnmount(() => clearTimeout(celebrateTimer))
 </script>
 
 <template>
   <article
     class="task-card"
-    :class="{ 'task-card--done': done, 'task-card--late': late }"
+    :class="{
+      'task-card--done': done,
+      'task-card--late': late,
+      'task-card--celebrate': celebrating,
+    }"
     :data-task-id="task.id"
+    @keydown="onKeydown"
   >
     <div class="task-card__top">
-      <span class="task-card__id">#{{ task.id }}</span>
+      <span class="task-card__id">
+        <CircleCheck v-if="done" class="task-card__done-icon" :size="14" aria-hidden="true" />
+        #{{ task.id }}
+        <span v-if="done" class="visually-hidden">(concluída)</span>
+      </span>
       <span
-        v-if="priorityLabel"
+        v-if="priority"
         class="task-card__priority"
-        :class="`task-card__priority--${task.priority}`"
+        :class="`task-card__priority--${priority.value}`"
       >
-        {{ priorityLabel }}
+        <span class="visually-hidden">Prioridade</span> {{ priority.label }}
       </span>
       <ActionMenu
         class="task-card__menu"
         data-no-drag
-        :label="`Mover a tarefa ${task.title}`"
-        :items="moveItems"
-        @select="emit('move', $event)"
+        :label="`Ações da tarefa ${task.title}`"
+        :items="menuItems"
+        @select="onMenu"
       />
     </div>
 
@@ -82,36 +132,43 @@ const hasChecklist = computed(() => task.checklist_total > 0)
         {{ task.title }}
       </button>
     </h3>
+    <p v-if="task.description" class="task-card__description">{{ task.description }}</p>
 
     <div class="task-card__meta">
-      <span v-if="done" class="task-card__chip task-card__chip--done">
-        <CircleCheck :size="14" aria-hidden="true" /> Concluída
-      </span>
       <span
         v-if="due.label"
         class="task-card__chip"
         :class="{ 'task-card__chip--late': late, 'task-card__chip--soon': due.tone === 'soon' }"
         :title="due.relative ? `Prazo: ${due.label} (${due.relative})` : `Prazo: ${due.label}`"
       >
-        <CalendarDays :size="14" aria-hidden="true" />
+        <component :is="late ? CalendarX2 : CalendarDays" :size="14" aria-hidden="true" />
         <span class="visually-hidden">Prazo:</span> {{ due.label }}
-        <strong v-if="late">· Atrasada</strong>
+        <span v-if="late" class="visually-hidden">(atrasada)</span>
       </span>
       <span
-        v-if="hasChecklist"
+        v-if="task.checklist_total"
         class="task-card__chip"
+        :class="{ 'task-card__chip--complete': checklistComplete }"
         :title="`Checklist: ${task.checklist_done} de ${task.checklist_total} itens`"
       >
         <ListChecks :size="14" aria-hidden="true" />
         <span class="visually-hidden">Checklist:</span>
         {{ task.checklist_done }}/{{ task.checklist_total }}
       </span>
-      <span class="task-card__assignee">
-        <template v-if="task.assignee">
-          <UserAvatar :name="task.assignee_name || ''" size="sm" />
-          <span class="visually-hidden">Responsável: {{ task.assignee_name }}</span>
-        </template>
-        <span v-else class="task-card__unassigned">Sem responsável</span>
+      <span
+        v-if="task.comments_count"
+        class="task-card__chip"
+        :title="`${task.comments_count} comentários`"
+      >
+        <MessageSquare :size="14" aria-hidden="true" />
+        <span class="visually-hidden">Comentários:</span> {{ task.comments_count }}
+      </span>
+      <span class="task-card__assignee" :title="task.assignee_name || 'Sem responsável'">
+        <UserAvatar v-if="task.assignee" :name="task.assignee_name || ''" size="sm" />
+        <span v-else class="task-card__nobody"><UserRound :size="14" aria-hidden="true" /></span>
+        <span class="visually-hidden">
+          Responsável: {{ task.assignee ? task.assignee_name : 'ninguém' }}
+        </span>
       </span>
     </div>
   </article>
@@ -122,55 +179,54 @@ const hasChecklist = computed(() => task.checklist_total > 0)
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
   box-shadow: var(--shadow-sm);
+  cursor: grab;
+  user-select: none;
+  -webkit-touch-callout: none;
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
-.task-card {
-  cursor: grab;
-  user-select: none;
-  -webkit-touch-callout: none;
-}
-/* Card de origem durante o arrasto e clone que segue o ponteiro (useBoardDrag). */
-.task-card--dragging {
-  opacity: 0.4;
-}
-.task-card--ghost {
-  cursor: grabbing;
-  box-shadow: var(--shadow-md);
-}
 .task-card:hover {
-  border-color: var(--color-secondary);
-  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
 }
 .task-card:focus-within {
   border-color: var(--color-primary);
 }
-.task-card--late {
-  border-left: 3px solid var(--color-status-late);
+/* Card de origem durante o arrasto e clone que segue o ponteiro (useBoardDrag). */
+.task-card--dragging {
+  opacity: 0.35;
+}
+.task-card--ghost {
+  cursor: grabbing;
+  box-shadow: var(--shadow-lg);
 }
 .task-card__top {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 1.5rem;
+  min-height: 1.75rem;
 }
 .task-card__id {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   margin-right: auto;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
-.task-card__menu {
-  position: relative;
-  z-index: 1;
-  margin-block: calc(-1 * var(--space-1));
+.task-card__done-icon {
+  color: var(--color-status-done);
+}
+.task-card--celebrate .task-card__done-icon {
+  animation: done-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .task-card__priority {
   padding: 0.125rem var(--space-2);
@@ -190,6 +246,24 @@ const hasChecklist = computed(() => task.checklist_total > 0)
   color: var(--color-success);
   background: var(--color-success-soft);
 }
+/* ⋯ só aparece no hover/foco do card (como no GitHub) e fica acima da camada clicável. */
+.task-card__menu {
+  position: relative;
+  z-index: 1;
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) 0;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.task-card:hover .task-card__menu,
+.task-card:focus-within .task-card__menu,
+.task-card__menu:has([aria-expanded='true']) {
+  opacity: 1;
+}
+@media (hover: none) {
+  .task-card__menu {
+    opacity: 1;
+  }
+}
 .task-card__title {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -197,15 +271,13 @@ const hasChecklist = computed(() => task.checklist_total > 0)
 }
 .task-card__open {
   padding: 0;
-  border: 0;
-  background: none;
   color: var(--color-text);
   font: inherit;
   text-align: left;
   overflow-wrap: anywhere;
-  cursor: pointer;
+  cursor: inherit;
 }
-/* O card inteiro abre a tarefa; menus futuros ficam acima desta camada. */
+/* O card inteiro abre a tarefa. */
 .task-card__open::after {
   content: '';
   position: absolute;
@@ -222,13 +294,25 @@ const hasChecklist = computed(() => task.checklist_total > 0)
 .task-card--done .task-card__open {
   color: var(--color-text-secondary);
 }
+.task-card__description {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-base);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
 .task-card__meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-3);
+  margin-top: var(--space-2);
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
 }
 .task-card__chip {
   display: inline-flex;
@@ -242,16 +326,33 @@ const hasChecklist = computed(() => task.checklist_total > 0)
   color: var(--color-status-late);
   font-weight: var(--font-weight-semibold);
 }
-.task-card__chip--done {
+.task-card__chip--complete {
   color: var(--color-status-done);
-  font-weight: var(--font-weight-semibold);
 }
 .task-card__assignee {
   display: inline-flex;
-  align-items: center;
   margin-left: auto;
 }
-.task-card__unassigned {
-  font-style: italic;
+.task-card__nobody {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  color: var(--color-text-secondary);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-full);
+}
+
+@keyframes done-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>

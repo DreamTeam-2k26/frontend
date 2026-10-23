@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, useId } from 'vue'
-import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import ActionMenu from '@/components/ui/ActionMenu.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { useTaskDetailStore } from '@/stores/taskDetail'
@@ -99,23 +99,26 @@ function onMenu(item, action) {
 
 <template>
   <section class="checklist" :aria-labelledby="ids.title">
-    <header class="checklist__header">
-      <h3 :id="ids.title" class="checklist__title">
-        Checklist <span class="checklist__count">({{ detail.checklistDone }}/{{ total }})</span>
-      </h3>
-      <span v-if="total" class="checklist__percent">{{ percent }}%</span>
-    </header>
+    <h3 :id="ids.title" class="checklist__title">
+      Checklist <span class="checklist__count">({{ detail.checklistDone }}/{{ total }})</span>
+    </h3>
 
     <div
       v-if="total"
-      class="checklist__bar"
-      role="progressbar"
-      :aria-valuenow="percent"
-      aria-valuemin="0"
-      aria-valuemax="100"
-      :aria-label="`Checklist ${percent}% concluído`"
+      class="checklist__progress"
+      :class="{ 'checklist__progress--complete': percent === 100 }"
     >
-      <span class="checklist__bar-fill" :style="{ width: `${percent}%` }" />
+      <div
+        class="checklist__bar"
+        role="progressbar"
+        :aria-valuenow="percent"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        :aria-label="`Checklist ${percent}% concluído`"
+      >
+        <span class="checklist__bar-fill" :style="{ width: `${percent}%` }" />
+      </div>
+      <span class="checklist__percent">{{ percent }}%</span>
     </div>
 
     <ul v-if="total" class="checklist__list">
@@ -139,13 +142,16 @@ function onMenu(item, action) {
           />
         </template>
         <template v-else>
-          <input
-            :id="`${ids.add}-item-${item.id}`"
-            type="checkbox"
-            class="checklist__check"
-            :checked="item.is_done"
-            @change="detail.toggleItem(item).catch(() => {})"
-          />
+          <span class="checklist__box">
+            <input
+              :id="`${ids.add}-item-${item.id}`"
+              type="checkbox"
+              class="checklist__check"
+              :checked="item.is_done"
+              @change="detail.toggleItem(item).catch(() => {})"
+            />
+            <Check class="checklist__tick" :size="12" :stroke-width="3" aria-hidden="true" />
+          </span>
           <label
             :for="`${ids.add}-item-${item.id}`"
             class="checklist__text"
@@ -194,24 +200,22 @@ function onMenu(item, action) {
   flex-direction: column;
   gap: var(--space-3);
 }
-.checklist__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
 .checklist__title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
 }
-.checklist__count,
-.checklist__percent {
+.checklist__count {
   color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-regular);
 }
+.checklist__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
 .checklist__bar {
-  height: 0.375rem;
+  flex: 1;
+  height: 0.5rem;
   overflow: hidden;
   border-radius: var(--radius-full);
   background: var(--color-bg-subtle);
@@ -220,30 +224,101 @@ function onMenu(item, action) {
   display: block;
   height: 100%;
   border-radius: inherit;
+  background: var(--color-primary);
+  transition:
+    width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.3s ease;
+}
+/* 100%: a barra fica verde e brilha uma vez. */
+.checklist__progress--complete .checklist__bar-fill {
   background: var(--color-status-done);
-  transition: width 0.2s ease;
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--color-bg-card) 55%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  animation: checklist-shine 1.1s ease-out 1;
+}
+.checklist__percent {
+  min-width: 2.5rem;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.checklist__progress--complete .checklist__percent {
+  color: var(--color-status-done);
+  font-weight: var(--font-weight-semibold);
 }
 .checklist__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
 }
 .checklist__item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   min-height: 2.5rem;
+  margin: 0 calc(-1 * var(--space-2));
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
 }
 .checklist__item:hover {
   background: var(--color-bg-hover);
 }
-.checklist__check {
+/* Checkbox próprio: quadrado sálvia com o check desenhando ao marcar. */
+.checklist__box {
+  position: relative;
+  display: inline-flex;
   flex-shrink: 0;
   width: 1.125rem;
   height: 1.125rem;
+}
+.checklist__check {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  appearance: none;
+  background: var(--color-input-bg);
+  border: 1.5px solid var(--color-disabled);
+  border-radius: 0.3125rem;
   cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
+}
+.checklist__check:hover {
+  border-color: var(--color-primary);
+}
+.checklist__check:active {
+  transform: scale(0.9);
+}
+.checklist__check:checked {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.checklist__check:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+.checklist__tick {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  color: var(--color-on-primary);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.5);
+  transition:
+    opacity 0.15s ease,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.checklist__check:checked + .checklist__tick {
+  opacity: 1;
+  transform: scale(1);
 }
 .checklist__text {
   flex: 1;
@@ -251,18 +326,25 @@ function onMenu(item, action) {
   font-size: var(--font-size-sm);
   overflow-wrap: anywhere;
   cursor: pointer;
+  transition: color 0.2s ease;
 }
 .checklist__item--done .checklist__text {
   color: var(--color-text-secondary);
   text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--color-text-secondary) 60%, transparent);
 }
 .checklist__input {
   flex: 1;
   min-width: 0;
-  min-height: 2.5rem;
+  min-height: 2.25rem;
   padding: var(--space-1) var(--space-3);
   color: var(--color-text);
   font-size: var(--font-size-sm);
+  border-color: var(--color-primary);
+}
+.checklist__input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 18%, transparent);
 }
 .checklist__input[aria-invalid='true'] {
   border-color: var(--color-danger);
@@ -282,19 +364,32 @@ function onMenu(item, action) {
   align-self: flex-start;
   align-items: center;
   gap: var(--space-2);
-  min-height: 2.5rem;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  color: var(--color-primary);
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  color: var(--color-text);
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
 }
 .checklist__add:hover {
+  border-color: var(--color-primary);
   background: var(--color-bg-hover);
 }
 .checklist__error {
   flex-basis: 100%;
   color: var(--color-danger);
   font-size: var(--font-size-xs);
+}
+@keyframes checklist-shine {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
 }
 </style>

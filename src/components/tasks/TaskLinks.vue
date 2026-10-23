@@ -94,13 +94,18 @@ const host = (url) => {
 
 <template>
   <section class="links" :aria-labelledby="ids.title">
-    <h3 :id="ids.title" class="links__title">
-      Links de apoio <span class="links__count">({{ detail.links.length }})</span>
-    </h3>
+    <header class="links__header">
+      <h3 :id="ids.title" class="links__title">
+        Links de apoio <span class="links__count">({{ detail.links.length }})</span>
+      </h3>
+      <button v-if="!adding" type="button" class="links__add" @click="openForm">
+        <Plus :size="15" aria-hidden="true" /> Adicionar
+      </button>
+    </header>
 
     <ul v-if="detail.links.length" class="links__list">
       <li v-for="link in detail.links" :key="link.id" class="links__item">
-        <Link2 class="links__icon" :size="16" aria-hidden="true" />
+        <span class="links__tile" aria-hidden="true"><Link2 :size="16" /></span>
         <a class="links__anchor" :href="link.url" target="_blank" rel="noopener noreferrer">
           <span class="links__name">{{ link.title }}</span>
           <span class="links__host">{{ host(link.url) }}</span>
@@ -145,9 +150,6 @@ const host = (url) => {
         <BaseButton type="submit" :loading="saving">Adicionar link</BaseButton>
       </div>
     </form>
-    <button v-else type="button" class="links__add" @click="openForm">
-      <Plus :size="16" aria-hidden="true" /> Adicionar link
-    </button>
 
     <ConfirmDialog
       v-if="removing.link"
@@ -167,65 +169,118 @@ const host = (url) => {
   flex-direction: column;
   gap: var(--space-3);
 }
+.links__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
 .links__title {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
 }
 .links__count {
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-regular);
 }
+.links__add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: 0 var(--space-3);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.links__add:hover {
+  border-color: var(--color-primary);
+  background: var(--color-bg-hover);
+}
 .links__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 .links__item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 2.75rem;
-  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border);
+  min-height: 3rem;
+  margin: 0 calc(-1 * var(--space-2));
+  padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-md);
 }
-.links__icon {
-  color: var(--color-text-secondary);
+.links__item:hover {
+  background: var(--color-bg-hover);
+}
+.links__tile {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--color-info);
+  background: var(--color-info-soft);
+  border-radius: var(--radius-sm);
 }
 .links__anchor {
-  display: inline-flex;
+  display: flex;
   flex: 1;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-1) var(--space-2);
+  flex-direction: column;
   min-width: 0;
-  color: var(--color-primary);
+  color: var(--color-text);
   font-size: var(--font-size-sm);
 }
+.links__anchor svg {
+  display: none;
+}
 .links__anchor:hover .links__name {
+  color: var(--color-primary-hover);
   text-decoration: underline;
 }
 .links__name {
-  font-weight: var(--font-weight-semibold);
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .links__host {
+  overflow: hidden;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
-  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .links__remove {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: var(--radius-md);
+  width: 2rem;
+  height: 2rem;
   color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.links__item:hover .links__remove,
+.links__remove:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .links__remove {
+    opacity: 1;
+  }
 }
 .links__remove:hover {
   color: var(--color-danger);
-  background: var(--color-bg-hover);
+  background: var(--color-danger-soft);
 }
 .links__empty {
   color: var(--color-text-secondary);
@@ -244,20 +299,5 @@ const host = (url) => {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
-}
-.links__add {
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 2.5rem;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-}
-.links__add:hover {
-  background: var(--color-bg-hover);
 }
 </style>

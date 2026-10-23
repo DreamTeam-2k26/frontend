@@ -8,14 +8,14 @@ const SCROLL_STEP = 14
 
 /**
  * Arrasto de cards entre colunas com Pointer Events (mouse, toque e caneta), sem biblioteca.
- * Marcação esperada: card com `data-task-id`, coluna com `data-column-id`, controles que não
+ * Marcação esperada: card com `data-task-id`, faixa com `data-lane-id`, controles que não
  * iniciam arrasto com `data-no-drag`.
  * @param {import('vue').Ref<HTMLElement|null>} boardRef elemento com rolagem horizontal
- * @param {{ onDrop: (taskId: number, columnId: number, index: number) => void }} options
- *   index = posição de inserção entre os cards visíveis da coluna, sem contar o card arrastado.
+ * @param {{ onDrop: (taskId: number, laneId: string, index: number) => void }} options
+ *   index = posição de inserção entre os cards visíveis da faixa, sem contar o card arrastado.
  */
 export function useBoardDrag(boardRef, { onDrop }) {
-  const drag = reactive({ taskId: null, columnId: null, index: null })
+  const drag = reactive({ taskId: null, laneId: null, index: null })
 
   let pending = null // { taskId, card, pointerId, startX, startY, timer }
   let ghost = null
@@ -31,7 +31,7 @@ export function useBoardDrag(boardRef, { onDrop }) {
     ghost = null
     cancelAnimationFrame(frame)
     frame = 0
-    Object.assign(drag, { taskId: null, columnId: null, index: null })
+    Object.assign(drag, { taskId: null, laneId: null, index: null })
     document.removeEventListener('pointermove', onMove)
     document.removeEventListener('pointerup', onUp)
     document.removeEventListener('pointercancel', onCancel)
@@ -67,23 +67,23 @@ export function useBoardDrag(boardRef, { onDrop }) {
     frame = requestAnimationFrame(autoScroll)
   }
 
-  // Coluna e índice sob o ponteiro.
+  // Faixa e índice sob o ponteiro.
   function update() {
     ghost.style.transform = `translate(${pointer.x - offset.x}px, ${pointer.y - offset.y}px) rotate(2deg)`
 
-    const column = document.elementFromPoint(pointer.x, pointer.y)?.closest('[data-column-id]')
-    if (!column || !boardRef.value?.contains(column)) {
-      Object.assign(drag, { columnId: null, index: null })
+    const lane = document.elementFromPoint(pointer.x, pointer.y)?.closest('[data-lane-id]')
+    if (!lane || !boardRef.value?.contains(lane)) {
+      Object.assign(drag, { laneId: null, index: null })
       return
     }
-    const cards = [...column.querySelectorAll('[data-task-id]')].filter(
+    const cards = [...lane.querySelectorAll('[data-task-id]')].filter(
       (element) => Number(element.dataset.taskId) !== drag.taskId,
     )
     const index = cards.findIndex((element) => {
       const rect = element.getBoundingClientRect()
       return pointer.y < rect.top + rect.height / 2
     })
-    drag.columnId = Number(column.dataset.columnId)
+    drag.laneId = lane.dataset.laneId
     drag.index = index === -1 ? cards.length : index
   }
 
@@ -147,9 +147,9 @@ export function useBoardDrag(boardRef, { onDrop }) {
     if (event.pointerId !== pending?.pointerId) return
     if (ghost) {
       suppressNextClick()
-      const { taskId, columnId, index } = drag
+      const { taskId, laneId, index } = drag
       reset()
-      if (columnId != null) onDrop(taskId, columnId, index)
+      if (laneId != null) onDrop(taskId, laneId, index)
       return
     }
     reset()
