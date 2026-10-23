@@ -97,17 +97,19 @@ function replyLabel(message) {
 
 <template>
   <form class="composer" @submit.prevent="submit">
-    <div v-if="editing || replyTo" class="composer__context">
-      <span class="composer__context-text">
-        <strong>{{
-          editing ? 'Editando mensagem' : `Respondendo a ${replyTo.author?.name ?? 'usuário'}`
-        }}</strong>
-        <span v-if="replyTo">{{ replyLabel(replyTo) }}</span>
-      </span>
-      <button type="button" aria-label="Cancelar" @click="cancel">
-        <X :size="16" aria-hidden="true" />
-      </button>
-    </div>
+    <Transition name="context">
+      <div v-if="editing || replyTo" class="composer__context">
+        <span class="composer__context-text">
+          <strong>{{
+            editing ? 'Editando mensagem' : `Respondendo a ${replyTo.author?.name ?? 'usuário'}`
+          }}</strong>
+          <span v-if="replyTo">{{ replyLabel(replyTo) }}</span>
+        </span>
+        <button type="button" aria-label="Cancelar" @click="cancel">
+          <X :size="16" aria-hidden="true" />
+        </button>
+      </div>
+    </Transition>
 
     <p v-if="fileError" class="composer__error" role="alert">{{ fileError }}</p>
 
@@ -160,7 +162,7 @@ function replyLabel(message) {
   gap: 0.375rem;
   padding: 0.75rem 1.5rem 1rem;
   border-top: 1px solid var(--color-border);
-  background-color: var(--color-background);
+  background-color: var(--chat-bg, var(--color-background));
 }
 
 .composer__context {
@@ -217,7 +219,11 @@ function replyLabel(message) {
   field-sizing: content;
   border: none;
   border-radius: 1.25rem;
-  background-color: color-mix(in srgb, var(--color-primary) 6%, var(--color-background));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 6%,
+    var(--chat-bg, var(--color-background))
+  );
 }
 
 .composer__input:focus {
@@ -256,5 +262,47 @@ function replyLabel(message) {
 .composer__count {
   align-self: flex-end;
   color: var(--color-text-secondary);
+}
+
+.composer__icon,
+.composer__send {
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.15s ease;
+}
+
+.composer__send:active:not(:disabled),
+.composer__icon:active:not(:disabled) {
+  transform: scale(0.88);
+}
+
+.composer__send:not(:disabled) {
+  transform: scale(1);
+}
+
+.composer__send:disabled {
+  transform: scale(0.92);
+}
+
+.composer__input {
+  transition:
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .context-enter-active,
+  .context-leave-active {
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .context-enter-from,
+  .context-leave-to {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
 }
 </style>

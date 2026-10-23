@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, useTemplateRef, watch } from 'vue'
 import { ChevronUp } from 'lucide-vue-next'
 import { dayKey, formatDay } from '../lib/format'
 import ImageViewer from './ImageViewer.vue'
@@ -22,8 +22,12 @@ const emit = defineEmits(['load-older', 'reply', 'edit', 'delete'])
 const scroller = useTemplateRef('scroller')
 const nearBottom = ref(true)
 const viewerId = ref(null)
+// Mensagens que chegaram com a sala aberta (recebem a animação de entrada).
+const freshIds = reactive(new Set())
 
 function statusOf(message) {
+  if (message.pending) return 'pending'
+
   return messageStatus(message, { members, presence, authorId: meId })
 }
 
@@ -49,7 +53,12 @@ const rows = computed(() => {
 
     const authorId = message.author?.id ?? null
 
-    result.push({ kind: 'message', key: message.id, message, showAuthor: authorId !== lastAuthor })
+    result.push({
+      kind: 'message',
+      key: message._key ?? message.id,
+      message,
+      showAuthor: authorId !== lastAuthor,
+    })
     lastAuthor = authorId
   }
 
@@ -70,16 +79,23 @@ function scrollToBottom() {
 
 // Nova mensagem: acompanha o fim da conversa só se a pessoa já estava lá (ou se a mensagem é dela).
 watch(
-  () => messages[messages.length - 1]?.id,
-  async (id, previous) => {
-    if (id === undefined || id === previous) return
+  () => {
+    const last = messages[messages.length - 1]
+
+    return last ? (last._key ?? last.id) : undefined
+  },
+  async (key, previous) => {
+    if (key === undefined || key === previous) return
 
     const last = messages[messages.length - 1]
     const follow = nearBottom.value || last?.author?.id === meId
 
+    if (previous !== undefined) freshIds.add(key)
+
     await nextTick()
 
-    if (follow || previous === undefined) scrollToBottom()
+    if (previous === undefined) scrollToBottom()
+    else if (follow) followBottom()
   },
 )
 
@@ -100,7 +116,27 @@ async function loadOlder() {
   )
 }
 
-onMounted(scrollToBottom)
+// O balão novo cresce em altura (empurrando as mensagens de cima); acompanha o fim durante a animação.
+function followBottom(duration = 500) {
+  const el = scroller.value
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+
+  if (!el) return
+
+  if (reduced) return scrollToBottom()
+
+  const start = performance.now()
+
+  function frame(time) {
+    el.scrollTop = el.scrollHeight
+
+    if (time - start < duration && scroller.value) requestAnimationFrame(frame)
+  }
+
+  requestAnimationFrame(frame)
+}
+
+onMounted(() => scrollToBottom())
 </script>
 
 <template>
@@ -135,6 +171,7 @@ onMounted(scrollToBottom)
           :own="row.message.author?.id === meId"
           :status="row.message.author?.id === meId ? statusOf(row.message) : null"
           :show-author="row.showAuthor"
+          :fresh="freshIds.has(row.key)"
           @reply="emit('reply', $event)"
           @edit="emit('edit', $event)"
           @delete="emit('delete', $event)"
@@ -160,13 +197,13 @@ onMounted(scrollToBottom)
   padding: 1rem 1.5rem;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background-color: var(--color-background);
+  background-color: var(--chat-deep, var(--chat-bg, var(--color-background)));
 }
 
 .list__items {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0;
 }
 
 .list__state {
@@ -188,7 +225,11 @@ onMounted(scrollToBottom)
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
   border-radius: 999px;
-  background-color: color-mix(in srgb, var(--color-primary) 7%, var(--color-background));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 7%,
+    var(--chat-bg, var(--color-background))
+  );
 }
 
 .list__older:hover:not(:disabled) {
@@ -197,8 +238,27 @@ onMounted(scrollToBottom)
 
 .list__day {
   align-self: center;
-  margin: 0.5rem 0;
+  margin: 0.5rem 0 1.75rem;
   color: var(--color-text-secondary);
   font-size: 0.8125rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .list {
+    animation: list-in 0.25s ease-out;
+  }
+}
+
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+}
+
+.list__older {
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 </style>

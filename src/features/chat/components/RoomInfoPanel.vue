@@ -189,7 +189,7 @@ function confirmLeave() {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background-color: var(--color-background);
+  background-color: var(--chat-bg, var(--color-background));
 }
 
 .info__header {
@@ -304,7 +304,11 @@ function confirmLeave() {
   color: var(--color-primary);
   font-size: 0.75rem;
   border-radius: 999px;
-  background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-background));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 12%,
+    var(--chat-bg, var(--color-background))
+  );
 }
 
 .member__actions {

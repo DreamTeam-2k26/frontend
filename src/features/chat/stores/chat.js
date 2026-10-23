@@ -18,6 +18,7 @@ import {
   typingUsers,
 } from '../lib/chatState'
 import { apiErrorMessage } from '../lib/errors'
+import ChatToast from '../components/ChatToast.vue'
 import { messagePreview } from '../lib/format'
 import { ChatSocket, STATUS } from '../lib/socketClient'
 import { chatSocketUrl } from '../lib/urls'
@@ -36,6 +37,9 @@ export const useChatStore = defineStore('chatStore', () => {
   const historyError = ref('')
   const details = reactive({}) // id da sala -> RoomDetailSerializer (membros)
   const now = ref(Date.now())
+  // Mensagens de texto enviadas e ainda não confirmadas pelo servidor: sala -> [mensagem provisória].
+  const pending = reactive({})
+  let pendingSeq = 0
 
   let socket = null
   let ticker = null
@@ -45,7 +49,12 @@ export const useChatStore = defineStore('chatStore', () => {
 
   const rooms = computed(() => sortedRooms(state))
   const activeRoom = computed(() => state.rooms[activeRoomId.value] ?? null)
-  const activeMessages = computed(() => state.messages[activeRoomId.value] ?? null)
+  const activeMessages = computed(() => {
+    const entry = state.messages[activeRoomId.value] ?? null
+    const queue = pending[activeRoomId.value]
+
+    return entry && queue?.length ? { ...entry, items: [...entry.items, ...queue] } : entry
+  })
   const unreadTotal = computed(() => totalUnread(state))
   const typingNow = computed(() => typingUsers(state, activeRoomId.value, now.value))
   const isConnected = computed(() => connection.value === STATUS.OPEN)
@@ -95,6 +104,7 @@ export const useChatStore = defineStore('chatStore', () => {
     Object.assign(state, createState())
     clearAttachmentCache()
     for (const key of Object.keys(details)) delete details[key]
+    for (const key of Object.keys(pending)) delete pending[key]
 
     me.value = null
     activeRoomId.value = null
@@ -125,7 +135,59 @@ export const useChatStore = defineStore('chatStore', () => {
     }
   }
 
-  function handleEvent(event) {
+  function addPending(roomId, body, replyToId) {
+    const source = replyToId ? state.messages[roomId]?.items.find((m) => m.id === replyToId) : null
+    const item = {
+      id: -(pendingSeq += 1),
+      room: roomId,
+      author: { id: me.value.id, name: me.value.name, avatar: me.value.avatar ?? null },
+      body,
+      file: null,
+      created: new Date().toISOString(),
+      edited_at: null,
+      is_deleted: false,
+      read: false,
+      pending: true,
+      reply_to: source
+        ? {
+            id: source.id,
+            author: source.author,
+            body: source.body,
+            is_deleted: source.is_deleted,
+            has_file: Boolean(source.file),
+          }
+        : null,
+    }
+
+    ;(pending[roomId] ??= []).push(item)
+
+    return item
+  }
+
+  function removePending(roomId, id) {
+    const queue = pending[roomId]
+    const index = queue ? queue.findIndex((item) => item.id === id) : -1
+
+    if (index >= 0) queue.splice(index, 1)
+
+    return index >= 0
+  }
+
+  function handleEvent(original) {
+    let event = original
+
+    // A confirmação do servidor "assenta" a mensagem provisória (mesmo elemento, sem recriar).
+    if (event.type === 'message.new' && event.message?.author?.id === me.value?.id) {
+      const queue = pending[event.room]
+      const index = queue ? queue.findIndex((item) => item.body === event.message.body) : -1
+
+      if (index >= 0) {
+        const [item] = queue.splice(index, 1)
+
+        event = { ...event, message: { ...event.message, _key: item.id } }
+      }
+    }
+
     const effects = applyEvent(state, event, {
       meId: me.value?.id ?? null,
       activeRoomId: activeRoomId.value,
@@ -138,7 +200,10 @@ export const useChatStore = defineStore('chatStore', () => {
       if (effect.type === 'read') markActiveRead()
       if (effect.type === 'removed') handleRemoved(effect.room)
       if (effect.type === 'notify') notifyMessage(effect.room, effect.message)
-      if (effect.type === 'error') toast.error(effect.detail || 'Ação não permitida.')
+      if (effect.type === 'error') {
+        pending[activeRoomId.value] = []
+        toast.error(effect.detail || 'Ação não permitida.')
+      }
     }
   }
 
@@ -149,16 +214,19 @@ export const useChatStore = defineStore('chatStore', () => {
 
     toast.info(
       () =>
-        h('div', { class: 'chat-toast' }, [
-          h('strong', `${roomName}`),
-          h(
-            'div',
-            { style: 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap' },
-            `${author}: ${messagePreview(message)}`,
-          ),
-        ]),
+        h(ChatToast, {
+          room: roomName,
+          author,
+          avatar: message.author?.avatar ?? null,
+          preview: messagePreview(message),
+        }),
       {
         toastId: `chat-message-${message.id}`,
+        toastClassName: 'chat-toast-card',
+        position: 'top-center',
+        transition: 'slide',
+        icon: false,
+        closeButton: false,
         autoClose: 5000,
         onClick: () => router.push({ name: 'chat', params: { roomId } }),
       },
@@ -287,7 +355,9 @@ export const useChatStore = defineStore('chatStore', () => {
     const roomId = activeRoomId.value
     const text = body.trim()
 
-    if (!roomId || !text) return false
+    if (!roomId || !text || !me.value) return false
+
+    const item = addPending(roomId, text, replyTo)
 
     if (
       socket?.send({
@@ -297,6 +367,13 @@ export const useChatStore = defineStore('chatStore', () => {
         ...(replyTo ? { reply_to: replyTo } : {}),
       })
     ) {
+      // Sem confirmação em 20 s: tira a mensagem provisória e avisa.
+      setTimeout(() => {
+        if (removePending(roomId, item.id)) {
+          toast.error('Não foi possível confirmar o envio da mensagem.')
+        }
+      }, 20_000)
+
       return true
     }
 
@@ -304,9 +381,11 @@ export const useChatStore = defineStore('chatStore', () => {
       const message = await chatApi.sendMessage(roomId, { body: text, replyTo })
 
       handleEvent({ type: 'message.new', room: roomId, message })
+      removePending(roomId, item.id)
 
       return true
     } catch (error) {
+      removePending(roomId, item.id)
       toast.error(apiErrorMessage(error))
 
       return false

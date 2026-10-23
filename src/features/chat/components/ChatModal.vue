@@ -96,4 +96,27 @@ function onBackdropClick(event) {
   padding: 0.875rem 1.25rem;
   border-top: 1px solid var(--color-border);
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .modal[open] {
+    animation: modal-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .modal[open]::backdrop {
+    animation: backdrop-in 0.24s ease-out;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
 </style>

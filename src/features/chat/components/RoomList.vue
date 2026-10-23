@@ -68,8 +68,13 @@ function preview(room) {
     </div>
     <p v-else-if="!visible.length" class="rooms__state">Nenhuma sala encontrada.</p>
 
-    <ul class="rooms__list">
-      <li v-for="room in visible" :key="room.id">
+    <TransitionGroup tag="ul" name="rooms" class="rooms__list">
+      <li
+        v-for="(room, index) in visible"
+        :key="room.id"
+        class="rooms__item"
+        :style="{ '--i': Math.min(index, 8) }"
+      >
         <button
           type="button"
           class="room"
@@ -87,18 +92,21 @@ function preview(room) {
             </span>
             <span class="room__bottom">
               <span class="room__preview">{{ preview(room) }}</span>
-              <span
-                v-if="room.unread > 0"
-                class="room__badge"
-                :aria-label="`${room.unread} não lidas`"
-              >
-                {{ room.unread > 99 ? '99+' : room.unread }}
-              </span>
+              <Transition name="badge" mode="out-in">
+                <span
+                  v-if="room.unread > 0"
+                  :key="room.unread"
+                  class="room__badge"
+                  :aria-label="`${room.unread} não lidas`"
+                >
+                  {{ room.unread > 99 ? '99+' : room.unread }}
+                </span>
+              </Transition>
             </span>
           </span>
         </button>
       </li>
-    </ul>
+    </TransitionGroup>
   </section>
 </template>
 
@@ -107,7 +115,7 @@ function preview(room) {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background-color: var(--color-background);
+  background-color: var(--chat-bg, var(--color-background));
 }
 
 .rooms__header {
@@ -130,7 +138,11 @@ function preview(room) {
 }
 
 .rooms__new:hover {
-  background-color: color-mix(in srgb, var(--color-primary) 10%, var(--color-background));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 10%,
+    var(--chat-bg, var(--color-background))
+  );
 }
 
 .rooms__search {
@@ -149,7 +161,11 @@ function preview(room) {
   padding: 0.5rem 0.75rem 0.5rem 2.25rem;
   border: none;
   border-radius: 999px;
-  background-color: color-mix(in srgb, var(--color-primary) 6%, var(--color-background));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 6%,
+    var(--chat-bg, var(--color-background))
+  );
 }
 
 .rooms__state {
@@ -175,6 +191,10 @@ function preview(room) {
   border-top: 1px solid var(--color-border);
 }
 
+.rooms__list {
+  position: relative;
+}
+
 .rooms__list li {
   border-bottom: 1px solid var(--color-border);
 }
@@ -190,7 +210,11 @@ function preview(room) {
 
 .room:hover,
 .room--active {
-  background-color: color-mix(in srgb, var(--color-primary) 7%, var(--color-background));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 7%,
+    var(--chat-bg, var(--color-background))
+  );
 }
 
 .room__body {
@@ -240,6 +264,73 @@ function preview(room) {
   line-height: 1.25;
   text-align: center;
   border-radius: 0.5rem;
-  background-color: color-mix(in srgb, var(--color-primary) 14%, var(--color-background));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 14%,
+    var(--chat-bg, var(--color-background))
+  );
+}
+
+/* Animações: salas entram em cascata, trocam de lugar suavemente quando chega mensagem nova. */
+.room {
+  transition: background-color 0.15s ease;
+}
+
+.rooms__new,
+.rooms__search input {
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.rooms__new:active {
+  transform: scale(0.9);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rooms__item {
+    animation: room-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
+  }
+
+  .rooms-move {
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .rooms-leave-active {
+    position: absolute;
+    width: 100%;
+    transition: opacity 0.2s ease;
+  }
+
+  .rooms-leave-to {
+    opacity: 0;
+  }
+
+  .badge-enter-active {
+    transition:
+      transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1),
+      opacity 0.2s ease-out;
+  }
+
+  .badge-leave-active {
+    transition: opacity 0.1s ease-in;
+  }
+
+  .badge-enter-from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  .badge-leave-to {
+    opacity: 0;
+  }
+}
+
+@keyframes room-in {
+  from {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+  }
 }
 </style>
