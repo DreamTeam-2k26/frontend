@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { ChevronRight, PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
 import AppBrand from './AppBrand.vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { useSidebar } from '@/composables/useSidebar'
@@ -26,10 +26,7 @@ const toggleLabel = computed(() => (collapsed.value ? 'Expandir menu' : 'Recolhe
         <component :is="toggleIcon" :size="20" aria-hidden="true" />
       </button>
       <AppBrand />
-      <template v-if="pageTitle">
-        <ChevronRight class="header__separator" :size="16" aria-hidden="true" />
-        <span class="header__title">{{ pageTitle }}</span>
-      </template>
+      <span v-if="pageTitle" class="header__title">{{ pageTitle }}</span>
     </div>
 
     <div v-if="$slots.actions" class="header__actions">
@@ -81,12 +78,6 @@ const toggleLabel = computed(() => (collapsed.value ? 'Expandir menu' : 'Recolhe
   background-color: var(--color-bg-hover);
 }
 
-/* Marca › página atual, como o breadcrumb do Figma. */
-.header__separator {
-  flex-shrink: 0;
-  color: var(--color-text-secondary);
-}
-
 .header__title {
   min-width: 0;
   overflow: hidden;
@@ -116,7 +107,6 @@ const toggleLabel = computed(() => (collapsed.value ? 'Expandir menu' : 'Recolhe
   }
 
   /* Sem espaço para marca + título; a página e a barra inferior já indicam onde se está. */
-  .header__separator,
   .header__title {
     display: none;
   }
