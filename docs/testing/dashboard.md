@@ -9,7 +9,7 @@ A rota autenticada `/` usa a HomeView existente, o layout, a store de autentica�
 - Os únicos indicadores agregados são o total de projetos e quantos têm papel `owner`/`admin`. Ambos usam a lista completa, inclusive projetos além da primeira página.
 - `RecentProjects` reutiliza `ProjectCard` no modo compacto, preservando o comportamento padrão de Meus Projetos. Progresso e participantes só aparecem quando fornecidos pelo backend. Não há cálculo de tarefas ou porcentagens a partir de páginas parciais.
 - `Novo projeto` reutiliza `ProjectForm`, `createProject` e os validadores existentes. Trata erros de campos e restaura o foco ao fechar. Após POST, revalida a lista; erro no GET não repete a criação.
-- `Ver todos` aponta para Meus Projetos. Os cards reutilizam a rota `/projects/:id` e a tela de detalhes já integradas na dev pela #27, sem criar uma tela paralela.
+- `Ver todos` aponta para Meus Projetos. Com dados reais, os cards reutilizam a rota `/projects/:id` e a tela de detalhes já integrada pela #26, sem criar uma tela paralela.
 - A saudação usa `useAuthStore`/`fetchUser`, com nome apenas quando disponível e fallback neutro se o perfil falhar. O layout e a Home compartilham o pedido de perfil pela store.
 - Convites e ações de aceitar/recusar da referência não são exibidos: não há serviço/contrato correspondente disponível nesta base.
 - Indicadores de produtividade e tarefas agregadas dependem da [issue backend #15](https://github.com/DreamTeam-2k26/backend/issues/15). Foram omitidos; a seção de visão rápida admite novos cartões quando houver dados suficientes.
@@ -35,4 +35,6 @@ A criação e consulta contra o backend real dependem de uma sessão válida e d
 
 ## Demonstração em desenvolvimento
 
-Por solicitação do usuário, a Home permanece populada com três projetos fictícios em `npm run dev`, com aviso de demonstração. Esses dados não são gravados no backend e não entram no fluxo de produção. Para consultar a API real em desenvolvimento, configure `VITE_DASHBOARD_DEMO=false` no ambiente local. A Home ocupa toda a largura disponível ao lado da sidebar.
+Por solicitação do usuário, a Home permanece populada com três projetos fictícios em `npm run dev`, com aviso de demonstração. **Nesse modo, o botão de criar projeto fica desabilitado e os projetos de exemplo não podem ser abertos**, pois seus IDs não existem na API. O link *Ver todos* continua levando à página real de Meus Projetos. Isso evita criar dados reais que não aparecem no painel demonstrativo ou abrir projetos fictícios que sempre retornariam 404. Esses dados não são gravados no backend nem entram em produção.
+
+Para testar **criação e navegação reais** em desenvolvimento, configure `VITE_DASHBOARD_DEMO=false` e reinicie o Vite. Em produção a Home sempre usa a API real. A Home ocupa toda a largura disponível ao lado da Sidebar.
