@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { Plus, Search } from 'lucide-vue-next'
+import { Search } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
 import { formatListTime, messagePreview } from '../lib/format'
 import ChatAvatar from './ChatAvatar.vue'
 
@@ -11,7 +12,7 @@ const { rooms, activeId, loading, error } = defineProps({
   error: { type: String, default: '' },
 })
 
-const emit = defineEmits(['select', 'new', 'retry'])
+const emit = defineEmits(['select', 'retry'])
 
 const filter = ref('')
 
@@ -36,15 +37,6 @@ function preview(room) {
   <section class="rooms" aria-label="Salas de conversa">
     <header class="rooms__header">
       <h2 class="rooms__title">Salas de conversa</h2>
-      <button
-        type="button"
-        class="rooms__new"
-        aria-label="Nova sala"
-        title="Nova sala"
-        @click="emit('new')"
-      >
-        <Plus :size="20" aria-hidden="true" />
-      </button>
     </header>
 
     <div class="rooms__search">
@@ -63,8 +55,8 @@ function preview(room) {
       <button type="button" class="rooms__link" @click="emit('retry')">Tentar novamente</button>
     </div>
     <div v-else-if="!rooms.length" class="rooms__state">
-      <p>Você ainda não participa de nenhuma sala.</p>
-      <button type="button" class="rooms__link" @click="emit('new')">Criar uma sala</button>
+      <p>Cada projeto tem a sua sala de conversa. Participe de um projeto para ver a sala aqui.</p>
+      <RouterLink class="rooms__link" :to="{ name: 'projects' }">Ver meus projetos</RouterLink>
     </div>
     <p v-else-if="!visible.length" class="rooms__state">Nenhuma sala encontrada.</p>
 
@@ -128,21 +120,6 @@ function preview(room) {
 .rooms__title {
   font-size: 1.125rem;
   font-weight: 600;
-}
-
-.rooms__new {
-  display: inline-flex;
-  padding: 0.375rem;
-  color: var(--color-text);
-  border-radius: 50%;
-}
-
-.rooms__new:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--color-primary) 10%,
-    var(--chat-bg, var(--color-background))
-  );
 }
 
 .rooms__search {
@@ -276,15 +253,10 @@ function preview(room) {
   transition: background-color 0.15s ease;
 }
 
-.rooms__new,
 .rooms__search input {
   transition:
     background-color 0.15s ease,
     box-shadow 0.15s ease;
-}
-
-.rooms__new:active {
-  transform: scale(0.9);
 }
 
 @media (prefers-reduced-motion: no-preference) {

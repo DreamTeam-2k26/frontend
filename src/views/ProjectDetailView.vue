@@ -1,14 +1,29 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
 import { getProject, getProjectOverview } from '@/api/projects'
 import { projectError } from '@/components/projects/projectState'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectHeader from '@/components/projects/ProjectHeader.vue'
 import ProjectOverview from '@/components/projects/ProjectOverview.vue'
+import ProjectMembers from '@/components/projects/ProjectMembers.vue'
+import ProjectChat from '@/components/projects/ProjectChat.vue'
 
 const route = useRoute()
+const router = useRouter()
+const TABS = [
+  { key: 'geral', label: 'Visão geral' },
+  { key: 'membros', label: 'Membros' },
+  { key: 'conversa', label: 'Conversa' },
+]
+const tab = computed(() => {
+  const key = String(route.query.aba ?? '')
+  return TABS.some((item) => item.key === key) ? key : 'geral'
+})
+function selectTab(key) {
+  router.replace({ query: { ...route.query, aba: key === 'geral' ? undefined : key } })
+}
 const project = ref(null)
 const loading = ref(true)
 const error = ref('')
@@ -65,6 +80,15 @@ async function load() {
   }
 }
 
+async function reloadOverview() {
+  if (!project.value) return
+  try {
+    overview.value = await getProjectOverview(project.value.id)
+  } catch {
+    // A visão geral é recarregada ao voltar para a aba.
+  }
+}
+
 watch(() => route.params.id, load, { immediate: true })
 onBeforeUnmount(() => {
   request++
@@ -97,7 +121,35 @@ onBeforeUnmount(() => {
     </div>
     <template v-else-if="project">
       <ProjectHeader :project="project" />
-      <ProjectOverview :project="project" :overview="overview" :loading="overviewLoading" />
+      <div class="project-detail__tabs" role="tablist" aria-label="Seções do projeto">
+        <button
+          v-for="item in TABS"
+          :id="`tab-${item.key}`"
+          :key="item.key"
+          type="button"
+          role="tab"
+          :aria-selected="tab === item.key"
+          :aria-controls="`panel-${item.key}`"
+          :class="{ 'is-active': tab === item.key }"
+          @click="selectTab(item.key)"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+      <div :id="`panel-${tab}`" role="tabpanel" :aria-labelledby="`tab-${tab}`">
+        <ProjectOverview
+          v-if="tab === 'geral'"
+          :project="project"
+          :overview="overview"
+          :loading="overviewLoading"
+        />
+        <ProjectMembers
+          v-else-if="tab === 'membros'"
+          :project="project"
+          @changed="reloadOverview"
+        />
+        <ProjectChat v-else :project-id="project.id" />
+      </div>
     </template>
   </section>
 </template>
@@ -120,6 +172,28 @@ onBeforeUnmount(() => {
 }
 .project-detail__back:hover {
   color: var(--color-primary-hover);
+}
+.project-detail__tabs {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+.project-detail__tabs button {
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.project-detail__tabs button:hover {
+  color: var(--color-text);
+}
+.project-detail__tabs button.is-active {
+  color: var(--color-primary-hover);
+  border-bottom-color: var(--color-primary);
 }
 .project-detail__state {
   display: flex;

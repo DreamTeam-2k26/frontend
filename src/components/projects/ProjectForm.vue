@@ -2,6 +2,7 @@
 import { nextTick, onMounted, ref } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
+import UserPicker from '@/components/projects/UserPicker.vue'
 import { useForm } from '@/composables/useForm'
 import { required } from '@/utils/validators'
 
@@ -13,6 +14,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['save', 'close'])
 const dialog = ref(null)
+const invitees = ref([])
 const { values, errors, validateField, handleSubmit } = useForm(
   { name: props.project?.name ?? '', description: props.project?.description ?? '' },
   {
@@ -23,7 +25,12 @@ const { values, errors, validateField, handleSubmit } = useForm(
   },
 )
 const submit = handleSubmit((data) => {
-  if (!props.saving) emit('save', { name: data.name.trim(), description: data.description.trim() })
+  if (!props.saving)
+    emit('save', {
+      name: data.name.trim(),
+      description: data.description.trim(),
+      invitees: invitees.value,
+    })
 })
 function save() {
   submit()
@@ -68,6 +75,10 @@ onMounted(() => dialog.value.showModal())
           fieldErrors.description
         }}</small>
       </div>
+      <div v-if="!project" class="invite">
+        <UserPicker v-model="invitees" label="Convidar pessoas (opcional)" :disabled="saving" />
+        <small>Quem você escolher recebe um convite e entra como Membro ao aceitar.</small>
+      </div>
       <div class="actions">
         <BaseButton variant="secondary" :disabled="saving" @click="emit('close')"
           >Cancelar</BaseButton
@@ -96,13 +107,18 @@ onMounted(() => dialog.value.showModal())
   background: color-mix(in srgb, var(--color-text) 45%, transparent);
 }
 form,
-.description {
+.description,
+.invite {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
 }
-.description {
+.description,
+.invite {
   gap: var(--space-2);
+}
+.invite small {
+  color: var(--color-text-secondary);
 }
 label {
   font-size: var(--font-size-sm);

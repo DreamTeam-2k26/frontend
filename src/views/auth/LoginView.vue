@@ -24,9 +24,7 @@ async function onSubmit(credentials) {
     // Store já mostra toast de erro.
   }
 }
-
 </script>
-
 
 <template>
   <AuthCard title="Bem-vindo ao Fluxo" subtitle="Entre na sua conta para continuar de onde parou.">
