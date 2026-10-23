@@ -25,7 +25,7 @@ const toggleLabel = computed(() => (collapsed.value ? 'Expandir menu' : 'Recolhe
       >
         <component :is="toggleIcon" :size="20" aria-hidden="true" />
       </button>
-      <AppBrand />
+      <AppBrand class="header__brand" />
       <span v-if="pageTitle" class="header__title">{{ pageTitle }}</span>
     </div>
 
@@ -48,6 +48,10 @@ const toggleLabel = computed(() => (collapsed.value ? 'Expandir menu' : 'Recolhe
   padding: 0 1rem;
   background-color: var(--color-background);
   border-bottom: 1px solid var(--color-border);
+}
+
+.header__brand {
+  display: none;
 }
 
 .header__start {
@@ -86,6 +90,9 @@ const toggleLabel = computed(() => (collapsed.value ? 'Expandir menu' : 'Recolhe
 
 /* Breakpoint igual ao do DefaultLayout. */
 @media (max-width: 767px) {
+  .header__brand {
+    display: inline-flex;
+  }
   .header__toggle {
     display: none;
   }

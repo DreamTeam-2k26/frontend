@@ -11,13 +11,16 @@ export function useNavigation() {
 
   const items = router
     .getRoutes()
-    .filter((record) => record.name && record.meta.nav)
+    .filter(
+      (record) => record.name && record.meta.nav && !record.redirect && record.components?.default,
+    )
     .map((record) => ({
       name: record.name,
       to: { name: record.name },
       label: record.meta.nav.label,
       icon: record.meta.nav.icon,
       order: record.meta.nav.order ?? 0,
+      group: record.meta.nav.group ?? 'personal',
       // Raiz só fica ativa em match exato; senão marca em toda página.
       exact: record.meta.nav.exact ?? record.path === '/',
     }))

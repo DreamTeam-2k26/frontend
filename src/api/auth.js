@@ -15,3 +15,7 @@ export function verifyToken({ accessToken }) {
 export function register({ name, email, password }) {
   return api.post('/register/', { name, email, password })
 }
+
+export function getCurrentUser() {
+  return api.get('/users/me/')
+}
