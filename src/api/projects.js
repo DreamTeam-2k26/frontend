@@ -1,6 +1,11 @@
 import api from './api'
 import { loadProjectPages } from './projectPagination'
 
+export async function getProject(id) {
+  const { data } = await api.get(`/projects/${id}/`)
+  return data
+}
+
 export async function listProjects() {
   return loadProjectPages(async (page) => {
     const { data } = await api.get('/projects/', { params: { page, page_size: 100 } })

@@ -1,10 +1,14 @@
 <script setup>
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { Pencil, ArrowUpRight, UsersRound } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectMemberAvatar from './ProjectMemberAvatar.vue'
 
-const props = defineProps({ project: { type: Object, required: true } })
+const props = defineProps({
+  project: { type: Object, required: true },
+  compact: { type: Boolean, default: false },
+})
 defineEmits(['edit'])
 const progress = computed(() =>
   Number.isFinite(props.project.progress)
@@ -33,7 +37,7 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
       </div>
       <p class="project-card__description">{{ project.description || 'Sem descrição.' }}</p>
       <div class="project-card__metrics">
-        <div class="project-card__progress-label">
+        <div v-if="!compact || progress !== null" class="project-card__progress-label">
           <span>Progresso</span>
           <strong>{{ progress === null ? 'Indisponível' : `${progress}%` }}</strong>
         </div>
@@ -45,8 +49,11 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
         >
           {{ progress }}%
         </progress>
-        <div class="project-card__members">
-          <span class="project-card__member-count">
+        <div
+          v-if="!compact || memberCount !== null || visibleMembers.length"
+          class="project-card__members"
+        >
+          <span v-if="!compact || memberCount !== null" class="project-card__member-count">
             <UsersRound :size="16" aria-hidden="true" />
             {{
               memberCount === null
@@ -73,20 +80,20 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
         </div>
       </div>
       <div class="project-card__actions">
-        <BaseButton disabled :aria-describedby="`project-access-${project.id}`">
+        <RouterLink
+          :to="{ name: 'project-detail', params: { id: project.id } }"
+          :aria-label="`Abrir projeto ${project.name}`"
+        >
           Acessar projeto <ArrowUpRight :size="16" aria-hidden="true" />
-        </BaseButton>
+        </RouterLink>
         <BaseButton
-          v-if="['owner', 'admin'].includes(project.role)"
+          v-if="!compact && ['owner', 'admin'].includes(project.role)"
           variant="ghost"
           :aria-label="`Editar ${project.name}`"
           @click="$emit('edit', project)"
           ><Pencil :size="16" aria-hidden="true" /> Editar</BaseButton
         >
       </div>
-      <small :id="`project-access-${project.id}`"
-        >O espaço interno do projeto estará disponível em breve.</small
-      >
     </div>
   </article>
 </template>
@@ -240,6 +247,14 @@ progress::-moz-progress-bar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+.project-card__actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  padding: var(--space-2) 0;
 }
 small {
   color: var(--color-text-secondary);

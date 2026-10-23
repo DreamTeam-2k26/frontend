@@ -3,7 +3,18 @@ import { after, before, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { createSSRApp, h } from 'vue'
+import { createSSRApp as createVueSSRApp, h } from 'vue'
+import { createRouter, createMemoryHistory } from 'vue-router'
+function createSSRApp(options) {
+  return createVueSSRApp(options).use(
+    createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/projects/:id', name: 'project-detail', component: { render: () => null } },
+      ],
+    }),
+  )
+}
 import { renderToString } from 'vue/server-renderer'
 
 let server
