@@ -64,6 +64,7 @@ function replyPreview(reply) {
           :class="{
             'message__bubble--deleted': message.is_deleted,
             'message__bubble--photo': isPhoto,
+            'message__bubble--tail': showAuthor,
           }"
         >
           <blockquote v-if="message.reply_to && !message.is_deleted" class="message__reply">
@@ -182,7 +183,7 @@ function replyPreview(reply) {
 }
 
 .message__meta svg.message__read {
-  color: var(--color-success);
+  color: #2563eb;
 }
 
 /* Foto: a hora fica sobre a imagem (canto inferior direito). */
@@ -201,7 +202,7 @@ function replyPreview(reply) {
 }
 
 .message__bubble--photo .message__meta svg.message__read {
-  color: #4ade80;
+  color: #60a5fa;
 }
 
 .message__row {
@@ -218,21 +219,50 @@ function replyPreview(reply) {
 .message__bubble {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 0.25rem;
   min-width: 0;
-  padding: 0.75rem 1.375rem;
+  padding: 0.4375rem 0.875rem;
   color: var(--color-text);
-  border-radius: 1.125rem;
-  background-color: color-mix(in srgb, var(--color-primary) 7%, var(--color-background));
+  border-radius: 1rem;
+  background-color: var(--bubble-bg);
+  --bubble-bg: color-mix(in srgb, var(--color-primary) 7%, var(--color-background));
 }
 
 .message--own .message__bubble {
-  background-color: color-mix(in srgb, var(--color-primary) 13%, var(--color-background));
+  --bubble-bg: color-mix(in srgb, var(--color-primary) 13%, var(--color-background));
+}
+
+/* Rabinho de balão de fala apontando para a foto de perfil (só na 1ª mensagem da sequência). */
+.message__bubble--tail {
+  position: relative;
+  border-top-left-radius: 0;
+}
+
+.message--own .message__bubble--tail {
+  border-top-left-radius: 1rem;
+  border-top-right-radius: 0;
+}
+
+.message__bubble--tail::before {
+  position: absolute;
+  top: 0;
+  left: -0.5rem;
+  width: 0.5rem;
+  height: 0.75rem;
+  content: '';
+  background-color: var(--bubble-bg);
+  clip-path: polygon(100% 0, 100% 100%, 0 0);
+}
+
+.message--own .message__bubble--tail::before {
+  right: -0.5rem;
+  left: auto;
+  clip-path: polygon(0 0, 0 100%, 100% 0);
 }
 
 .message__bubble--photo {
   width: fit-content;
-  padding: 0.25rem;
+  padding: 0.1875rem;
 }
 
 .message__bubble--deleted {
