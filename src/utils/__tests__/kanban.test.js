@@ -12,6 +12,7 @@ import {
   filterTasks,
   groupTasks,
   hasActiveFilters,
+  moveLocally,
   sortByPosition,
   targetPosition,
   todayISO,
@@ -197,5 +198,36 @@ describe('utilidades', () => {
     assert.equal(checklistPercent(3, 6), 50)
     assert.equal(checklistPercent(0, 0), 0)
     assert.equal(checklistPercent(1, 3), 33)
+  })
+})
+
+describe('moveLocally', () => {
+  const tasks = [task(1, 10, 0), task(2, 10, 1), task(3, 10, 2), task(4, 20, 0)]
+  const order = (list, column) =>
+    sortByPosition(list.filter((item) => item.column === column)).map((item) => item.id)
+
+  test('reordena dentro da coluna e renumera a partir de zero', () => {
+    const result = moveLocally(tasks, 3, 10, 0)
+    assert.deepEqual(order(result, 10), [3, 1, 2])
+    assert.deepEqual(
+      sortByPosition(result.filter((item) => item.column === 10)).map((item) => item.position),
+      [0, 1, 2],
+    )
+  })
+
+  test('move entre colunas e fecha o buraco na origem', () => {
+    const result = moveLocally(tasks, 1, 20, 1)
+    assert.deepEqual(order(result, 10), [2, 3])
+    assert.deepEqual(order(result, 20), [4, 1])
+    assert.equal(result.find((item) => item.id === 2).position, 0)
+  })
+
+  test('posição além do fim vai para o fim', () => {
+    assert.deepEqual(order(moveLocally(tasks, 1, 20, 99), 20), [4, 1])
+  })
+
+  test('não muta a lista original', () => {
+    moveLocally(tasks, 1, 20, 0)
+    assert.equal(tasks[0].column, 10)
   })
 })

@@ -131,3 +131,25 @@ export function dueInfo(dueDate, today, isDone = false) {
 export function checklistPercent(done, total) {
   return total ? Math.round((done / total) * 100) : 0
 }
+
+// Atualização otimista do arrasto: mesma regra do backend (insere e renumera 0, 1, 2... as colunas envolvidas).
+export function moveLocally(tasks, taskId, columnId, position) {
+  const moving = tasks.find((task) => task.id === taskId)
+  if (!moving) return tasks
+
+  const columnIds = new Set([moving.column, columnId])
+  const target = sortByPosition(
+    tasks.filter((task) => task.column === columnId && task.id !== taskId),
+  )
+  target.splice(Math.min(position, target.length), 0, { ...moving, column: columnId })
+  const source =
+    moving.column === columnId
+      ? []
+      : sortByPosition(tasks.filter((task) => task.column === moving.column && task.id !== taskId))
+
+  const renumbered = [...source, ...target].map((task, index, list) => ({
+    ...task,
+    position: list.slice(0, index).filter((other) => other.column === task.column).length,
+  }))
+  return [...tasks.filter((task) => !columnIds.has(task.column)), ...renumbered]
+}
