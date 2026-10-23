@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { House, LayoutGrid, Settings } from 'lucide-vue-next'
+import { House, LayoutGrid, MessagesSquare, Settings } from 'lucide-vue-next'
+import { getAccessToken } from '@/utils/token'
 
 import {
   getAccessToken,
@@ -37,12 +38,19 @@ const router = createRouter({
           },
         },
         {
+          path: 'chat/:roomId(\\d+)?',
+          name: 'chat',
+          component: () => import('@/features/chat/views/ChatView.vue'),
+          meta: {
+            requiresAuth: true,
+            nav: { label: 'Chat', icon: MessagesSquare, order: 3, exact: false },
+          },
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
-          meta: {
-            nav: { label: 'Configurações', icon: Settings, order: 3 },
-          },
+          meta: { nav: { label: 'Configurações', icon: Settings, order: 4 } },
         },
       ],
     },
