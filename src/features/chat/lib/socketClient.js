@@ -236,13 +236,7 @@ export class ChatSocket {
     if (this.refreshToken && !this.refreshedSinceStable) {
       this.refreshedSinceStable = true
 
-      let renewed = null
-
-      try {
-        renewed = await this.refreshToken()
-      } catch {
-        renewed = null
-      }
+      const renewed = await Promise.resolve(this.refreshToken()).catch(() => null)
 
       if (!this.wantOpen) return
 

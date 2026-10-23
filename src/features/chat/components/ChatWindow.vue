@@ -1,15 +1,19 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { ArrowLeft, Info } from 'lucide-vue-next'
+import { onlineCount } from '../lib/receipts'
 import ChatAvatar from './ChatAvatar.vue'
 import MessageComposer from './MessageComposer.vue'
 import MessageList from './MessageList.vue'
 
-const { room, messages, meId, typing, disabled, maxFileMb } = defineProps({
+const { room, messages, meId, typing, disabled, maxFileMb, members, presence } = defineProps({
   room: { type: Object, required: true },
   // { items, hasMore, loaded } ou null enquanto não há histórico.
   messages: { type: Object, default: null },
   meId: { type: Number, default: null },
+  // Membros da sala e presença ao vivo (tiques de entrega e contador de online).
+  members: { type: Array, default: () => [] },
+  presence: { type: Object, default: () => ({}) },
   loading: { type: Boolean, default: false },
   loadingOlder: { type: Boolean, default: false },
   error: { type: String, default: '' },
@@ -50,7 +54,9 @@ const subtitle = computed(() => {
       : `${names.join(', ')} estão digitando...`
   }
 
-  return `${room.member_count} participante${room.member_count === 1 ? '' : 's'}`
+  const total = `${room.member_count} participante${room.member_count === 1 ? '' : 's'}`
+
+  return members.length ? `${total} · ${onlineCount(members, presence)} online` : total
 })
 
 function startReply(message) {
@@ -89,14 +95,9 @@ function onEdit(payload) {
 </script>
 
 <template>
-  <section class="window" :aria-label="`Conversa ${room.name}`">
+  <section class="window" :aria-label="`Sala ${room.name}`">
     <header class="window__header">
-      <button
-        type="button"
-        class="window__back"
-        aria-label="Voltar às conversas"
-        @click="emit('back')"
-      >
+      <button type="button" class="window__back" aria-label="Voltar às salas" @click="emit('back')">
         <ArrowLeft :size="20" aria-hidden="true" />
       </button>
       <ChatAvatar :name="room.name" :src="room.image" :size="40" />
@@ -118,6 +119,8 @@ function onEdit(payload) {
       :key="room.id"
       :messages="messages?.items ?? []"
       :me-id="meId"
+      :members="members"
+      :presence="presence"
       :has-more="messages?.hasMore ?? false"
       :loading="loading"
       :loading-older="loadingOlder"

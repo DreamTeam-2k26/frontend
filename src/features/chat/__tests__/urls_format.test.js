@@ -7,6 +7,7 @@ import {
   formatLastSeen,
   formatListTime,
   formatSize,
+  messagePreview,
   initials,
 } from '../lib/format.js'
 import { apiOrigin, chatSocketUrl, mediaUrl } from '../lib/urls.js'
@@ -88,4 +89,12 @@ test('formatLastSeen', () => {
   assert.equal(formatLastSeen(null, now), 'offline')
   assert.match(formatLastSeen(new Date(2026, 9, 23, 9, 5), now), /^visto hoje às 09:05$/)
   assert.equal(formatLastSeen(new Date(2026, 9, 22, 9, 5), now), 'visto ontem')
+})
+
+test('messagePreview: texto, "📷 Foto" para imagem, nome para outros arquivos', () => {
+  assert.equal(messagePreview(null), '')
+  assert.equal(messagePreview({ body: 'oi' }), 'oi')
+  assert.equal(messagePreview({ body: null, file: { name: 'a.png', is_image: true } }), '📷 Foto')
+  assert.equal(messagePreview({ body: null, file: { name: 'r.pdf', is_image: false } }), '📎 r.pdf')
+  assert.equal(messagePreview({ is_deleted: true, body: null }), 'Mensagem apagada')
 })

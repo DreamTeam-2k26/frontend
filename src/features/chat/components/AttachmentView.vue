@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Download, FileText, ImageOff } from 'lucide-vue-next'
 import { useAttachmentPreview, saveAttachment } from '../composables/useAttachment'
 import { formatSize } from '../lib/format'
@@ -13,7 +13,27 @@ const { messageId, file } = defineProps({
 const { url, failed } = file.is_image
   ? useAttachmentPreview(messageId)
   : { url: ref(null), failed: ref(false) }
+const emit = defineEmits(['open'])
 const saving = ref(false)
+
+// Tamanho máximo da miniatura (px). A caixa é calculada aqui, com proporção exata, porque só com
+// max-width/max-height o navegador deixava a bolha mais larga que a foto (fotos em pé, por ex.).
+const MAX_WIDTH = 288
+const MAX_HEIGHT = 256
+const size = ref(null)
+const imageStyle = computed(() =>
+  size.value ? { width: `${size.value.width}px`, height: `${size.value.height}px` } : null,
+)
+
+function onImageLoad(event) {
+  const { naturalWidth, naturalHeight } = event.target
+  if (!naturalWidth || !naturalHeight) return
+  const scale = Math.min(1, MAX_WIDTH / naturalWidth, MAX_HEIGHT / naturalHeight)
+  size.value = {
+    width: Math.max(1, Math.round(naturalWidth * scale)),
+    height: Math.max(1, Math.round(naturalHeight * scale)),
+  }
+}
 
 async function download() {
   saving.value = true
@@ -33,10 +53,16 @@ async function download() {
         v-if="url"
         type="button"
         class="attachment__image-button"
-        :aria-label="`Baixar imagem ${file.name}`"
-        @click="download"
+        :aria-label="`Abrir imagem ${file.name}`"
+        @click="emit('open')"
       >
-        <img class="attachment__image" :src="url" :alt="file.name" />
+        <img
+          class="attachment__image"
+          :src="url"
+          :alt="file.name"
+          :style="imageStyle"
+          @load="onImageLoad"
+        />
       </button>
       <div v-else-if="failed" class="attachment__placeholder">
         <ImageOff :size="20" aria-hidden="true" />
@@ -61,13 +87,16 @@ async function download() {
 <style scoped>
 .attachment__image-button {
   display: block;
+  width: fit-content;
+  max-width: 100%;
   overflow: hidden;
   border-radius: var(--radius-md);
 }
 
 .attachment__image {
-  max-width: min(18rem, 100%);
-  max-height: 16rem;
+  display: block;
+  max-width: 100%;
+  min-width: 3rem;
   object-fit: cover;
 }
 

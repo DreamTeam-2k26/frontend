@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { Plus, Search } from 'lucide-vue-next'
-import { formatListTime } from '../lib/format'
+import { formatListTime, messagePreview } from '../lib/format'
 import ChatAvatar from './ChatAvatar.vue'
 
 const { rooms, activeId, loading, error } = defineProps({
@@ -25,18 +25,17 @@ function preview(room) {
   const message = room.last_message
 
   if (!message) return 'Sem mensagens'
-  if (message.is_deleted) return 'Mensagem apagada'
 
-  const who = message.author?.name ? `${message.author.name}: ` : ''
+  const who = message.author?.name && !message.is_deleted ? `${message.author.name}: ` : ''
 
-  return `${who}${message.body || (message.file ? `📎 ${message.file.name}` : '')}`
+  return `${who}${messagePreview(message)}`
 }
 </script>
 
 <template>
-  <section class="rooms" aria-label="Conversas">
+  <section class="rooms" aria-label="Salas de conversa">
     <header class="rooms__header">
-      <h2 class="rooms__title">Conversas</h2>
+      <h2 class="rooms__title">Salas de conversa</h2>
       <button
         type="button"
         class="rooms__new"
@@ -53,14 +52,12 @@ function preview(room) {
       <input
         v-model="filter"
         type="search"
-        placeholder="Filtrar conversas"
-        aria-label="Filtrar conversas"
+        placeholder="Filtrar salas"
+        aria-label="Filtrar salas"
       />
     </div>
 
-    <p v-if="loading && !rooms.length" class="rooms__state" role="status">
-      Carregando conversas...
-    </p>
+    <p v-if="loading && !rooms.length" class="rooms__state" role="status">Carregando salas...</p>
     <div v-else-if="error && !rooms.length" class="rooms__state rooms__state--error" role="alert">
       <p>{{ error }}</p>
       <button type="button" class="rooms__link" @click="emit('retry')">Tentar novamente</button>
@@ -69,7 +66,7 @@ function preview(room) {
       <p>Você ainda não participa de nenhuma sala.</p>
       <button type="button" class="rooms__link" @click="emit('new')">Criar uma sala</button>
     </div>
-    <p v-else-if="!visible.length" class="rooms__state">Nenhuma conversa encontrada.</p>
+    <p v-else-if="!visible.length" class="rooms__state">Nenhuma sala encontrada.</p>
 
     <ul class="rooms__list">
       <li v-for="room in visible" :key="room.id">

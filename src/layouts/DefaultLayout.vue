@@ -1,8 +1,16 @@
 <script setup>
+import { onBeforeUnmount, onMounted } from 'vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import MobileNavBar from '@/components/layout/MobileNavBar.vue'
 import SideBar from '@/components/layout/SideBar.vue'
+import { useChatStore } from '@/features/chat/stores/chat'
+
+// O chat fica ligado em todas as páginas logadas para avisar de mensagens novas.
+const chat = useChatStore()
+
+onMounted(() => chat.start())
+onBeforeUnmount(() => chat.stop())
 </script>
 
 <template>

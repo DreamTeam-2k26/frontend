@@ -2,11 +2,15 @@
 import { computed, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue'
 import { ChevronUp } from 'lucide-vue-next'
 import { dayKey, formatDay } from '../lib/format'
+import ImageViewer from './ImageViewer.vue'
+import { messageStatus } from '../lib/receipts'
 import MessageItem from './MessageItem.vue'
 
-const { messages, meId, loadingOlder, hasMore, loading, error } = defineProps({
+const { messages, meId, members, presence, loadingOlder, hasMore, loading, error } = defineProps({
   messages: { type: Array, required: true },
   meId: { type: Number, default: null },
+  members: { type: Array, default: () => [] },
+  presence: { type: Object, default: () => ({}) },
   hasMore: { type: Boolean, default: false },
   loadingOlder: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
@@ -17,6 +21,16 @@ const emit = defineEmits(['load-older', 'reply', 'edit', 'delete'])
 
 const scroller = useTemplateRef('scroller')
 const nearBottom = ref(true)
+const viewerId = ref(null)
+
+function statusOf(message) {
+  return messageStatus(message, { members, presence, authorId: meId })
+}
+
+// Fotos da sala (sem as apagadas), na ordem da conversa, para navegar no visualizador.
+const photos = computed(() =>
+  messages.filter((message) => message.file?.is_image && !message.is_deleted),
+)
 
 // Agrupa por dia e decide quando repetir nome/foto (mensagens seguidas do mesmo autor).
 const rows = computed(() => {
@@ -119,13 +133,23 @@ onMounted(scrollToBottom)
           v-else
           :message="row.message"
           :own="row.message.author?.id === meId"
+          :status="row.message.author?.id === meId ? statusOf(row.message) : null"
           :show-author="row.showAuthor"
           @reply="emit('reply', $event)"
           @edit="emit('edit', $event)"
           @delete="emit('delete', $event)"
+          @open-image="viewerId = $event.id"
         />
       </template>
     </ul>
+
+    <ImageViewer
+      v-if="viewerId !== null && photos.some((photo) => photo.id === viewerId)"
+      :items="photos"
+      :current-id="viewerId"
+      @change="viewerId = $event"
+      @close="viewerId = null"
+    />
   </div>
 </template>
 

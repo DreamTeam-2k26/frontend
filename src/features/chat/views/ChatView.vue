@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { MessagesSquare, WifiOff } from 'lucide-vue-next'
 import { toast } from 'vue3-toastify'
@@ -7,7 +7,6 @@ import ChatWindow from '../components/ChatWindow.vue'
 import NewRoomModal from '../components/NewRoomModal.vue'
 import RoomInfoPanel from '../components/RoomInfoPanel.vue'
 import RoomList from '../components/RoomList.vue'
-import { clearAttachmentCache } from '../composables/useAttachment'
 import { STATUS } from '../lib/socketClient'
 import { useChatStore } from '../stores/chat'
 
@@ -25,27 +24,18 @@ const routeRoomId = computed(() => (route.params.roomId ? Number(route.params.ro
 const room = computed(() => chat.activeRoom)
 const detail = computed(() => (room.value ? chat.details[room.value.id] : null))
 
-const roomsLoaded = ref(false)
-
 // A sala da URL precisa existir para este usuário; senão volta para a lista.
 const roomMissing = computed(
   () =>
     routeRoomId.value !== null &&
-    roomsLoaded.value &&
+    chat.roomsLoaded &&
     !chat.loadingRooms &&
     !chat.roomsError &&
     !room.value,
 )
 
-onMounted(async () => {
-  await chat.start()
-  roomsLoaded.value = true
-})
-
-onBeforeUnmount(() => {
-  chat.stop()
-  clearAttachmentCache()
-})
+// O chat (WebSocket, salas, avisos) é iniciado no layout; aqui só se abre/fecha a sala da URL.
+onBeforeUnmount(() => chat.closeRoom())
 
 watch(
   routeRoomId,
@@ -59,7 +49,7 @@ watch(
 watch(roomMissing, (missing) => {
   if (!missing) return
 
-  toast.error('Conversa não encontrada.')
+  toast.error('Sala não encontrada.')
   router.replace({ name: 'chat' })
 })
 
@@ -67,7 +57,7 @@ watch(roomMissing, (missing) => {
 watch(
   () => chat.activeRoomId,
   (id) => {
-    if (id === null && routeRoomId.value !== null && roomsLoaded.value)
+    if (id === null && routeRoomId.value !== null && chat.roomsLoaded)
       router.replace({ name: 'chat' })
   },
 )
@@ -78,7 +68,7 @@ watch(infoOpen, (open) => {
 
 const banner = computed(() => {
   if (chat.connection === STATUS.UNAUTHORIZED) return 'unauthorized'
-  if ([STATUS.RECONNECTING, STATUS.CONNECTING].includes(chat.connection) && roomsLoaded.value)
+  if ([STATUS.RECONNECTING, STATUS.CONNECTING].includes(chat.connection) && chat.roomsLoaded)
     return 'offline'
 
   return null
@@ -112,7 +102,7 @@ async function leave() {
   <div class="chat" :class="{ 'chat--room': routeRoomId !== null, 'chat--info': infoOpen && room }">
     <p v-if="banner === 'offline'" class="chat__banner" role="status">
       <WifiOff :size="16" aria-hidden="true" />
-      Reconectando ao chat...
+      Reconectando...
       <button type="button" @click="chat.retryConnection()">Tentar agora</button>
     </p>
     <p v-else-if="banner === 'unauthorized'" class="chat__banner chat__banner--error" role="alert">
@@ -138,6 +128,8 @@ async function leave() {
       class="chat__window"
       :room="room"
       :messages="chat.activeMessages"
+      :members="detail?.members ?? []"
+      :presence="chat.presence"
       :me-id="chat.me?.id ?? null"
       :loading="chat.loadingHistory"
       :loading-older="chat.loadingHistory"
@@ -155,8 +147,8 @@ async function leave() {
     />
     <section v-else class="chat__empty">
       <MessagesSquare :size="48" aria-hidden="true" />
-      <p v-if="routeRoomId !== null">Abrindo conversa...</p>
-      <p v-else>Escolha uma conversa ou crie uma nova sala.</p>
+      <p v-if="routeRoomId !== null">Abrindo sala...</p>
+      <p v-else>Escolha uma sala de conversa ou crie uma nova.</p>
     </section>
 
     <RoomInfoPanel

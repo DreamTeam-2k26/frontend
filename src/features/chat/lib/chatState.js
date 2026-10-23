@@ -102,13 +102,14 @@ export function typingUsers(state, roomId, now = Date.now()) {
 /**
  * Aplica um evento do servidor. Devolve a lista de efeitos que o chamador deve executar:
  *  - { type: 'read', room }       marcar a sala aberta como lida
+ *  - { type: 'notify', room, message }  mensagem nova de outra pessoa que o usuário ainda não está vendo
  *  - { type: 'removed', room }    a sala saiu da lista (o chamador fecha a conversa se estava aberta)
  *  - { type: 'error', detail }    erro do servidor para mostrar ao usuário
  */
 export function applyEvent(
   state,
   event,
-  { meId = null, activeRoomId = null, now = Date.now() } = {},
+  { meId = null, activeRoomId = null, now = Date.now(), visible = true } = {},
 ) {
   const effects = []
 
@@ -123,8 +124,13 @@ export function applyEvent(
       if (event.type === 'message.new') {
         if (message.author) clearTyping(state, room, message.author.id)
 
-        if (room === activeRoomId && message.author?.id !== meId)
-          effects.push({ type: 'read', room })
+        const fromOther = message.author?.id !== meId
+        const watching = room === activeRoomId && visible
+
+        if (fromOther && room === activeRoomId) effects.push({ type: 'read', room })
+
+        // Avisa de mensagem nova de outra pessoa, exceto se ela já está vendo essa sala.
+        if (fromOther && !watching) effects.push({ type: 'notify', room, message })
       }
 
       break
