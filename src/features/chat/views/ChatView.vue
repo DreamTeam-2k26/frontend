@@ -235,7 +235,7 @@ async function leave() {
   justify-content: center;
   gap: 0.75rem;
   color: var(--color-text-secondary);
-  background-color: var(--color-surface);
+  background-color: var(--color-background);
 }
 
 /* Celular: uma tela por vez (lista -> conversa), detalhes sobre a conversa. */

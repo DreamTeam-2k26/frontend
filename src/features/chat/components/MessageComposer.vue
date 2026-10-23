@@ -158,7 +158,7 @@ function replyLabel(message) {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 1.5rem 1rem;
   border-top: 1px solid var(--color-border);
   background-color: var(--color-background);
 }
@@ -215,7 +215,9 @@ function replyLabel(message) {
   padding: 0.625rem 0.875rem;
   resize: none;
   field-sizing: content;
-  border-radius: var(--radius-lg);
+  border: none;
+  border-radius: 1.25rem;
+  background-color: color-mix(in srgb, var(--color-primary) 6%, var(--color-background));
 }
 
 .composer__input:focus {

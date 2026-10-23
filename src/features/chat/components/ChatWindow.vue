@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { ArrowLeft, Info } from 'lucide-vue-next'
+import { ArrowLeft, Ellipsis } from 'lucide-vue-next'
 import { onlineCount } from '../lib/receipts'
 import ChatAvatar from './ChatAvatar.vue'
 import MessageComposer from './MessageComposer.vue'
@@ -100,7 +100,7 @@ function onEdit(payload) {
       <button type="button" class="window__back" aria-label="Voltar às salas" @click="emit('back')">
         <ArrowLeft :size="20" aria-hidden="true" />
       </button>
-      <ChatAvatar :name="room.name" :src="room.image" :size="40" />
+      <ChatAvatar :name="room.name" :src="room.image" :size="38" />
       <div class="window__title">
         <h2>{{ room.name }}</h2>
         <small :class="{ window__typing: typing.length }" aria-live="polite">{{ subtitle }}</small>
@@ -111,7 +111,7 @@ function onEdit(payload) {
         aria-label="Detalhes da sala"
         @click="emit('info')"
       >
-        <Info :size="20" aria-hidden="true" />
+        <Ellipsis :size="20" aria-hidden="true" />
       </button>
     </header>
 
@@ -158,7 +158,7 @@ function onEdit(payload) {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -170,6 +170,7 @@ function onEdit(payload) {
 .window__title h2 {
   overflow: hidden;
   font-size: 1rem;
+  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -192,7 +193,8 @@ function onEdit(payload) {
 
 .window__back:hover,
 .window__info:hover {
-  background-color: var(--color-surface);
+  color: var(--color-text);
+  background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-background));
 }
 
 /* Só no celular existe a lista como tela separada. */
