@@ -7,6 +7,7 @@ import ProjectMemberAvatar from './ProjectMemberAvatar.vue'
 const props = defineProps({
   project: { type: Object, required: true },
   compact: { type: Boolean, default: false },
+  preview: { type: Boolean, default: false },
 })
 defineEmits(['edit'])
 const progress = computed(() =>
@@ -80,10 +81,13 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
       </div>
       <div class="project-card__actions">
         <BaseButton
-          :to="{ name: 'project-detail', params: { id: project.id } }"
-          :aria-label="`Acessar projeto ${project.name}`"
+          :to="preview ? undefined : { name: 'project-detail', params: { id: project.id } }"
+          :disabled="preview"
+          :aria-label="preview ? `Projeto fictício: ${project.name}` : `Acessar projeto ${project.name}`"
+          :title="preview ? 'Projeto de demonstração: não existe no backend.' : undefined"
         >
-          Acessar projeto <ArrowUpRight :size="16" aria-hidden="true" />
+          {{ preview ? 'Projeto de exemplo' : 'Acessar projeto' }}
+          <ArrowUpRight v-if="!preview" :size="16" aria-hidden="true" />
         </BaseButton>
         <BaseButton
           v-if="!compact && ['owner', 'admin'].includes(project.role)"
