@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, reactive, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Plus } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -10,7 +10,14 @@ import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
 import KanbanFilters from '@/components/kanban/KanbanFilters.vue'
 import { useKanbanStore } from '@/stores/kanban'
 import { apiFieldErrors } from '@/utils/apiErrors'
-import { EMPTY_FILTERS, filterTasks, groupTasks, hasActiveFilters, todayISO } from '@/utils/kanban'
+import {
+  EMPTY_FILTERS,
+  filterTasks,
+  groupTasks,
+  hasActiveFilters,
+  targetPosition,
+  todayISO,
+} from '@/utils/kanban'
 
 const route = useRoute()
 const router = useRouter()
@@ -142,6 +149,35 @@ watch(
   },
 )
 
+// Mover tarefa (arrasto ou menu "Mover"). O índice vem da lista visível; com filtro ativo,
+// targetPosition converte para a posição na ordem completa da coluna.
+const announcement = ref('')
+
+async function moveTask({ taskId, columnId, index }) {
+  const task = kanban.tasks.find((item) => item.id === taskId)
+  const column = kanban.columnsById.get(columnId)
+  if (!task || !column) return
+
+  const full = kanban.tasksByColumn.get(columnId) ?? []
+  const visible = visibleByColumn.value.get(columnId) ?? []
+  const insertAt = index ?? visible.filter((item) => item.id !== taskId).length
+  const position = targetPosition(full, visible, insertAt, taskId)
+  if (task.column === columnId && full.findIndex((item) => item.id === taskId) === position) return
+
+  announcement.value = ''
+  try {
+    await kanban.moveTask(taskId, columnId, position)
+    announcement.value = `Tarefa movida para ${column.name}.`
+  } catch {
+    announcement.value = 'Não foi possível mover a tarefa.'
+  }
+  // Pelo menu, o card pode ter sido recriado em outra coluna: devolve o foco a ele.
+  await nextTick()
+  if (document.activeElement === document.body) {
+    document.querySelector(`[data-task-id="${taskId}"] .action-menu__trigger`)?.focus()
+  }
+}
+
 // Abrir tarefa: o modal de detalhe entra na Task 10.
 function openTask() {}
 
@@ -229,11 +265,14 @@ onBeforeUnmount(() => kanban.reset())
           :can-manage="kanban.canManage"
           @open-task="openTask"
           @add-task="openTaskForm"
+          @move-task="moveTask"
           @manage-column="manageColumn"
           @add-column="openColumnForm()"
         />
       </template>
     </template>
+
+    <p class="visually-hidden" aria-live="polite">{{ announcement }}</p>
 
     <TaskForm
       v-if="taskForm.open"

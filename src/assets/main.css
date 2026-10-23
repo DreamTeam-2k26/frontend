@@ -340,6 +340,12 @@ table {
   border: 0;
 }
 
+/* Arrasto de cards do Kanban (useBoardDrag). */
+body.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
 ::selection {
   color: var(--color-on-primary);
   background-color: var(--color-button-primary-bg);

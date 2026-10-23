@@ -1,6 +1,8 @@
 <script setup>
+import { useTemplateRef } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import KanbanColumn from '@/components/kanban/KanbanColumn.vue'
+import { useBoardDrag } from '@/composables/useBoardDrag'
 
 defineProps({
   columns: { type: Array, required: true },
@@ -18,11 +20,25 @@ const emit = defineEmits({
   'add-task': (columnId) => columnId != null,
   'manage-column': (payload) => payload?.column != null && Boolean(payload.action),
   'add-column': null,
+  // index: posição entre os cards visíveis sem a tarefa; null = fim da coluna.
+  'move-task': (payload) => payload?.taskId != null && payload?.columnId != null,
+})
+
+const board = useTemplateRef('board')
+const { drag, onPointerDown } = useBoardDrag(board, {
+  onDrop: (taskId, columnId, index) => emit('move-task', { taskId, columnId, index }),
 })
 </script>
 
 <template>
-  <div class="kanban-board" role="region" aria-label="Colunas do quadro" tabindex="0">
+  <div
+    ref="board"
+    class="kanban-board"
+    role="region"
+    aria-label="Colunas do quadro"
+    tabindex="0"
+    @pointerdown="onPointerDown"
+  >
     <KanbanColumn
       v-for="(column, index) in columns"
       :key="column.id"
@@ -34,8 +50,12 @@ const emit = defineEmits({
       :can-manage="canManage"
       :first="index === 0"
       :last="index === columns.length - 1"
+      :columns="columns"
+      :drag-task-id="drag.taskId"
+      :drop-index="drag.columnId === column.id ? drag.index : null"
       @open-task="emit('open-task', $event)"
       @add-task="emit('add-task', column.id)"
+      @move-task="emit('move-task', $event)"
       @manage="emit('manage-column', { column, action: $event })"
     />
     <button v-if="canManage" type="button" class="kanban-board__add" @click="emit('add-column')">

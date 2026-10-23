@@ -13,6 +13,9 @@ const {
   canManage = false,
   first = false,
   last = false,
+  columns = [],
+  dragTaskId = null,
+  dropIndex = null,
 } = defineProps({
   column: { type: Object, required: true },
   // Tarefas visíveis (já filtradas e ordenadas).
@@ -25,11 +28,17 @@ const {
   canManage: { type: Boolean, default: false },
   first: { type: Boolean, default: false },
   last: { type: Boolean, default: false },
+  columns: { type: Array, default: () => [] },
+  // Arrasto em andamento: card arrastado e posição de soltura nesta coluna (null = fora dela).
+  dragTaskId: { type: Number, default: null },
+  dropIndex: { type: Number, default: null },
 })
 
 const emit = defineEmits({
   'open-task': (id) => id != null,
   'add-task': null,
+  // index: posição entre os cards visíveis sem a tarefa movida; null = fim da coluna de destino.
+  'move-task': (payload) => payload?.taskId != null && payload?.columnId != null,
   // action: 'rename' | 'move-left' | 'move-right' | 'delete'
   manage: (action) => ['rename', 'move-left', 'move-right', 'delete'].includes(action),
 })
@@ -40,6 +49,22 @@ const menuItems = computed(() => [
   { id: 'move-right', label: 'Mover para a direita', icon: ArrowRight, disabled: last },
   { id: 'delete', label: 'Excluir coluna', icon: Trash2, danger: true },
 ])
+
+// Índice de cada card visível sem contar o card arrastado (para o indicador de soltura).
+const dropSlots = computed(() => {
+  const slots = new Map()
+  for (const task of tasks) if (task.id !== dragTaskId) slots.set(task.id, slots.size)
+  return slots
+})
+const isTarget = computed(() => dropIndex !== null)
+
+function moveFromMenu(task, target) {
+  const index = tasks.findIndex((item) => item.id === task.id)
+  if (target === 'up') emit('move-task', { taskId: task.id, columnId: column.id, index: index - 1 })
+  else if (target === 'down')
+    emit('move-task', { taskId: task.id, columnId: column.id, index: index + 1 })
+  else emit('move-task', { taskId: task.id, columnId: target, index: null })
+}
 
 const done = computed(() => column.category === 'done')
 const headingId = computed(() => `kanban-column-${column.id}`)
@@ -56,7 +81,12 @@ const emptyText = computed(() =>
 </script>
 
 <template>
-  <section class="kanban-column" :aria-labelledby="headingId">
+  <section
+    class="kanban-column"
+    :class="{ 'kanban-column--target': isTarget }"
+    :aria-labelledby="headingId"
+    :data-column-id="column.id"
+  >
     <header class="kanban-column__header">
       <span
         class="kanban-column__dot"
@@ -77,9 +107,26 @@ const emptyText = computed(() =>
       />
     </header>
 
-    <ul v-if="tasks.length" class="kanban-column__list">
-      <li v-for="task in tasks" :key="task.id">
-        <TaskCard :task="task" :today="today" :done="done" @open="emit('open-task', $event)" />
+    <ul v-if="tasks.length || isTarget" class="kanban-column__list">
+      <li v-for="(task, index) in tasks" :key="task.id">
+        <div
+          v-if="isTarget && dropSlots.get(task.id) === dropIndex"
+          class="kanban-column__drop"
+          aria-hidden="true"
+        />
+        <TaskCard
+          :task="task"
+          :today="today"
+          :done="done"
+          :columns="columns"
+          :can-move-up="index > 0"
+          :can-move-down="index < tasks.length - 1"
+          @open="emit('open-task', $event)"
+          @move="moveFromMenu(task, $event)"
+        />
+      </li>
+      <li v-if="isTarget && dropIndex === dropSlots.size" aria-hidden="true">
+        <div class="kanban-column__drop" />
       </li>
     </ul>
     <p v-else class="kanban-column__empty">{{ emptyText }}</p>
@@ -104,6 +151,15 @@ const emptyText = computed(() =>
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
+}
+.kanban-column--target {
+  border-color: var(--color-primary);
+}
+.kanban-column__drop {
+  height: 0.25rem;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
 }
 .kanban-column__header {
   display: flex;

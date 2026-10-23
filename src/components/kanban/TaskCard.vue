@@ -1,6 +1,14 @@
 <script setup>
 import { computed } from 'vue'
-import { CalendarDays, CircleCheck, ListChecks } from 'lucide-vue-next'
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  CalendarDays,
+  CircleCheck,
+  ListChecks,
+} from 'lucide-vue-next'
+import ActionMenu from '@/components/ui/ActionMenu.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
 import { PRIORITIES, dueInfo } from '@/utils/kanban'
 
@@ -8,15 +16,34 @@ const {
   task,
   today,
   done = false,
+  columns = [],
+  canMoveUp = false,
+  canMoveDown = false,
 } = defineProps({
   task: { type: Object, required: true },
   // Data de hoje (YYYY-MM-DD) calculada uma vez pela página.
   today: { type: String, required: true },
   // Coluna de categoria "done": tarefa concluída.
   done: { type: Boolean, default: false },
+  // Colunas do quadro, para o menu "Mover" (alternativa ao arrasto).
+  columns: { type: Array, default: () => [] },
+  canMoveUp: { type: Boolean, default: false },
+  canMoveDown: { type: Boolean, default: false },
 })
 
-const emit = defineEmits({ open: (id) => id != null })
+// move: 'up' | 'down' | id da coluna de destino
+const emit = defineEmits({
+  open: (id) => id != null,
+  move: (target) => target === 'up' || target === 'down' || typeof target === 'number',
+})
+
+const moveItems = computed(() => [
+  { id: 'up', label: 'Mover para cima', icon: ArrowUp, disabled: !canMoveUp },
+  { id: 'down', label: 'Mover para baixo', icon: ArrowDown, disabled: !canMoveDown },
+  ...columns
+    .filter((column) => column.id !== task.column)
+    .map((column) => ({ id: column.id, label: `Mover para ${column.name}`, icon: ArrowRight })),
+])
 
 const priorityLabel = computed(
   () => PRIORITIES.find((item) => item.value === task.priority)?.label ?? '',
@@ -27,7 +54,11 @@ const hasChecklist = computed(() => task.checklist_total > 0)
 </script>
 
 <template>
-  <article class="task-card" :class="{ 'task-card--done': done, 'task-card--late': late }">
+  <article
+    class="task-card"
+    :class="{ 'task-card--done': done, 'task-card--late': late }"
+    :data-task-id="task.id"
+  >
     <div class="task-card__top">
       <span class="task-card__id">#{{ task.id }}</span>
       <span
@@ -37,6 +68,13 @@ const hasChecklist = computed(() => task.checklist_total > 0)
       >
         {{ priorityLabel }}
       </span>
+      <ActionMenu
+        class="task-card__menu"
+        data-no-drag
+        :label="`Mover a tarefa ${task.title}`"
+        :items="moveItems"
+        @select="emit('move', $event)"
+      />
     </div>
 
     <h3 class="task-card__title">
@@ -94,6 +132,19 @@ const hasChecklist = computed(() => task.checklist_total > 0)
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
+.task-card {
+  cursor: grab;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* Card de origem durante o arrasto e clone que segue o ponteiro (useBoardDrag). */
+.task-card--dragging {
+  opacity: 0.4;
+}
+.task-card--ghost {
+  cursor: grabbing;
+  box-shadow: var(--shadow-md);
+}
 .task-card:hover {
   border-color: var(--color-secondary);
   box-shadow: var(--shadow-md);
@@ -107,14 +158,19 @@ const hasChecklist = computed(() => task.checklist_total > 0)
 .task-card__top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-2);
   min-height: 1.5rem;
 }
 .task-card__id {
+  margin-right: auto;
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+}
+.task-card__menu {
+  position: relative;
+  z-index: 1;
+  margin-block: calc(-1 * var(--space-1));
 }
 .task-card__priority {
   padding: 0.125rem var(--space-2);
