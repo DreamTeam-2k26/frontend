@@ -46,7 +46,7 @@ const errorId = computed(() => `${inputId.value}-error`)
 
 .field__input {
   padding: 0.625rem 0.75rem;
-  background-color: var(--color-background);
+  background-color: var(--color-input-bg);
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;

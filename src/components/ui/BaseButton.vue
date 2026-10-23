@@ -58,13 +58,13 @@ const classes = computed(() => ['button', `button--${variant}`, { 'button--block
 }
 
 .button--primary {
-  color: #ffffff;
-  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  background-color: var(--color-button-primary-bg);
 }
 
 .button--primary:hover:not(:disabled) {
-  color: #ffffff;
-  background-color: var(--color-primary-hover);
+  color: var(--color-on-primary);
+  background-color: var(--color-button-primary-hover);
 }
 
 .button--secondary {
@@ -75,7 +75,7 @@ const classes = computed(() => ['button', `button--${variant}`, { 'button--block
 
 .button--secondary:hover:not(:disabled) {
   color: var(--color-text);
-  background-color: var(--color-surface);
+  background-color: var(--color-bg-hover);
 }
 
 .button--ghost {
@@ -84,7 +84,7 @@ const classes = computed(() => ['button', `button--${variant}`, { 'button--block
 
 .button--ghost:hover:not(:disabled) {
   color: var(--color-primary-hover);
-  background-color: var(--color-surface);
+  background-color: var(--color-bg-hover);
 }
 
 .button__spinner {
