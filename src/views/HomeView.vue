@@ -179,8 +179,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--space-8);
   width: 100%;
-  max-width: var(--container-width);
-  margin: 0 auto;
   padding: var(--space-8) var(--space-6);
 }
 .dashboard__header {
