@@ -325,6 +325,19 @@ table {
   outline-offset: 3px;
 }
 
+/* Texto só para leitores de tela. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 ::selection {
   color: var(--color-on-primary);
   background-color: var(--color-button-primary-bg);
