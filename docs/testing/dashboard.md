@@ -29,6 +29,10 @@ A rota autenticada `/` usa a HomeView existente, o layout, a store de autentica�
 - `npm run test:dashboard` (paginação completa, ordenação, contagens e renderização dos cartões sem métricas fictícias)
 - `npm run test:projects` (regressão dos cards compartilhados e serviço paginado)
 
-Fixture de navegador: `/tests/dashboard/browser.html`. Simula respostas da API exclusivamente no código de teste; o aplicativo usa a API real. Suporta `scenario=success|error|empty|offline|profile-error`, `theme=dark` e `preview=1` para inspeção sem executar as ações de criação. O chat é desativado somente nessa fixture para não abrir WebSocket durante a verificação da Home.
+Fixture de navegador: `/tests/dashboard/browser.html`. Simula respostas da API no código de teste. Execute com `VITE_DASHBOARD_DEMO=false` para validar os cenários de integração. Suporta `scenario=success|error|empty|offline|profile-error`, `theme=dark` e `preview=1` para inspeção sem executar as ações de criação. O chat é desativado somente nessa fixture para não abrir WebSocket durante a verificação da Home.
 
 A criação e consulta contra o backend real dependem de uma sessão válida e do servidor disponível; as verificações de navegador usam o contrato simulado descrito acima, sem inserir registros reais no banco.
+
+## Demonstração em desenvolvimento
+
+Por solicitação do usuário, a Home permanece populada com três projetos fictícios em `npm run dev`, com aviso de demonstração. Esses dados não são gravados no backend e não entram no fluxo de produção. Para consultar a API real em desenvolvimento, configure `VITE_DASHBOARD_DEMO=false` no ambiente local. A Home ocupa toda a largura disponível ao lado da sidebar.

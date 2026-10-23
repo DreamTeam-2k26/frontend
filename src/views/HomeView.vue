@@ -10,7 +10,9 @@ import ProjectForm from '@/components/projects/ProjectForm.vue'
 import { projectError, projectFieldErrors } from '@/components/projects/projectState'
 import { createProject, listProjects } from '@/api/projects'
 import { useAuthStore } from '@/stores/auth'
+import { demoProjects } from '@/components/dashboard/demoProjects'
 
+const demoEnabled = import.meta.env.DEV && import.meta.env.VITE_DASHBOARD_DEMO !== 'false'
 const auth = useAuthStore()
 const firstName = computed(() => auth.user?.name?.trim().split(/\s+/)[0])
 const projects = ref([])
@@ -30,6 +32,12 @@ let request = 0
 let returnFocus
 
 async function load() {
+  if (demoEnabled) {
+    projects.value = demoProjects
+    loaded.value = true
+    loading.value = false
+    return
+  }
   if (offline.value) {
     loading.value = false
     return
@@ -119,6 +127,9 @@ onBeforeUnmount(() => {
       </BaseButton>
     </header>
 
+    <p v-if="demoEnabled" class="dashboard__cached" role="status">
+      Visualização com projetos de demonstração.
+    </p>
     <div v-if="offline" class="dashboard__notice" role="status">
       <WifiOff :size="20" aria-hidden="true" />
       <p>Você está offline. Reconecte-se para atualizar ou criar projetos.</p>
