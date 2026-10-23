@@ -7,15 +7,15 @@ const unwrap = (response) => response.data
 export async function listRooms() {
   const rooms = []
   let page = 1
-  let totalPages = 1
+  let more = true
 
-  do {
+  while (more) {
     const data = await api.get('/chat/rooms/', { params: { page, page_size: 100 } }).then(unwrap)
 
     rooms.push(...data.results)
-    totalPages = data.total_pages
+    more = page < data.total_pages
     page += 1
-  } while (page <= totalPages)
+  }
 
   return rooms
 }

@@ -1,7 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { House, LayoutGrid, MessagesSquare, Settings } from 'lucide-vue-next'
-import { getAccessToken } from '@/utils/token'
-
 import {
   getAccessToken,
   getRefreshToken,
