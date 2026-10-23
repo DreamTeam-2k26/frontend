@@ -27,7 +27,13 @@ const {
     :active-class="item.exact ? '' : 'nav-item--active'"
     exact-active-class="nav-item--active"
   >
-    <component :is="item.icon" v-if="item.icon" class="nav-item__icon" :size="20" aria-hidden="true" />
+    <component
+      :is="item.icon"
+      v-if="item.icon"
+      class="nav-item__icon"
+      :size="20"
+      aria-hidden="true"
+    />
     <span class="nav-item__label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
   </RouterLink>
 </template>

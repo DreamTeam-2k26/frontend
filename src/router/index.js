@@ -31,7 +31,7 @@ const router = createRouter({
           path: 'projects',
           name: 'projects',
           component: () => import('@/views/ProjectsView.vue'),
-          meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2 } },
+          meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2, group: 'projects' } },
         },
         {
           path: 'example',
@@ -45,14 +45,20 @@ const router = createRouter({
           component: () => import('@/features/chat/views/ChatView.vue'),
           meta: {
             requiresAuth: true,
-            nav: { label: 'Salas de Projeto', icon: MessagesSquare, order: 3, exact: false },
+            nav: {
+              label: 'Salas de Projeto',
+              icon: MessagesSquare,
+              order: 3,
+              exact: false,
+              group: 'projects',
+            },
           },
         },
         {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
-          meta: { nav: { label: 'Configurações', icon: Settings, order: 4 } },
+          meta: { nav: { label: 'Configurações', icon: Settings, order: 4, group: 'personal' } },
         },
       ],
     },
