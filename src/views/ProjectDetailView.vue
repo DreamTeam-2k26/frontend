@@ -107,8 +107,6 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-6);
-  max-width: var(--container-width);
-  margin-inline: auto;
   padding: var(--space-8) var(--space-6);
 }
 .project-detail__back {
