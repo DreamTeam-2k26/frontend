@@ -4,6 +4,7 @@ import { loadAllPages } from '../../api/pagination.js'
 import {
   EMPTY_FILTERS,
   applyMoveResult,
+  buildLanes,
   canDeleteComment,
   canEditComment,
   canManageColumns,
@@ -15,6 +16,7 @@ import {
   isHttpUrl,
   moveLocally,
   sortByPosition,
+  sortTasks,
   targetPosition,
   timeAgo,
   todayISO,
@@ -96,6 +98,11 @@ describe('filterTasks', () => {
 
   test('sem filtros devolve tudo', () => assert.deepEqual(ids({}), [1, 2, 3]))
   test('busca ignora acento e caixa', () => assert.deepEqual(ids({ search: 'REVISAO' }), [1]))
+  test('busca também na descrição', () => {
+    const withText = [...tasks, task(4, 10, 2, { description: 'Levar a cartolina azul' })]
+    const found = filterTasks(withText, { ...EMPTY_FILTERS, search: 'cartolina' }).map((t) => t.id)
+    assert.deepEqual(found, [4])
+  })
   test('prioridade', () => assert.deepEqual(ids({ priority: 'low' }), [3]))
   test('responsável e sem responsável', () => {
     assert.deepEqual(ids({ assignee: '7' }), [1])
@@ -259,5 +266,79 @@ describe('isHttpUrl', () => {
     assert.equal(isHttpUrl('ftp://exemplo.com'), false)
     assert.equal(isHttpUrl('exemplo.com'), false)
     assert.equal(isHttpUrl(''), false)
+  })
+})
+
+describe('sortTasks', () => {
+  const columnsById = new Map([
+    [10, { id: 10, position: 0 }],
+    [20, { id: 20, position: 1 }],
+  ])
+  const tasks = [
+    task(1, 20, 0, { title: 'beta', priority: 'low', due_date: '2026-10-30' }),
+    task(2, 10, 1, { title: 'Álbum', priority: 'high', due_date: null }),
+    task(3, 10, 0, { title: 'cartaz', priority: 'medium', due_date: '2026-10-25' }),
+  ]
+  const ids = (sort) => sortTasks(tasks, sort, { columnsById }).map((item) => item.id)
+
+  test('manual segue coluna e posição', () => assert.deepEqual(ids('manual'), [3, 2, 1]))
+  test('prazo mais próximo primeiro, sem prazo no fim', () =>
+    assert.deepEqual(ids('due'), [3, 1, 2]))
+  test('prioridade alta primeiro', () => assert.deepEqual(ids('priority'), [2, 3, 1]))
+  test('título ignora acento e caixa', () => assert.deepEqual(ids('title'), [2, 1, 3]))
+  test('recentes pelo id', () => assert.deepEqual(ids('recent'), [3, 2, 1]))
+  test('não muta a lista', () => {
+    sortTasks(tasks, 'title', { columnsById })
+    assert.deepEqual(
+      tasks.map((item) => item.id),
+      [1, 2, 3],
+    )
+  })
+})
+
+describe('buildLanes', () => {
+  const columns = [
+    { id: 10, name: 'A fazer', category: 'todo', position: 0 },
+    { id: 20, name: 'Feito', category: 'done', position: 1 },
+  ]
+  const members = [
+    { id: 1, user: 7, user_name: 'Ana' },
+    { id: 2, user: 8, user_name: 'Bruno' },
+  ]
+  const tasks = [
+    task(1, 10, 0, { priority: 'high', assignee: 7 }),
+    task(2, 20, 0, { priority: 'low', assignee: null }),
+    task(3, 10, 1, { priority: 'high', assignee: 99, assignee_name: 'Ex-membro' }),
+  ]
+  const summary = (lanes) => lanes.map((lane) => [lane.id, lane.tasks.map((item) => item.id)])
+
+  test('status usa as colunas reais', () => {
+    const lanes = buildLanes('status', { columns, members, tasks })
+    assert.deepEqual(summary(lanes), [
+      ['column-10', [1, 3]],
+      ['column-20', [2]],
+    ])
+    assert.equal(lanes[1].tone, 'done')
+    assert.equal(lanes[0].column.id, 10)
+  })
+  test('prioridade tem as três faixas, mesmo vazias', () => {
+    const lanes = buildLanes('priority', { columns, members, tasks })
+    assert.deepEqual(summary(lanes), [
+      ['priority-high', [1, 3]],
+      ['priority-medium', []],
+      ['priority-low', [2]],
+    ])
+    assert.equal(lanes[0].value, 'high')
+  })
+  test('responsável: membros, ex-membros e sem responsável no fim', () => {
+    const lanes = buildLanes('assignee', { columns, members, tasks })
+    assert.deepEqual(summary(lanes), [
+      ['assignee-7', [1]],
+      ['assignee-8', []],
+      ['assignee-99', [3]],
+      ['assignee-none', [2]],
+    ])
+    assert.equal(lanes[2].title, 'Ex-membro')
+    assert.equal(lanes[3].value, null)
   })
 })

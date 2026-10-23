@@ -55,7 +55,8 @@ export function hasActiveFilters(filters) {
 export function filterTasks(tasks, filters, { columnsById } = {}) {
   const search = normalize(filters.search)
   return tasks.filter((task) => {
-    if (search && !normalize(task.title).includes(search)) return false
+    if (search && !normalize(`${task.title} ${task.description ?? ''}`).includes(search))
+      return false
     if (filters.priority && task.priority !== filters.priority) return false
     if (filters.assignee === 'none' && task.assignee != null) return false
     if (
@@ -179,4 +180,91 @@ export function isHttpUrl(value) {
   } catch {
     return false
   }
+}
+
+const PRIORITY_RANK = { high: 0, medium: 1, low: 2 }
+
+export const SORTS = [
+  { value: 'manual', label: 'Manual' },
+  { value: 'due', label: 'Prazo' },
+  { value: 'priority', label: 'Prioridade' },
+  { value: 'title', label: 'Título' },
+  { value: 'recent', label: 'Mais recentes' },
+]
+
+export const GROUPS = [
+  { value: 'status', label: 'Status' },
+  { value: 'priority', label: 'Prioridade' },
+  { value: 'assignee', label: 'Responsável' },
+]
+
+// Ordem dos cards dentro de cada faixa. "manual" respeita coluna e posição gravadas no servidor.
+export function sortTasks(tasks, sort = 'manual', { columnsById } = {}) {
+  const manual = (a, b) =>
+    (columnsById?.get(a.column)?.position ?? 0) - (columnsById?.get(b.column)?.position ?? 0) ||
+    a.position - b.position ||
+    a.id - b.id
+  const compare =
+    {
+      manual,
+      due: (a, b) =>
+        (a.due_date ? 0 : 1) - (b.due_date ? 0 : 1) ||
+        String(a.due_date ?? '').localeCompare(String(b.due_date ?? '')) ||
+        manual(a, b),
+      priority: (a, b) =>
+        (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || manual(a, b),
+      title: (a, b) =>
+        normalize(a.title).localeCompare(normalize(b.title), 'pt-BR') || manual(a, b),
+      recent: (a, b) => b.id - a.id,
+    }[sort] ?? manual
+  return [...tasks].sort(compare)
+}
+
+// Faixas do quadro/lista conforme o agrupamento. Só "status" usa colunas reais (arrastar move de coluna);
+// prioridade e responsável são faixas virtuais (soltar altera o campo da tarefa).
+export function buildLanes(group, { columns, members, tasks, sort = 'manual' }) {
+  const columnsById = new Map(columns.map((column) => [column.id, column]))
+  const sorted = (list) => sortTasks(list, sort, { columnsById })
+
+  if (group === 'priority') {
+    return PRIORITIES.map((priority) => ({
+      id: `priority-${priority.value}`,
+      kind: 'priority',
+      value: priority.value,
+      title: priority.label,
+      tone: priority.value,
+      tasks: sorted(tasks.filter((task) => task.priority === priority.value)),
+    }))
+  }
+
+  if (group === 'assignee') {
+    const people = members.map((member) => ({
+      value: member.user,
+      title: member.user_name || member.user_email,
+    }))
+    // Responsável que saiu do projeto continua visível na própria faixa.
+    for (const task of tasks) {
+      if (task.assignee != null && !people.some((person) => person.value === task.assignee)) {
+        people.push({ value: task.assignee, title: task.assignee_name || 'Ex-participante' })
+      }
+    }
+    return [...people, { value: null, title: 'Sem responsável' }].map((person) => ({
+      id: `assignee-${person.value ?? 'none'}`,
+      kind: 'assignee',
+      value: person.value,
+      title: person.title,
+      tone: person.value == null ? 'none' : 'person',
+      tasks: sorted(tasks.filter((task) => (task.assignee ?? null) === person.value)),
+    }))
+  }
+
+  return sortByPosition(columns).map((column) => ({
+    id: `column-${column.id}`,
+    kind: 'column',
+    value: column.id,
+    title: column.name,
+    tone: column.category,
+    column,
+    tasks: sorted(tasks.filter((task) => task.column === column.id)),
+  }))
 }
