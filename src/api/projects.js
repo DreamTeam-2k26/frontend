@@ -1,6 +1,11 @@
 import api from './api'
 import { loadProjectPages } from './projectPagination'
 
+export async function getProject(id, { signal } = {}) {
+  const { data } = await api.get(`/projects/${encodeURIComponent(id)}/`, { signal })
+  return data
+}
+
 export async function listProjects() {
   return loadProjectPages(async (page) => {
     const { data } = await api.get('/projects/', { params: { page, page_size: 100 } })

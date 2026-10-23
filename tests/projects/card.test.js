@@ -5,9 +5,12 @@ import { createServer } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
+import { createMemoryHistory, createRouter } from 'vue-router'
 
 let server
 let Card
+let Header
+let Overview
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -17,6 +20,8 @@ before(async () => {
     appType: 'custom',
   })
   Card = (await server.ssrLoadModule('/src/components/projects/ProjectCard.vue')).default
+  Header = (await server.ssrLoadModule('/src/components/projects/ProjectHeader.vue')).default
+  Overview = (await server.ssrLoadModule('/src/components/projects/ProjectOverview.vue')).default
 })
 after(async () => {
   await server?.close()
@@ -37,12 +42,55 @@ const project = {
     { id: 5, profile_picture: null },
   ],
 }
-const render = (overrides = {}) =>
-  renderToString(
-    createSSRApp({
-      render: () => h(Card, { project: { ...project, ...overrides } }),
-    }),
-  )
+async function renderComponent(component, data) {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: { render: () => null } },
+      { path: '/projects', name: 'projects', component: { render: () => null } },
+      { path: '/projects/:id', name: 'project-detail', component: { render: () => null } },
+    ],
+  })
+  await router.push('/')
+  const app = createSSRApp({ render: () => h(component, { project: data }) })
+  app.use(router)
+  return renderToString(app)
+}
+const render = (overrides = {}) => renderComponent(Card, { ...project, ...overrides })
+
+test('card oferece link real para o detalhe e remove aviso de indisponibilidade', async () => {
+  const html = await render()
+  assert.match(html, /href="\/projects\/24"/)
+  assert.match(html, /aria-label="Acessar projeto Feira de Ciências"/)
+  assert.doesNotMatch(html, /espaço interno do projeto estará disponível em breve/)
+})
+
+test('cabeçalho permite gerenciar apenas owner e admin, sem inventar seções', async () => {
+  for (const role of ['owner', 'admin', 'member']) {
+    const html = await renderComponent(Header, { ...project, role })
+    assert.equal(html.includes('Gerenciar em Meus Projetos'), role !== 'member')
+    assert.match(html, /Feira de Ciências/)
+    assert.match(html, /Ciências · 3º ano/)
+    assert.doesNotMatch(html, /Kanban|Nova tarefa|reunião/)
+  }
+})
+
+test('resumo usa campos reais do detalhe e não métricas da lista ou do Figma', async () => {
+  const html = await renderComponent(Overview, {
+    ...project,
+    created_by: 17,
+    created_at: '2026-10-23T15:00:00Z',
+    updated_at: '2026-10-24T15:00:00Z',
+  })
+  assert.match(html, /datetime="2026-10-23T15:00:00Z"/)
+  assert.match(html, /datetime="2026-10-24T15:00:00Z"/)
+  assert.match(html, /#17/)
+  assert.match(html, /#24/)
+  assert.doesNotMatch(html, /68%|5 participantes|tarefas concluídas|reunião/)
+  const missing = await renderComponent(Overview, { ...project })
+  assert.match(missing, /Não informada/)
+  assert.match(missing, /Não informado/)
+})
 
 test('card renderiza progresso e total reais, três avatares e quantidade excedente', async () => {
   const html = await render()

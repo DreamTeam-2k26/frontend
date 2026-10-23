@@ -73,7 +73,10 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
         </div>
       </div>
       <div class="project-card__actions">
-        <BaseButton disabled :aria-describedby="`project-access-${project.id}`">
+        <BaseButton
+          :to="{ name: 'project-detail', params: { id: project.id } }"
+          :aria-label="`Acessar projeto ${project.name}`"
+        >
           Acessar projeto <ArrowUpRight :size="16" aria-hidden="true" />
         </BaseButton>
         <BaseButton
@@ -84,9 +87,6 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
           ><Pencil :size="16" aria-hidden="true" /> Editar</BaseButton
         >
       </div>
-      <small :id="`project-access-${project.id}`"
-        >O espaço interno do projeto estará disponível em breve.</small
-      >
     </div>
   </article>
 </template>
