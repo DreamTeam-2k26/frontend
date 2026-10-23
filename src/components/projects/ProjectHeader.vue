@@ -1,8 +1,8 @@
 <script setup>
 import BaseButton from '@/components/ui/BaseButton.vue'
+import { Plus } from 'lucide-vue-next'
 
 defineProps({ project: { type: Object, required: true } })
-const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
 </script>
 
 <template>
@@ -10,16 +10,11 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
     <div class="project-header__content">
       <div class="project-header__heading">
         <h1 id="project-title">{{ project.name }}</h1>
-        <span class="project-header__role">{{ roles[project.role] || 'Papel não informado' }}</span>
       </div>
       <p>{{ project.description || 'Este projeto ainda não tem descrição.' }}</p>
     </div>
-    <BaseButton
-      v-if="['owner', 'admin'].includes(project.role)"
-      variant="secondary"
-      :to="{ name: 'projects' }"
-    >
-      Gerenciar em Meus Projetos
+    <BaseButton disabled title="A criação de tarefas estará disponível com o Kanban.">
+      <Plus :size="16" aria-hidden="true" /> Nova tarefa
     </BaseButton>
   </header>
 </template>

@@ -42,7 +42,7 @@ const project = {
     { id: 5, profile_picture: null },
   ],
 }
-async function renderComponent(component, data) {
+async function renderComponent(component, data, extra = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -52,7 +52,7 @@ async function renderComponent(component, data) {
     ],
   })
   await router.push('/')
-  const app = createSSRApp({ render: () => h(component, { project: data }) })
+  const app = createSSRApp({ render: () => h(component, { project: data, ...extra }) })
   app.use(router)
   return renderToString(app)
 }
@@ -65,13 +65,14 @@ test('card oferece link real para o detalhe e remove aviso de indisponibilidade'
   assert.doesNotMatch(html, /espaço interno do projeto estará disponível em breve/)
 })
 
-test('cabeçalho permite gerenciar apenas owner e admin, sem inventar seções', async () => {
+test('cabeçalho preserva nome e descrição e apresenta criação de tarefa indisponível', async () => {
   for (const role of ['owner', 'admin', 'member']) {
     const html = await renderComponent(Header, { ...project, role })
-    assert.equal(html.includes('Gerenciar em Meus Projetos'), role !== 'member')
+    assert.match(html, /Nova tarefa/)
+    assert.match(html, /disabled/)
     assert.match(html, /Feira de Ciências/)
     assert.match(html, /Ciências · 3º ano/)
-    assert.doesNotMatch(html, /Kanban|Nova tarefa|reunião/)
+    assert.doesNotMatch(html, /Gerenciar em Meus Projetos/)
   }
 })
 
@@ -86,10 +87,42 @@ test('resumo usa campos reais do detalhe e não métricas da lista ou do Figma',
   assert.match(html, /datetime="2026-10-24T15:00:00Z"/)
   assert.match(html, /#17/)
   assert.match(html, /#24/)
-  assert.doesNotMatch(html, /68%|5 participantes|tarefas concluídas|reunião/)
+  assert.doesNotMatch(html, /68%|5 membros|8 de 12|Alinhamento da equipe/)
   const missing = await renderComponent(Overview, { ...project })
   assert.match(missing, /Não informada/)
   assert.match(missing, /Não informado/)
+})
+
+test('dashboard calcula indicadores e entregas a partir das tarefas e etapas reais', async () => {
+  const tasks = Array.from({ length: 12 }, (_, index) => ({
+    id: index + 1,
+    column: index < 8 ? 3 : 1,
+    title: `Entrega ${index + 1}`,
+    due_date: `2026-10-${24 + (index % 4)}`,
+    priority: 'high',
+    is_overdue: index === 8,
+  }))
+  const html = await renderComponent(Overview, project, {
+    overview: {
+      tasks,
+      columns: [
+        { id: 1, category: 'todo' },
+        { id: 2, category: 'in_progress' },
+        { id: 3, category: 'done' },
+      ],
+      members: Array.from({ length: 5 }, (_, index) => ({
+        id: index,
+        user_name: `Pessoa ${index + 1}`,
+      })),
+    },
+  })
+  assert.match(html, /8 de 12 tarefas concluídas/)
+  assert.match(html, /67%/)
+  assert.match(html, /Distribuídas em 3 etapas/)
+  assert.match(html, /5 membros/)
+  assert.match(html, /Entrega 9/)
+  assert.doesNotMatch(html, /Entrega 1</)
+  assert.match(html, /Próxima reunião/)
 })
 
 test('card renderiza progresso e total reais, três avatares e quantidade excedente', async () => {

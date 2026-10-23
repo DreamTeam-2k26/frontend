@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
-import { getProject } from '@/api/projects'
+import { getProject, getProjectOverview } from '@/api/projects'
 import { projectError } from '@/components/projects/projectState'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectHeader from '@/components/projects/ProjectHeader.vue'
@@ -13,6 +13,8 @@ const project = ref(null)
 const loading = ref(true)
 const error = ref('')
 const status = ref(null)
+const overview = ref(null)
+const overviewLoading = ref(false)
 const errorTitle = computed(() => {
   if (status.value === 404) return 'Projeto não encontrado'
   if (status.value === 403) return 'Acesso negado'
@@ -28,6 +30,8 @@ async function load() {
   controller = new AbortController()
   loading.value = true
   project.value = null
+  overview.value = null
+  overviewLoading.value = false
   error.value = ''
   status.value = null
   const id = String(route.params.id ?? '')
@@ -39,7 +43,13 @@ async function load() {
   }
   try {
     const data = await getProject(id, { signal: controller.signal })
-    if (current === request) project.value = data
+    if (current === request) {
+      project.value = data
+      loading.value = false
+      overviewLoading.value = true
+      const summary = await getProjectOverview(id, { signal: controller.signal })
+      if (current === request) overview.value = summary
+    }
   } catch (cause) {
     if (current !== request) return
     status.value = cause.response?.status
@@ -48,7 +58,10 @@ async function load() {
         ? 'O projeto não existe ou não está disponível para sua conta.'
         : projectError(cause)
   } finally {
-    if (current === request) loading.value = false
+    if (current === request) {
+      loading.value = false
+      overviewLoading.value = false
+    }
   }
 }
 
@@ -84,7 +97,7 @@ onBeforeUnmount(() => {
     </div>
     <template v-else-if="project">
       <ProjectHeader :project="project" />
-      <ProjectOverview :project="project" />
+      <ProjectOverview :project="project" :overview="overview" :loading="overviewLoading" />
     </template>
   </section>
 </template>
