@@ -2,7 +2,10 @@
 import { ChevronRight } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import ProjectCard from '@/components/projects/ProjectCard.vue'
-defineProps({ projects: { type: Array, required: true } })
+defineProps({
+  projects: { type: Array, required: true },
+  demo: { type: Boolean, default: false },
+})
 </script>
 
 <template>
@@ -15,7 +18,7 @@ defineProps({ projects: { type: Array, required: true } })
     </header>
     <ul class="recent-projects__list" aria-label="Projetos atualizados recentemente">
       <li v-for="project in projects" :key="project.id">
-        <ProjectCard :project="project" compact />
+        <ProjectCard :project="project" compact :preview="demo" />
       </li>
     </ul>
   </section>
