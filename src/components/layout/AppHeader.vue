@@ -25,7 +25,7 @@ const toggleLabel = computed(() => (collapsed.value ? 'Expandir menu' : 'Recolhe
       >
         <component :is="toggleIcon" :size="20" aria-hidden="true" />
       </button>
-      <AppBrand />
+      <AppBrand class="header__brand" />
       <span v-if="pageTitle" class="header__title">{{ pageTitle }}</span>
     </div>
 
@@ -43,50 +43,78 @@ const toggleLabel = computed(() => (collapsed.value ? 'Expandir menu' : 'Recolhe
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: var(--space-4);
   height: var(--header-height);
-  padding: 0 1rem;
+  /* Esquerda menor: o ícone do toggle fica na mesma coluna dos ícones da Sidebar. */
+  padding: 0 var(--space-6) 0 var(--space-3);
   background-color: var(--color-background);
   border-bottom: 1px solid var(--color-border);
+}
+
+.header__brand {
+  display: none;
 }
 
 .header__start {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: var(--space-3);
   min-width: 0;
 }
 
+/* Mesmo alvo de toque do ThemeToggle (2.75rem). */
 .header__toggle {
   display: inline-flex;
-  padding: 0.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--space-10) + var(--space-1));
+  height: calc(var(--space-10) + var(--space-1));
   color: var(--color-text-secondary);
   border-radius: var(--radius-md);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 .header__toggle:hover {
   color: var(--color-text);
-  background-color: var(--color-surface);
+  background-color: var(--color-bg-hover);
 }
 
 .header__title {
-  padding-left: 0.75rem;
+  min-width: 0;
   overflow: hidden;
-  color: var(--color-text-secondary);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   text-overflow: ellipsis;
-  border-left: 1px solid var(--color-border);
 }
 
 .header__actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
 }
 
 /* Breakpoint igual ao do DefaultLayout. */
 @media (max-width: 767px) {
+  .header {
+    gap: var(--space-3);
+    padding: 0 var(--space-4);
+  }
+
+  .header__brand {
+    display: inline-flex;
+  }
   .header__toggle {
+    display: none;
+  }
+
+  /* Sem espaço para marca + título; a página e a barra inferior já indicam onde se está. */
+  .header__title {
     display: none;
   }
 }

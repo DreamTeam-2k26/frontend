@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { House, LayoutGrid, MessagesSquare, Settings } from 'lucide-vue-next'
+import { House, FolderOpen, MessagesSquare, Settings } from 'lucide-vue-next'
 import {
   getAccessToken,
   getRefreshToken,
@@ -28,12 +28,22 @@ const router = createRouter({
           },
         },
         {
+          path: 'projects',
+          name: 'projects',
+          component: () => import('@/views/ProjectsView.vue'),
+          meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2, group: 'projects' } },
+        },
+        {
+          path: 'projects/:id',
+          name: 'project-detail',
+          component: () => import('@/views/ProjectDetailView.vue'),
+          meta: { title: 'Detalhes do projeto' },
+        },
+        {
           path: 'example',
           name: 'example',
           component: () => import('@/views/ExampleView.vue'),
-          meta: {
-            nav: { label: 'Exemplo', icon: LayoutGrid, order: 2 },
-          },
+          meta: { title: 'Exemplo' },
         },
         {
           path: 'chat/:roomId(\\d+)?',
@@ -41,14 +51,27 @@ const router = createRouter({
           component: () => import('@/features/chat/views/ChatView.vue'),
           meta: {
             requiresAuth: true,
-            nav: { label: 'Salas de Projeto', icon: MessagesSquare, order: 3, exact: false },
+            nav: {
+              label: 'Salas de Projeto',
+              icon: MessagesSquare,
+              order: 3,
+              exact: false,
+              group: 'projects',
+            },
           },
         },
         {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
-          meta: { nav: { label: 'Configurações', icon: Settings, order: 4 } },
+          meta: { nav: { label: 'Configurações', icon: Settings, order: 4, group: 'personal' } },
+        },
+        {
+          // Sem item de menu: acesso pelo bloco da conta na Sidebar e pelo avatar no header (mobile).
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/views/ProfileView.vue'),
+          meta: { title: 'Perfil' },
         },
       ],
     },
@@ -84,10 +107,7 @@ function isAccessTokenValid(token) {
     const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
     const decoded = JSON.parse(atob(normalized))
 
-    return (
-      typeof decoded.exp === 'number' &&
-      decoded.exp * 1000 > Date.now() + 10000
-    )
+    return typeof decoded.exp === 'number' && decoded.exp * 1000 > Date.now() + 10000
   } catch {
     return false
   }
@@ -95,9 +115,7 @@ function isAccessTokenValid(token) {
 
 // Protege as rotas privadas.
 router.beforeEach(async (to) => {
-  const requiresAuth = to.matched.some(
-    (route) => route.meta.requiresAuth
-  )
+  const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
 
   // Rotas públicas continuam acessíveis.
   if (!requiresAuth) return true
