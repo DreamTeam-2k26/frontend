@@ -171,3 +171,12 @@ export function timeAgo(iso, now = new Date()) {
   const label = `${date.getDate()} ${MONTHS[date.getMonth()]}`
   return date.getFullYear() === now.getFullYear() ? label : `${label} ${date.getFullYear()}`
 }
+
+// Links de apoio: o backend só aceita http/https (evita javascript: e afins).
+export function isHttpUrl(value) {
+  try {
+    return ['http:', 'https:'].includes(new URL(String(value).trim()).protocol)
+  } catch {
+    return false
+  }
+}

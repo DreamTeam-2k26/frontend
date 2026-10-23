@@ -7,6 +7,7 @@ import BaseModal from '@/components/ui/BaseModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import TaskChecklist from '@/components/tasks/TaskChecklist.vue'
 import TaskComments from '@/components/tasks/TaskComments.vue'
+import TaskLinks from '@/components/tasks/TaskLinks.vue'
 import { useKanbanStore } from '@/stores/kanban'
 import { useTaskDetailStore } from '@/stores/taskDetail'
 import { apiFieldErrors } from '@/utils/apiErrors'
@@ -430,6 +431,7 @@ function onMenu(action) {
 
       <TaskChecklist />
       <TaskComments />
+      <TaskLinks />
     </div>
 
     <ConfirmDialog

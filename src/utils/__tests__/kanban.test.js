@@ -12,6 +12,7 @@ import {
   filterTasks,
   groupTasks,
   hasActiveFilters,
+  isHttpUrl,
   moveLocally,
   sortByPosition,
   targetPosition,
@@ -246,4 +247,17 @@ describe('timeAgo', () => {
   test('outro ano inclui o ano', () =>
     assert.equal(timeAgo(at('2025-12-31T10:00:00'), now), '31 dez 2025'))
   test('data inválida', () => assert.equal(timeAgo('x', now), ''))
+})
+
+describe('isHttpUrl', () => {
+  test('aceita http e https', () => {
+    assert.equal(isHttpUrl('https://meet.google.com/abc'), true)
+    assert.equal(isHttpUrl('http://exemplo.com'), true)
+  })
+  test('recusa outros esquemas e texto solto', () => {
+    assert.equal(isHttpUrl('javascript:alert(1)'), false)
+    assert.equal(isHttpUrl('ftp://exemplo.com'), false)
+    assert.equal(isHttpUrl('exemplo.com'), false)
+    assert.equal(isHttpUrl(''), false)
+  })
 })
