@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { House, LayoutGrid, MessagesSquare, Settings } from 'lucide-vue-next'
+import { House, MessagesSquare, Settings } from 'lucide-vue-next'
 import {
   getAccessToken,
   getRefreshToken,
@@ -32,7 +32,7 @@ const router = createRouter({
           name: 'example',
           component: () => import('@/views/ExampleView.vue'),
           meta: {
-            nav: { label: 'Exemplo', icon: LayoutGrid, order: 2 },
+            title: 'Exemplo',
           },
         },
         {
@@ -41,14 +41,14 @@ const router = createRouter({
           component: () => import('@/features/chat/views/ChatView.vue'),
           meta: {
             requiresAuth: true,
-            nav: { label: 'Salas de Projeto', icon: MessagesSquare, order: 3, exact: false },
+            nav: { label: 'Salas de Projeto', icon: MessagesSquare, order: 3, exact: false, group: 'projects' },
           },
         },
         {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
-          meta: { nav: { label: 'Configurações', icon: Settings, order: 4 } },
+          meta: { nav: { label: 'Configurações', icon: Settings, order: 4, group: 'projects' } },
         },
       ],
     },
