@@ -40,6 +40,12 @@ const router = createRouter({
           meta: { title: 'Detalhes do projeto' },
         },
         {
+          path: 'projects/:id/members',
+          name: 'project-members',
+          component: () => import('@/views/ProjectMembersView.vue'),
+          meta: { title: 'Participantes' },
+        },
+        {
           path: 'example',
           name: 'example',
           component: () => import('@/views/ExampleView.vue'),
@@ -74,6 +80,11 @@ const router = createRouter({
           meta: { title: 'Perfil' },
         },
       ],
+    },
+    {
+      path: '/invite/:token',
+      name: 'invite-redeem',
+      component: () => import('@/views/InviteRedeemView.vue'),
     },
     {
       path: '/auth/',
