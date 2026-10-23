@@ -1,4 +1,5 @@
 <script setup>
+import { LockKeyhole, Mail, UserRound } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import { useForm } from '@/composables/useForm'
@@ -32,10 +33,11 @@ const onSubmit = handleSubmit((payload) =>
   <form class="auth-form" novalidate :aria-busy="loading" @submit.prevent="!loading && onSubmit()">
     <BaseInput
       v-model="values.name"
-      label="Nome"
+      label="Seu nome"
+      :icon="UserRound"
       name="name"
       autocomplete="name"
-      placeholder="Como você se chama?"
+      placeholder="Nome e sobrenome"
       maxlength="150"
       required
       :disabled="loading"
@@ -45,6 +47,7 @@ const onSubmit = handleSubmit((payload) =>
     <BaseInput
       v-model="values.email"
       label="E-mail"
+      :icon="Mail"
       name="email"
       type="email"
       autocomplete="email"
@@ -57,6 +60,7 @@ const onSubmit = handleSubmit((payload) =>
     <BaseInput
       v-model="values.password"
       label="Senha"
+      :icon="LockKeyhole"
       name="password"
       type="password"
       autocomplete="new-password"
@@ -69,6 +73,7 @@ const onSubmit = handleSubmit((payload) =>
     <BaseInput
       v-model="values.passwordConfirm"
       label="Confirmar senha"
+      :icon="LockKeyhole"
       name="passwordConfirm"
       type="password"
       autocomplete="new-password"
@@ -86,6 +91,6 @@ const onSubmit = handleSubmit((payload) =>
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 </style>

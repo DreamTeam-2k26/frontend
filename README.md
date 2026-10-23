@@ -46,15 +46,15 @@ npm run lint
 ## Tema claro e escuro
 
 O controle na área de ações do Header alterna os temas existentes em `main.css`.
-Na primeira visita, segue `prefers-color-scheme`; sem preferência escura do sistema,
-inicia no claro. A escolha explícita é salva em `localStorage` na chave `fluxo-theme`
-e tem prioridade nas próximas visitas. O tema claro remove `data-theme` da raiz;
+Na primeira visita, sempre inicia no tema claro (não segue `prefers-color-scheme`).
+A escolha explícita é salva em `localStorage` na chave `fluxo-theme` e vale nas
+próximas visitas. O tema claro remove `data-theme` da raiz;
 o escuro aplica `data-theme="dark"`.
 
 `public/theme-init.js` roda de forma síncrona no `<head>`, antes do CSS e do Vue,
 para restaurar o tema antes da primeira pintura. Se o storage estiver bloqueado,
 a alternância continua funcionando na sessão, sem persistência após recarregar.
-Para voltar à preferência do sistema, remova a chave `fluxo-theme` e recarregue.
+Para voltar ao padrão (claro), remova a chave `fluxo-theme` e recarregue.
 
 `ThemeToggle.vue` e `useTheme.js` podem ser reutilizados em outras telas. A integração
 usa o slot `actions` do Header em `DefaultLayout.vue`, preservando o componente

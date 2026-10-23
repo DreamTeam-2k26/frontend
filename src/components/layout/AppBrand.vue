@@ -12,6 +12,12 @@ import { appConfig } from '@/config/app'
         class="brand__logo"
         :class="{ 'brand__logo--light': appConfig.logoDark }"
       />
+      <!-- Sem logo própria para o escuro: a mesma imagem vira máscara na cor --color-logo. -->
+      <span
+        v-if="!appConfig.logoDark"
+        class="brand__mono"
+        :style="{ '--brand-logo': `url(${appConfig.logo})` }"
+      />
       <img
         v-if="appConfig.logoDark"
         :src="appConfig.logoDark"
@@ -47,17 +53,29 @@ import { appConfig } from '@/config/app'
   height: var(--space-8);
   object-fit: contain;
 }
-.brand__logo--dark {
+.brand__logo--dark,
+.brand__mono {
   display: none;
 }
-:global([data-theme='dark']) .brand:has(.brand__logo:only-child) {
-  padding: var(--space-1) var(--space-2);
-  background-color: var(--color-secondary);
+/* `:root[...]` em vez de `:global(...)`: o CSS com escopo descartava as regras de :global. */
+:root[data-theme='dark'] .brand {
+  position: relative;
 }
-:global([data-theme='dark']) .brand__logo--light {
+:root[data-theme='dark'] .brand__logo--light {
   display: none;
 }
-:global([data-theme='dark']) .brand__logo--dark {
+:root[data-theme='dark'] .brand__logo--dark {
   display: block;
+}
+:root[data-theme='dark'] .brand__logo:not(.brand__logo--dark) {
+  visibility: hidden;
+}
+:root[data-theme='dark'] .brand__mono {
+  position: absolute;
+  inset: 0;
+  display: block;
+  background-color: var(--color-logo);
+  -webkit-mask: var(--brand-logo) left center / contain no-repeat;
+  mask: var(--brand-logo) left center / contain no-repeat;
 }
 </style>

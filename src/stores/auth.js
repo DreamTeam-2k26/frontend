@@ -1,4 +1,5 @@
 import * as authApi from '@/api/auth'
+import * as mediaApi from '@/api/media'
 import { defineStore } from 'pinia'
 import { computed, reactive } from 'vue'
 import { toast } from 'vue3-toastify'
@@ -8,15 +9,18 @@ export const useAuthStore = defineStore('authStore', () => {
   const state = reactive({
     user: null,
     loading: false,
+    saving: false,
   })
 
   const user = computed(() => state.user)
   const loading = computed(() => state.loading)
+  const saving = computed(() => state.saving)
 
   let userRequest = null
 
-  function fetchUser() {
-    if (state.user) return Promise.resolve(state.user)
+  // `force` ignora o usuário já carregado (o perfil sempre busca o dado atual).
+  function fetchUser({ force = false } = {}) {
+    if (state.user && !force) return Promise.resolve(state.user)
     if (userRequest) return userRequest
 
     userRequest = authApi
@@ -119,11 +123,65 @@ export const useAuthStore = defineStore('authStore', () => {
     }
   }
 
+  // Envia a foto nova (se houver) e depois atualiza o perfil; quem chama só informa o que mudou.
+  async function updateProfile({ name, photo = null, removePhoto = false }) {
+    const toastId = toast.loading('Salvando perfil...')
+    state.saving = true
+
+    try {
+      let profilePictureKey
+
+      if (photo) {
+        const upload = await mediaApi.uploadImage(photo).catch((error) => {
+          error.uploadFailed = true
+          throw error
+        })
+        profilePictureKey = upload.data.attachment_key
+      } else if (removePhoto) {
+        profilePictureKey = null
+      }
+
+      const response = await authApi.updateCurrentUser({ name, profilePictureKey })
+      state.user = response.data
+
+      toast.update(toastId, {
+        render: 'Perfil atualizado.',
+        type: 'success',
+        isLoading: false,
+        autoClose: 3000,
+      })
+
+      return response.data
+    } catch (error) {
+      const data = error?.response?.data
+      const fieldMessage = ['name', 'file', 'profile_picture_attachment_key', 'non_field_errors']
+        .flatMap((field) => data?.[field] ?? [])
+        .find((message) => typeof message === 'string')
+      const fallback = error.uploadFailed
+        ? 'Não foi possível enviar a foto.'
+        : 'Não foi possível salvar o perfil.'
+      const detail = data?.detail || fieldMessage
+
+      toast.update(toastId, {
+        render: error.uploadFailed && detail ? `${fallback} ${detail}` : detail || fallback,
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000,
+      })
+
+      throw error
+    } finally {
+      state.saving = false
+    }
+  }
+
   return {
     loading,
+    saving,
     user,
     login,
     register,
     fetchUser,
+    updateProfile,
   }
 })
