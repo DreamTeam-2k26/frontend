@@ -5,6 +5,7 @@ import ActionMenu from '@/components/ui/ActionMenu.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import TaskChecklist from '@/components/tasks/TaskChecklist.vue'
 import { useKanbanStore } from '@/stores/kanban'
 import { useTaskDetailStore } from '@/stores/taskDetail'
 import { apiFieldErrors } from '@/utils/apiErrors'
@@ -426,7 +427,7 @@ function onMenu(action) {
         </div>
       </dl>
 
-      <slot :task="task" />
+      <TaskChecklist />
     </div>
 
     <ConfirmDialog
