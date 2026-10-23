@@ -80,7 +80,7 @@ onBeforeUnmount(() => {
 }
 
 .modal::backdrop {
-  background: color-mix(in srgb, var(--color-text) 45%, transparent);
+  background: var(--color-overlay);
 }
 
 .modal--sm {
