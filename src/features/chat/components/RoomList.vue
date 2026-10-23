@@ -77,7 +77,7 @@ function preview(room) {
           :aria-current="room.id === activeId ? 'true' : undefined"
           @click="emit('select', room.id)"
         >
-          <ChatAvatar :name="room.name" :src="room.image" :size="44" />
+          <ChatAvatar :name="room.name" :src="room.image" :size="40" />
           <span class="room__body">
             <span class="room__top">
               <span class="room__name">{{ room.name }}</span>
@@ -114,23 +114,23 @@ function preview(room) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1rem 0.5rem;
+  padding: 1.25rem 1rem 0.75rem;
 }
 
 .rooms__title {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 .rooms__new {
   display: inline-flex;
-  padding: 0.5rem;
-  color: #ffffff;
+  padding: 0.375rem;
+  color: var(--color-text);
   border-radius: 50%;
-  background-color: var(--color-primary);
 }
 
 .rooms__new:hover {
-  background-color: var(--color-primary-hover);
+  background-color: color-mix(in srgb, var(--color-primary) 10%, var(--color-background));
 }
 
 .rooms__search {
@@ -147,6 +147,9 @@ function preview(room) {
 
 .rooms__search input {
   padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+  border: none;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--color-primary) 6%, var(--color-background));
 }
 
 .rooms__state {
@@ -169,6 +172,11 @@ function preview(room) {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  border-top: 1px solid var(--color-border);
+}
+
+.rooms__list li {
+  border-bottom: 1px solid var(--color-border);
 }
 
 .room {
@@ -176,18 +184,13 @@ function preview(room) {
   align-items: center;
   gap: 0.75rem;
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 1rem;
   text-align: left;
-  border-left: 3px solid transparent;
 }
 
-.room:hover {
-  background-color: var(--color-surface);
-}
-
+.room:hover,
 .room--active {
-  border-left-color: var(--color-primary);
-  background-color: color-mix(in srgb, var(--color-primary) 8%, var(--color-background));
+  background-color: color-mix(in srgb, var(--color-primary) 7%, var(--color-background));
 }
 
 .room__body {
@@ -229,14 +232,14 @@ function preview(room) {
 
 .room__badge {
   flex-shrink: 0;
-  min-width: 1.25rem;
-  padding: 0 0.375rem;
-  color: #ffffff;
+  min-width: 1.5rem;
+  padding: 0.125rem 0.5rem;
+  color: var(--color-primary);
   font-size: 0.75rem;
   font-weight: 600;
-  line-height: 1.25rem;
+  line-height: 1.25;
   text-align: center;
-  border-radius: 999px;
-  background-color: var(--color-primary);
+  border-radius: 0.5rem;
+  background-color: color-mix(in srgb, var(--color-primary) 14%, var(--color-background));
 }
 </style>

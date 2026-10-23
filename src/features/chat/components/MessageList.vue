@@ -157,16 +157,16 @@ onMounted(scrollToBottom)
 .list {
   flex: 1;
   min-height: 0;
-  padding: 1rem;
+  padding: 1rem 1.5rem;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background-color: var(--color-surface);
+  background-color: var(--color-background);
 }
 
 .list__items {
   display: flex;
   flex-direction: column;
-  gap: 0.375rem;
+  gap: 1.25rem;
 }
 
 .list__state {
@@ -185,20 +185,20 @@ onMounted(scrollToBottom)
   gap: 0.25rem;
   margin: 0 auto 1rem;
   padding: 0.375rem 0.875rem;
-  color: var(--color-primary);
+  color: var(--color-text-secondary);
   font-size: 0.8125rem;
-  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background-color: var(--color-background);
+  background-color: color-mix(in srgb, var(--color-primary) 7%, var(--color-background));
+}
+
+.list__older:hover:not(:disabled) {
+  color: var(--color-text);
 }
 
 .list__day {
   align-self: center;
   margin: 0.5rem 0;
-  padding: 0.125rem 0.75rem;
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
-  border-radius: 999px;
-  background-color: var(--color-border);
+  font-size: 0.8125rem;
 }
 </style>

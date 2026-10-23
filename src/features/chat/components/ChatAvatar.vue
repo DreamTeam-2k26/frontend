@@ -43,8 +43,8 @@ const url = computed(() => mediaUrl(src))
   width: var(--avatar-size);
   height: var(--avatar-size);
   border-radius: 50%;
-  color: var(--color-primary);
-  background-color: color-mix(in srgb, var(--color-primary) 12%, var(--color-background));
+  color: color-mix(in srgb, var(--color-primary) 75%, #000000);
+  background-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-background));
   font-size: calc(var(--avatar-size) * 0.38);
   font-weight: 600;
 }

@@ -46,93 +46,97 @@ function replyPreview(reply) {
 <template>
   <li class="message" :class="{ 'message--own': own }">
     <ChatAvatar
-      v-if="!own"
       class="message__avatar"
       :class="{ 'message__avatar--hidden': !showAuthor }"
       :name="authorName"
       :src="message.author?.avatar ?? null"
-      :size="32"
+      :size="36"
     />
 
-    <div class="message__column">
-      <div
-        class="message__bubble"
-        :class="{
-          'message__bubble--deleted': message.is_deleted,
-          'message__bubble--photo': isPhoto,
-        }"
-      >
-        <p v-if="showAuthor && !own" class="message__author">{{ authorName }}</p>
+    <div class="message__main">
+      <p v-if="showAuthor && !own" class="message__head">
+        <span class="message__author">{{ authorName }}</span>
+      </p>
 
-        <blockquote v-if="message.reply_to && !message.is_deleted" class="message__reply">
-          <strong>{{ message.reply_to.author?.name ?? 'Usuário removido' }}</strong>
-          <span>{{ replyPreview(message.reply_to) }}</span>
-        </blockquote>
-
-        <p v-if="message.is_deleted" class="message__text">Mensagem apagada</p>
-        <template v-else>
-          <AttachmentView
-            v-if="message.file"
-            :message-id="message.id"
-            :file="message.file"
-            @open="emit('open-image', message)"
-          />
-          <p v-if="message.body" class="message__text">{{ message.body }}</p>
-        </template>
-
-        <span class="message__meta">
-          <span v-if="message.edited_at && !message.is_deleted">editada</span>
-          <time :datetime="message.created">{{ formatTime(message.created) }}</time>
-          <component
-            :is="status === 'sent' || !status ? Check : CheckCheck"
-            v-if="own && !message.is_deleted"
-            :size="14"
-            :class="{ message__read: status === 'read' }"
-            :aria-label="STATUS_LABEL[status] ?? STATUS_LABEL.sent"
-            :title="STATUS_LABEL[status] ?? STATUS_LABEL.sent"
-            role="img"
-          />
-        </span>
-      </div>
-
-      <div v-if="hasActions" class="message__actions">
-        <button
-          type="button"
-          aria-label="Responder"
-          title="Responder"
-          @click="emit('reply', message)"
+      <div class="message__row">
+        <div
+          class="message__bubble"
+          :class="{
+            'message__bubble--deleted': message.is_deleted,
+            'message__bubble--photo': isPhoto,
+          }"
         >
-          <Reply :size="15" aria-hidden="true" />
-        </button>
-        <button
-          v-if="canEdit"
-          type="button"
-          aria-label="Editar"
-          title="Editar"
-          @click="emit('edit', message)"
-        >
-          <Pencil :size="15" aria-hidden="true" />
-        </button>
-        <button
-          v-if="own"
-          type="button"
-          aria-label="Apagar"
-          title="Apagar"
-          class="message__danger"
-          @click="emit('delete', message)"
-        >
-          <Trash2 :size="15" aria-hidden="true" />
-        </button>
+          <blockquote v-if="message.reply_to && !message.is_deleted" class="message__reply">
+            <strong>{{ message.reply_to.author?.name ?? 'Usuário removido' }}</strong>
+            <span>{{ replyPreview(message.reply_to) }}</span>
+          </blockquote>
+
+          <p v-if="message.is_deleted" class="message__text">Mensagem apagada</p>
+          <template v-else>
+            <AttachmentView
+              v-if="message.file"
+              :message-id="message.id"
+              :file="message.file"
+              @open="emit('open-image', message)"
+            />
+            <p v-if="message.body" class="message__text">{{ message.body }}</p>
+          </template>
+
+          <span class="message__meta">
+            <span v-if="message.edited_at && !message.is_deleted">editada</span>
+            <time :datetime="message.created">{{ formatTime(message.created) }}</time>
+            <component
+              :is="status === 'sent' || !status ? Check : CheckCheck"
+              v-if="own && !message.is_deleted"
+              :size="14"
+              :class="{ message__read: status === 'read' }"
+              :aria-label="STATUS_LABEL[status] ?? STATUS_LABEL.sent"
+              :title="STATUS_LABEL[status] ?? STATUS_LABEL.sent"
+              role="img"
+            />
+          </span>
+        </div>
+
+        <div v-if="hasActions" class="message__actions">
+          <button
+            type="button"
+            aria-label="Responder"
+            title="Responder"
+            @click="emit('reply', message)"
+          >
+            <Reply :size="15" aria-hidden="true" />
+          </button>
+          <button
+            v-if="canEdit"
+            type="button"
+            aria-label="Editar"
+            title="Editar"
+            @click="emit('edit', message)"
+          >
+            <Pencil :size="15" aria-hidden="true" />
+          </button>
+          <button
+            v-if="own"
+            type="button"
+            aria-label="Apagar"
+            title="Apagar"
+            class="message__danger"
+            @click="emit('delete', message)"
+          >
+            <Trash2 :size="15" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
   </li>
 </template>
 
 <style scoped>
+/* Visual minimalista: balões suaves sem borda, nome e hora acima, tons derivados da cor primária. */
 .message {
   display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
+  align-items: flex-start;
+  gap: 0.75rem;
   max-width: 100%;
 }
 
@@ -144,48 +148,48 @@ function replyPreview(reply) {
   visibility: hidden;
 }
 
-.message__column {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 0;
-  max-width: min(32rem, 85%);
-}
-
-.message--own .message__column {
-  flex-direction: row-reverse;
-}
-
-.message__bubble {
+.message__main {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   min-width: 0;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) var(--radius-sm);
-  background-color: var(--color-background);
+  max-width: min(34rem, 85%);
 }
 
-.message--own .message__bubble {
-  color: #ffffff;
-  border-color: transparent;
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-sm) var(--radius-lg);
-  background-color: var(--color-primary);
+.message--own .message__main {
+  align-items: flex-end;
 }
 
+.message__head {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 1.25rem;
+}
+
+.message__author {
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.message__meta {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: 0.375rem;
+  color: var(--color-text-secondary);
+  font-size: 0.6875rem;
+}
+
+.message__meta svg.message__read {
+  color: var(--color-success);
+}
+
+/* Foto: a hora fica sobre a imagem (canto inferior direito). */
 .message__bubble--photo {
   position: relative;
-  gap: 0.125rem;
-  width: fit-content;
-  padding: 0.1875rem;
 }
 
-.message__bubble--photo .message__author {
-  padding: 0 0.375rem 0.125rem;
-}
-
-/* A hora fica sobre a foto (canto inferior direito), sem faixa colorida extra embaixo. */
 .message__bubble--photo .message__meta {
   position: absolute;
   right: 0.5rem;
@@ -194,18 +198,46 @@ function replyPreview(reply) {
   color: #ffffff;
   border-radius: 999px;
   background-color: rgb(0 0 0 / 50%);
-  opacity: 1;
+}
+
+.message__bubble--photo .message__meta svg.message__read {
+  color: #4ade80;
+}
+
+.message__row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.message--own .message__row {
+  flex-direction: row-reverse;
+}
+
+.message__bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 0.75rem 1.375rem;
+  color: var(--color-text);
+  border-radius: 1.125rem;
+  background-color: color-mix(in srgb, var(--color-primary) 7%, var(--color-background));
+}
+
+.message--own .message__bubble {
+  background-color: color-mix(in srgb, var(--color-primary) 13%, var(--color-background));
+}
+
+.message__bubble--photo {
+  width: fit-content;
+  padding: 0.25rem;
 }
 
 .message__bubble--deleted {
+  color: var(--color-text-secondary);
   font-style: italic;
-  opacity: 0.7;
-}
-
-.message__author {
-  color: var(--color-primary);
-  font-size: 0.75rem;
-  font-weight: 600;
 }
 
 .message__text {
@@ -216,40 +248,18 @@ function replyPreview(reply) {
 .message__reply {
   display: flex;
   flex-direction: column;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.625rem;
   font-size: 0.8125rem;
-  border-left: 3px solid currentColor;
+  border-left: 3px solid var(--color-primary);
   border-radius: var(--radius-sm);
-  background-color: color-mix(in srgb, currentColor 10%, transparent);
+  background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .message__reply span {
   overflow: hidden;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   text-overflow: ellipsis;
-  opacity: 0.85;
-}
-
-.message__meta {
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-end;
-  gap: 0.375rem;
-  font-size: 0.6875rem;
-}
-
-.message__meta > :not(svg) {
-  opacity: 0.75;
-}
-
-/* Tiques cinza (enviada / recebida) e verde (lida), visíveis sobre o balão azul e sobre fotos. */
-.message__meta svg {
-  opacity: 0.8;
-}
-
-.message__meta svg.message__read {
-  color: #4ade80;
-  opacity: 1;
 }
 
 .message__actions {
