@@ -52,12 +52,12 @@ export const useAuthStore = defineStore('authStore', () => {
     }
   }
 
-  async function register({ email, password }) {
+  async function register({ name, email, password }) {
     const toastId = toast.loading('Registrando sua conta...')
     state.loading = true
 
     try {
-      await authApi.register({ email, password })
+      await authApi.register({ name, email, password })
 
       toast.update(toastId, {
         render: 'Conta criada! Fazendo login...',
@@ -81,8 +81,13 @@ export const useAuthStore = defineStore('authStore', () => {
         autoClose: 3000,
       })
     } catch (error) {
+      const data = error?.response?.data
+      const fieldMessage = ['name', 'email', 'password', 'non_field_errors']
+        .flatMap((field) => data?.[field] ?? [])
+        .find((message) => typeof message === 'string')
+
       toast.update(toastId, {
-        render: error?.response?.data?.detail || 'Não foi possível concluir o cadastro.',
+        render: data?.detail || fieldMessage || 'Não foi possível concluir o cadastro.',
         type: 'error',
         isLoading: false,
         autoClose: 3000,

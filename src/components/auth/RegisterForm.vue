@@ -9,48 +9,72 @@ const { loading = false } = defineProps({
 })
 
 const emit = defineEmits({
-  submit: (payload) => Boolean(payload?.email && payload?.password),
+  submit: (payload) => Boolean(payload?.name && payload?.email && payload?.password),
 })
 
 const { values, errors, validateField, handleSubmit } = useForm(
-  { email: '', password: '', passwordConfirm: '' },
+  { name: '', email: '', password: '', passwordConfirm: '' },
   {
+    name: [required()],
     email: [required(), email()],
     password: [required(), minLength(8)],
     passwordConfirm: [required(), sameAs('password', 'As senhas não conferem.')],
   },
 )
 
-// Confirmação fica só no front; API recebe email e senha.
+// Confirmação fica só no front; API recebe apenas nome, email e senha.
 const onSubmit = handleSubmit((payload) =>
-  emit('submit', { email: payload.email, password: payload.password }),
+  emit('submit', { name: payload.name.trim(), email: payload.email, password: payload.password }),
 )
 </script>
 
 <template>
-  <form class="auth-form" novalidate @submit.prevent="onSubmit">
+  <form class="auth-form" novalidate :aria-busy="loading" @submit.prevent="!loading && onSubmit()">
+    <BaseInput
+      v-model="values.name"
+      label="Nome"
+      name="name"
+      autocomplete="name"
+      placeholder="Como você se chama?"
+      maxlength="150"
+      required
+      :disabled="loading"
+      :error="errors.name"
+      @blur="validateField('name')"
+    />
     <BaseInput
       v-model="values.email"
       label="E-mail"
+      name="email"
       type="email"
       autocomplete="email"
       placeholder="voce@exemplo.com"
+      required
+      :disabled="loading"
       :error="errors.email"
       @blur="validateField('email')"
     />
     <BaseInput
       v-model="values.password"
       label="Senha"
+      name="password"
       type="password"
       autocomplete="new-password"
+      placeholder="No mínimo 8 caracteres"
+      required
+      :disabled="loading"
       :error="errors.password"
       @blur="validateField('password')"
     />
     <BaseInput
       v-model="values.passwordConfirm"
       label="Confirmar senha"
+      name="passwordConfirm"
       type="password"
       autocomplete="new-password"
+      placeholder="Repita sua senha"
+      required
+      :disabled="loading"
       :error="errors.passwordConfirm"
       @blur="validateField('passwordConfirm')"
     />
@@ -62,6 +86,6 @@ const onSubmit = handleSubmit((payload) =>
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 </style>
