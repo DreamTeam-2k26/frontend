@@ -61,6 +61,7 @@ function syncConnection() {
   if (!offline.value) load()
 }
 function openForm() {
+  if (demoEnabled || offline.value) return
   returnFocus = document.activeElement
   saveError.value = ''
   fieldErrors.value = {}
@@ -74,7 +75,7 @@ async function closeForm() {
   else document.getElementById('dashboard-new-project')?.focus()
 }
 async function save(values) {
-  if (saving.value) return
+  if (saving.value || demoEnabled) return
   if (offline.value) {
     saveError.value = 'Você está offline. Reconecte-se para salvar o projeto.'
     return
@@ -122,13 +123,18 @@ onBeforeUnmount(() => {
         </h1>
         <p>Seus projetos e próximos passos, em um só lugar.</p>
       </div>
-      <BaseButton id="dashboard-new-project" :disabled="offline" @click="openForm">
+      <BaseButton
+        id="dashboard-new-project"
+        :disabled="offline || demoEnabled"
+        :title="demoEnabled ? 'Desative a demonstração para criar projetos reais.' : undefined"
+        @click="openForm"
+      >
         <Plus :size="18" aria-hidden="true" /> Novo projeto
       </BaseButton>
     </header>
 
     <p v-if="demoEnabled" class="dashboard__cached" role="status">
-      Visualização com projetos de demonstração.
+      Modo demonstração: projetos fictícios. Para criar ou acessar projetos reais, use VITE_DASHBOARD_DEMO=false.
     </p>
     <div v-if="offline" class="dashboard__notice" role="status">
       <WifiOff :size="20" aria-hidden="true" />
@@ -155,7 +161,7 @@ onBeforeUnmount(() => {
       <div class="dashboard__skeletons" aria-hidden="true"><span /><span /><span /></div>
     </div>
     <template v-else-if="loaded">
-      <RecentProjects v-if="projects.length" :projects="recent" />
+      <RecentProjects v-if="projects.length" :projects="recent" :demo="demoEnabled" />
       <ProjectEmptyState v-else-if="!offline && !loadError" @create="openForm" />
       <section v-if="projects.length" class="dashboard__overview" aria-labelledby="overview-title">
         <h2 id="overview-title">Visão rápida</h2>
