@@ -1,117 +1,144 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import BaseButton from '@/components/ui/BaseButton.vue'
-import { getProject } from '@/api/projects'
+import { ArrowLeft } from 'lucide-vue-next'
+import { getProject, getProjectOverview } from '@/api/projects'
 import { projectError } from '@/components/projects/projectState'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import ProjectHeader from '@/components/projects/ProjectHeader.vue'
+import ProjectOverview from '@/components/projects/ProjectOverview.vue'
 
 const route = useRoute()
 const project = ref(null)
-const loading = ref(false)
+const loading = ref(true)
 const error = ref('')
-const offline = ref(!navigator.onLine)
-const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
+const status = ref(null)
+const overview = ref(null)
+const overviewLoading = ref(false)
+const errorTitle = computed(() => {
+  if (status.value === 404) return 'Projeto não encontrado'
+  if (status.value === 403) return 'Acesso negado'
+  if (status.value === 401) return 'Sessão expirada'
+  return 'Não foi possível carregar o projeto'
+})
 let request = 0
+let controller
+
 async function load() {
   const current = ++request
-  project.value = null
-  error.value = ''
-  loading.value = false
-  if (offline.value) return
+  controller?.abort()
+  controller = new AbortController()
   loading.value = true
+  project.value = null
+  overview.value = null
+  overviewLoading.value = false
+  error.value = ''
+  status.value = null
+  const id = String(route.params.id ?? '')
+  if (!/^\d+$/.test(id)) {
+    status.value = 404
+    error.value = 'Confira o endereço ou volte para Meus Projetos.'
+    loading.value = false
+    return
+  }
   try {
-    const data = await getProject(route.params.id)
-    if (current === request) project.value = data
+    const data = await getProject(id, { signal: controller.signal })
+    if (current === request) {
+      project.value = data
+      loading.value = false
+      overviewLoading.value = true
+      const summary = await getProjectOverview(id, { signal: controller.signal })
+      if (current === request) overview.value = summary
+    }
   } catch (cause) {
-    if (current === request) error.value = projectError(cause)
+    if (current !== request) return
+    status.value = cause.response?.status
+    error.value =
+      status.value === 404
+        ? 'O projeto não existe ou não está disponível para sua conta.'
+        : projectError(cause)
   } finally {
-    if (current === request) loading.value = false
+    if (current === request) {
+      loading.value = false
+      overviewLoading.value = false
+    }
   }
 }
-function connectionChanged() {
-  offline.value = !navigator.onLine
-  load()
-}
+
 watch(() => route.params.id, load, { immediate: true })
-onMounted(() => {
-  window.addEventListener('online', connectionChanged)
-  window.addEventListener('offline', connectionChanged)
-})
 onBeforeUnmount(() => {
   request++
-  window.removeEventListener('online', connectionChanged)
-  window.removeEventListener('offline', connectionChanged)
+  controller?.abort()
 })
-function date(value) {
-  const parsed = new Date(value)
-  return value && Number.isFinite(parsed.getTime())
-    ? parsed.toLocaleDateString('pt-BR')
-    : 'Não informada'
-}
 </script>
 
 <template>
-  <section class="project-detail" aria-labelledby="project-title">
-    <RouterLink :to="{ name: 'projects' }">Voltar para Meus Projetos</RouterLink>
-    <h1 id="project-title">{{ project?.name || 'Detalhes do projeto' }}</h1>
-    <p v-if="offline" role="status">Você está offline. Reconecte-se para carregar o projeto.</p>
-    <p v-else-if="loading" role="status" aria-busy="true">Carregando projeto…</p>
-    <div v-else-if="error" role="alert">
+  <section
+    class="project-detail"
+    :aria-busy="loading"
+    :aria-labelledby="project ? 'project-title' : 'project-state-title'"
+  >
+    <RouterLink class="project-detail__back" :to="{ name: 'projects' }">
+      <ArrowLeft :size="18" aria-hidden="true" /> Meus Projetos
+    </RouterLink>
+    <div v-if="loading" class="project-detail__state" role="status">
+      <h1 id="project-state-title">Carregando projeto…</h1>
+      <p>Buscando as informações do projeto.</p>
+    </div>
+    <div v-else-if="error" class="project-detail__state" role="alert">
+      <h1 id="project-state-title">{{ errorTitle }}</h1>
       <p>{{ error }}</p>
-      <BaseButton variant="secondary" @click="load">Tentar novamente</BaseButton>
+      <BaseButton v-if="![401, 403, 404].includes(status)" variant="secondary" @click="load"
+        >Tentar novamente</BaseButton
+      >
+      <BaseButton v-if="status === 401" :to="{ name: 'login', query: { redirect: route.fullPath } }"
+        >Entrar novamente</BaseButton
+      >
     </div>
     <template v-else-if="project">
-      <p class="project-detail__description">{{ project.description || 'Sem descrição.' }}</p>
-      <dl>
-        <div>
-          <dt>Seu papel</dt>
-          <dd>{{ roles[project.role] || 'Participante' }}</dd>
-        </div>
-        <div>
-          <dt>Criado em</dt>
-          <dd>{{ date(project.created_at) }}</dd>
-        </div>
-        <div>
-          <dt>Atualizado em</dt>
-          <dd>{{ date(project.updated_at) }}</dd>
-        </div>
-      </dl>
+      <ProjectHeader :project="project" />
+      <ProjectOverview :project="project" :overview="overview" :loading="overviewLoading" />
     </template>
   </section>
 </template>
 
 <style scoped>
 .project-detail {
-  display: grid;
-  gap: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
   padding: var(--space-8) var(--space-6);
-  overflow-wrap: anywhere;
 }
-a {
-  color: var(--color-primary);
-}
-p,
-dt {
+.project-detail__back {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-2);
+  min-height: 2.75rem;
   color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
 }
-.project-detail__description {
-  white-space: pre-wrap;
+.project-detail__back:hover {
+  color: var(--color-primary-hover);
 }
-dl {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+.project-detail__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: var(--space-4);
-}
-dl > div {
-  padding: var(--space-4);
-  background: var(--color-bg-card);
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  background: var(--color-bg-card);
 }
-dd {
-  margin-top: var(--space-2);
+.project-detail__state h1 {
+  font-size: var(--font-size-xl);
 }
-@media (max-width: 650px) {
+.project-detail__state p {
+  color: var(--color-text-secondary);
+}
+@media (max-width: 700px) {
   .project-detail {
     padding: var(--space-5) var(--space-4);
   }

@@ -4,12 +4,11 @@
   try {
     savedTheme = localStorage.getItem('fluxo-theme')
   } catch {
-    // Storage bloqueado: usa a preferência do sistema nesta visita.
+    // Storage bloqueado: abre no tema claro nesta visita.
   }
 
-  const dark =
-    savedTheme === 'dark' ||
-    (savedTheme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  // Primeiro acesso sempre no tema claro; o escuro só vale depois que o usuário escolher.
+  const dark = savedTheme === 'dark'
 
   if (dark) {
     document.documentElement.dataset.theme = 'dark'

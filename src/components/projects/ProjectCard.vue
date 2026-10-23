@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import { RouterLink } from 'vue-router'
 import { Pencil, ArrowUpRight, UsersRound } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectMemberAvatar from './ProjectMemberAvatar.vue'
@@ -80,12 +79,12 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
         </div>
       </div>
       <div class="project-card__actions">
-        <RouterLink
+        <BaseButton
           :to="{ name: 'project-detail', params: { id: project.id } }"
-          :aria-label="`Abrir projeto ${project.name}`"
+          :aria-label="`Acessar projeto ${project.name}`"
         >
           Acessar projeto <ArrowUpRight :size="16" aria-hidden="true" />
-        </RouterLink>
+        </BaseButton>
         <BaseButton
           v-if="!compact && ['owner', 'admin'].includes(project.role)"
           variant="ghost"
@@ -248,14 +247,7 @@ progress::-moz-progress-bar {
   flex-wrap: wrap;
   gap: var(--space-2);
 }
-.project-card__actions a {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-primary);
-  font-size: var(--font-size-sm);
-  padding: var(--space-2) 0;
-}
+
 small {
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);

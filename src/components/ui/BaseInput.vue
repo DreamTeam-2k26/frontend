@@ -1,5 +1,6 @@
 <script setup>
-import { computed, useAttrs, useId } from 'vue'
+import { computed, shallowRef, useAttrs, useId } from 'vue'
+import { Eye, EyeOff } from 'lucide-vue-next'
 
 defineOptions({ inheritAttrs: false })
 
@@ -9,33 +10,62 @@ const {
   label,
   error = '',
   id,
+  icon,
 } = defineProps({
   label: { type: String, required: true },
   error: { type: String, default: '' },
   id: { type: String, default: undefined },
+  // Ícone Lucide decorativo à esquerda do campo (opcional).
+  icon: { type: [Object, Function], default: undefined },
 })
 
 const generatedId = useId()
 const attrs = useAttrs()
 const inputId = computed(() => id ?? generatedId)
 const errorId = computed(() => `${inputId.value}-error`)
+
+// Campos de senha ganham o botão de mostrar/ocultar.
+const isPassword = computed(() => attrs.type === 'password')
+const revealed = shallowRef(false)
+const inputType = computed(() => (isPassword.value && revealed.value ? 'text' : attrs.type))
 </script>
 
 <template>
   <div class="field">
     <label class="field__label" :for="inputId">{{ label }}</label>
-    <input
-      v-bind="$attrs"
-      :id="inputId"
-      v-model="model"
-      class="field__input"
-      :class="{ 'field__input--filled': model !== '', 'field__input--invalid': error }"
-      :aria-invalid="error ? true : (attrs['aria-invalid'] ?? false)"
-      :aria-describedby="
-        [attrs['aria-describedby'], error ? errorId : undefined].filter(Boolean).join(' ') ||
-        undefined
-      "
-    />
+    <div class="field__control">
+      <component :is="icon" v-if="icon" class="field__icon" :size="18" aria-hidden="true" />
+      <input
+        v-bind="$attrs"
+        :id="inputId"
+        v-model="model"
+        :type="inputType"
+        class="field__input"
+        :class="{
+          'field__input--filled': model !== '',
+          'field__input--invalid': error,
+          'field__input--with-icon': icon,
+          'field__input--with-action': isPassword,
+        }"
+        :aria-invalid="error ? true : (attrs['aria-invalid'] ?? false)"
+        :aria-describedby="
+          [attrs['aria-describedby'], error ? errorId : undefined].filter(Boolean).join(' ') ||
+          undefined
+        "
+      />
+      <button
+        v-if="isPassword"
+        type="button"
+        class="field__action"
+        :aria-label="revealed ? 'Ocultar senha' : 'Mostrar senha'"
+        :aria-pressed="revealed"
+        :aria-controls="inputId"
+        :disabled="attrs.disabled === '' || attrs.disabled === true"
+        @click="revealed = !revealed"
+      >
+        <component :is="revealed ? EyeOff : Eye" :size="18" aria-hidden="true" />
+      </button>
+    </div>
     <small v-if="error" :id="errorId" class="field__error" aria-live="polite">{{ error }}</small>
   </div>
 </template>
@@ -129,6 +159,55 @@ const errorId = computed(() => `${inputId.value}-error`)
 
 .field__input[aria-invalid='true']:autofill:focus {
   outline-color: var(--color-danger);
+}
+
+.field__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field__icon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.field__input--with-icon {
+  padding-left: calc(var(--space-3) + 18px + var(--space-2));
+}
+
+.field__input--with-action {
+  padding-right: calc(var(--space-10) + var(--space-1));
+}
+
+/* Ocupa a altura do campo para manter o alvo de toque de 44px. */
+.field__action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--space-10) + var(--space-1));
+  height: 100%;
+  color: var(--color-text-secondary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  transition: color 0.15s ease;
+}
+
+.field__action:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.field__action:focus-visible {
+  outline-offset: -2px;
+}
+
+.field__action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .field__error {

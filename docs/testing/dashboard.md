@@ -9,7 +9,7 @@ A rota autenticada `/` usa a HomeView existente, o layout, a store de autentica�
 - Os únicos indicadores agregados são o total de projetos e quantos têm papel `owner`/`admin`. Ambos usam a lista completa, inclusive projetos além da primeira página.
 - `RecentProjects` reutiliza `ProjectCard` no modo compacto, preservando o comportamento padrão de Meus Projetos. Progresso e participantes só aparecem quando fornecidos pelo backend. Não há cálculo de tarefas ou porcentagens a partir de páginas parciais.
 - `Novo projeto` reutiliza `ProjectForm`, `createProject` e os validadores existentes. Trata erros de campos e restaura o foco ao fechar. Após POST, revalida a lista; erro no GET não repete a criação.
-- `Ver todos` aponta para Meus Projetos. Os cards abrem `/projects/:id`, que consulta `GET /api/projects/{id}/` pelo cliente autenticado existente e mostra nome, descrição, papel e datas reais, com carregamento, erro, retry e offline.
+- `Ver todos` aponta para Meus Projetos. Os cards reutilizam a rota `/projects/:id` e a tela de detalhes já integradas na dev pela #27, sem criar uma tela paralela.
 - A saudação usa `useAuthStore`/`fetchUser`, com nome apenas quando disponível e fallback neutro se o perfil falhar. O layout e a Home compartilham o pedido de perfil pela store.
 - Convites e ações de aceitar/recusar da referência não são exibidos: não há serviço/contrato correspondente disponível nesta base.
 - Indicadores de produtividade e tarefas agregadas dependem da [issue backend #15](https://github.com/DreamTeam-2k26/backend/issues/15). Foram omitidos; a seção de visão rápida admite novos cartões quando houver dados suficientes.

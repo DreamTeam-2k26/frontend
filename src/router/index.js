@@ -34,7 +34,7 @@ const router = createRouter({
           meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2, group: 'projects' } },
         },
         {
-          path: 'projects/:id(\\d+)',
+          path: 'projects/:id',
           name: 'project-detail',
           component: () => import('@/views/ProjectDetailView.vue'),
           meta: { title: 'Detalhes do projeto' },
@@ -65,6 +65,13 @@ const router = createRouter({
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
           meta: { nav: { label: 'Configurações', icon: Settings, order: 4, group: 'personal' } },
+        },
+        {
+          // Sem item de menu: acesso pelo bloco da conta na Sidebar e pelo avatar no header (mobile).
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/views/ProfileView.vue'),
+          meta: { title: 'Perfil' },
         },
       ],
     },
