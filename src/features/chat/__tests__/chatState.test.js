@@ -100,7 +100,11 @@ test('message.new entra no histórico carregado, ignora sala não carregada e pe
     { type: 'message.new', room: 1, message: msg(3) },
     { meId: 7, activeRoomId: 9 },
   )
-  assert.deepEqual(effects, [], 'sala fechada não pede leitura')
+  assert.deepEqual(
+    effects.map((e) => e.type),
+    ['notify'],
+    'sala fechada não pede leitura, só avisa',
+  )
 
   applyEvent(state, { type: 'message.new', room: 5, message: msg(1, { room: 5 }) }, { meId: 7 })
   assert.equal(state.messages[5], undefined, 'histórico não carregado é buscado ao abrir a sala')
@@ -210,4 +214,51 @@ test('sortedRooms ordena por atividade mais recente', () => {
     sortedRooms(state).map((r) => r.id),
     [2, 3, 1],
   )
+})
+
+test('message.new de outra pessoa avisa (notify), exceto quando a sala está aberta e visível', () => {
+  const state = createState()
+  const photo = msg(5, { body: null, file: { name: 'a.png', is_image: true } })
+
+  let effects = applyEvent(
+    state,
+    { type: 'message.new', room: 1, message: photo },
+    { meId: 7, activeRoomId: null },
+  )
+  assert.deepEqual(effects, [{ type: 'notify', room: 1, message: photo }])
+
+  effects = applyEvent(
+    state,
+    { type: 'message.new', room: 2, message: msg(6, { room: 2 }) },
+    { meId: 7, activeRoomId: 1 },
+  )
+  assert.equal(effects.filter((e) => e.type === 'notify').length, 1, 'outra sala aberta: avisa')
+
+  effects = applyEvent(
+    state,
+    { type: 'message.new', room: 1, message: msg(7) },
+    { meId: 7, activeRoomId: 1, visible: true },
+  )
+  assert.deepEqual(effects, [{ type: 'read', room: 1 }], 'vendo a sala: sem aviso')
+
+  effects = applyEvent(
+    state,
+    { type: 'message.new', room: 1, message: msg(8) },
+    { meId: 7, activeRoomId: 1, visible: false },
+  )
+  assert.deepEqual(
+    effects.map((e) => e.type),
+    ['read', 'notify'],
+    'aba escondida: avisa',
+  )
+
+  effects = applyEvent(
+    state,
+    { type: 'message.new', room: 1, message: msg(9, { author: { id: 7 } }) },
+    { meId: 7, activeRoomId: null },
+  )
+  assert.deepEqual(effects, [], 'mensagem própria nunca avisa')
+
+  effects = applyEvent(state, { type: 'message.update', room: 1, message: msg(5) }, { meId: 7 })
+  assert.deepEqual(effects, [], 'edição não avisa')
 })

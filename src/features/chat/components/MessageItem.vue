@@ -9,17 +9,31 @@ const {
   message,
   own = false,
   showAuthor = false,
+  status = null,
 } = defineProps({
   message: { type: Object, required: true },
   own: { type: Boolean, default: false },
   // Em salas coletivas mostra nome/foto de quem escreveu (só nas mensagens dos outros).
   showAuthor: { type: Boolean, default: false },
+  // 'sent' | 'delivered' | 'read' (só nas mensagens próprias).
+  status: { type: String, default: null },
 })
 
-const emit = defineEmits(['reply', 'edit', 'delete'])
+const emit = defineEmits(['reply', 'edit', 'delete', 'open-image'])
+
+const STATUS_LABEL = {
+  sent: 'Enviada',
+  delivered: 'Recebida',
+  read: 'Lida',
+}
 
 const authorName = computed(() => message.author?.name ?? 'Usuário removido')
 const hasActions = computed(() => !message.is_deleted)
+// Foto sem texto nem resposta: a bolha vira só uma moldura fina em volta da imagem.
+const isPhoto = computed(
+  () =>
+    Boolean(message.file?.is_image) && !message.body && !message.reply_to && !message.is_deleted,
+)
 const canEdit = computed(() => own && !message.is_deleted && !message.file)
 
 function replyPreview(reply) {
@@ -41,7 +55,13 @@ function replyPreview(reply) {
     />
 
     <div class="message__column">
-      <div class="message__bubble" :class="{ 'message__bubble--deleted': message.is_deleted }">
+      <div
+        class="message__bubble"
+        :class="{
+          'message__bubble--deleted': message.is_deleted,
+          'message__bubble--photo': isPhoto,
+        }"
+      >
         <p v-if="showAuthor && !own" class="message__author">{{ authorName }}</p>
 
         <blockquote v-if="message.reply_to && !message.is_deleted" class="message__reply">
@@ -51,7 +71,12 @@ function replyPreview(reply) {
 
         <p v-if="message.is_deleted" class="message__text">Mensagem apagada</p>
         <template v-else>
-          <AttachmentView v-if="message.file" :message-id="message.id" :file="message.file" />
+          <AttachmentView
+            v-if="message.file"
+            :message-id="message.id"
+            :file="message.file"
+            @open="emit('open-image', message)"
+          />
           <p v-if="message.body" class="message__text">{{ message.body }}</p>
         </template>
 
@@ -59,11 +84,12 @@ function replyPreview(reply) {
           <span v-if="message.edited_at && !message.is_deleted">editada</span>
           <time :datetime="message.created">{{ formatTime(message.created) }}</time>
           <component
-            :is="message.read ? CheckCheck : Check"
+            :is="status === 'sent' || !status ? Check : CheckCheck"
             v-if="own && !message.is_deleted"
             :size="14"
-            :class="{ message__read: message.read }"
-            :aria-label="message.read ? 'Lida por todos' : 'Enviada'"
+            :class="{ message__read: status === 'read' }"
+            :aria-label="STATUS_LABEL[status] ?? STATUS_LABEL.sent"
+            :title="STATUS_LABEL[status] ?? STATUS_LABEL.sent"
             role="img"
           />
         </span>
@@ -148,6 +174,29 @@ function replyPreview(reply) {
   background-color: var(--color-primary);
 }
 
+.message__bubble--photo {
+  position: relative;
+  gap: 0.125rem;
+  width: fit-content;
+  padding: 0.1875rem;
+}
+
+.message__bubble--photo .message__author {
+  padding: 0 0.375rem 0.125rem;
+}
+
+/* A hora fica sobre a foto (canto inferior direito), sem faixa colorida extra embaixo. */
+.message__bubble--photo .message__meta {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  padding: 0.0625rem 0.375rem;
+  color: #ffffff;
+  border-radius: 999px;
+  background-color: rgb(0 0 0 / 50%);
+  opacity: 1;
+}
+
 .message__bubble--deleted {
   font-style: italic;
   opacity: 0.7;
@@ -187,11 +236,20 @@ function replyPreview(reply) {
   align-self: flex-end;
   gap: 0.375rem;
   font-size: 0.6875rem;
+}
+
+.message__meta > :not(svg) {
   opacity: 0.75;
 }
 
-.message__read {
-  color: #bfdbfe;
+/* Tiques cinza (enviada / recebida) e verde (lida), visíveis sobre o balão azul e sobre fotos. */
+.message__meta svg {
+  opacity: 0.8;
+}
+
+.message__meta svg.message__read {
+  color: #4ade80;
+  opacity: 1;
 }
 
 .message__actions {

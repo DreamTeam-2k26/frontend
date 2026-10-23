@@ -99,3 +99,13 @@ export function formatLastSeen(value, now = new Date()) {
 
   return label.includes(':') ? `visto hoje às ${label}` : `visto ${label.toLowerCase()}`
 }
+
+/** Prévia curta de uma mensagem (lista de salas e notificações): texto, "Foto" ou nome do arquivo. */
+export function messagePreview(message) {
+  if (!message) return ''
+  if (message.is_deleted) return 'Mensagem apagada'
+  if (message.body) return message.body
+  if (message.file) return message.file.is_image ? '📷 Foto' : `📎 ${message.file.name}`
+
+  return ''
+}

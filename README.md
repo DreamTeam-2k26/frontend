@@ -43,7 +43,7 @@ npm run build
 npm run lint
 ```
 
-## Chat em tempo real
+## Salas de Projeto (chat em tempo real)
 
 Funcionalidade em `src/features/chat/` (rota `/chat`, exige login). Conversa com o app Django `chat` do backend por REST (`/api/chat/`) e por **um** WebSocket por aba (`/ws/chat/`), sempre com o JWT do sistema principal.
 

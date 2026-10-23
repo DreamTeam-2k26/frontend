@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia'
-import { computed, reactive, ref } from 'vue'
+import { computed, h, reactive, ref } from 'vue'
 import { toast } from 'vue3-toastify'
 import { refreshAccessToken } from '@/api/session'
+import router from '@/router'
 import { getAccessToken } from '@/utils/token'
+import { clearAttachmentCache } from '../composables/useAttachment'
 import * as chatApi from '../services/chatApi'
 import {
   applyEvent,
@@ -16,6 +18,7 @@ import {
   typingUsers,
 } from '../lib/chatState'
 import { apiErrorMessage } from '../lib/errors'
+import { messagePreview } from '../lib/format'
 import { ChatSocket, STATUS } from '../lib/socketClient'
 import { chatSocketUrl } from '../lib/urls'
 
@@ -27,6 +30,7 @@ export const useChatStore = defineStore('chatStore', () => {
   const activeRoomId = ref(null)
   const connection = ref(STATUS.IDLE)
   const loadingRooms = ref(false)
+  const roomsLoaded = ref(false) // true depois da primeira tentativa de carregar as salas
   const roomsError = ref('')
   const loadingHistory = ref(false)
   const historyError = ref('')
@@ -89,11 +93,13 @@ export const useChatStore = defineStore('chatStore', () => {
     document.removeEventListener('visibilitychange', markActiveRead)
 
     Object.assign(state, createState())
+    clearAttachmentCache()
     for (const key of Object.keys(details)) delete details[key]
 
     me.value = null
     activeRoomId.value = null
     connection.value = STATUS.IDLE
+    roomsLoaded.value = false
     roomsError.value = ''
     historyError.value = ''
   }
@@ -123,6 +129,7 @@ export const useChatStore = defineStore('chatStore', () => {
     const effects = applyEvent(state, event, {
       meId: me.value?.id ?? null,
       activeRoomId: activeRoomId.value,
+      visible: document.visibilityState === 'visible',
     })
 
     if (event.type === 'room.updated' && details[event.room]) refreshDetail(event.room)
@@ -130,8 +137,32 @@ export const useChatStore = defineStore('chatStore', () => {
     for (const effect of effects) {
       if (effect.type === 'read') markActiveRead()
       if (effect.type === 'removed') handleRemoved(effect.room)
+      if (effect.type === 'notify') notifyMessage(effect.room, effect.message)
       if (effect.type === 'error') toast.error(effect.detail || 'Ação não permitida.')
     }
+  }
+
+  /** Aviso no topo da tela com a prévia da mensagem; clicar leva à sala. */
+  function notifyMessage(roomId, message) {
+    const roomName = state.rooms[roomId]?.name ?? 'Nova mensagem'
+    const author = message.author?.name ?? 'Alguém'
+
+    toast.info(
+      () =>
+        h('div', { class: 'chat-toast' }, [
+          h('strong', `${roomName}`),
+          h(
+            'div',
+            { style: 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap' },
+            `${author}: ${messagePreview(message)}`,
+          ),
+        ]),
+      {
+        toastId: `chat-message-${message.id}`,
+        autoClose: 5000,
+        onClick: () => router.push({ name: 'chat', params: { roomId } }),
+      },
+    )
   }
 
   function handleRemoved(roomId) {
@@ -150,9 +181,10 @@ export const useChatStore = defineStore('chatStore', () => {
       setRooms(state, await chatApi.listRooms())
       markActiveRead()
     } catch (error) {
-      roomsError.value = apiErrorMessage(error, 'Não foi possível carregar as conversas.')
+      roomsError.value = apiErrorMessage(error, 'Não foi possível carregar as salas.')
     } finally {
       loadingRooms.value = false
+      roomsLoaded.value = true
     }
   }
 
@@ -160,6 +192,9 @@ export const useChatStore = defineStore('chatStore', () => {
     activeRoomId.value = roomId
 
     if (roomId == null) return
+
+    // Membros e presença alimentam os tiques de entrega e o contador de online.
+    if (!details[roomId]) loadDetail(roomId)
 
     if (!state.messages[roomId]?.loaded) await loadHistory(roomId)
 
@@ -307,7 +342,7 @@ export const useChatStore = defineStore('chatStore', () => {
   function requireSocket(payload) {
     if (socket?.send(payload)) return true
 
-    toast.error('Sem conexão com o chat. Tente novamente em instantes.')
+    toast.error('Sem conexão com as salas. Tente novamente em instantes.')
 
     return false
   }
@@ -407,6 +442,7 @@ export const useChatStore = defineStore('chatStore', () => {
     connection,
     loadingRooms,
     roomsError,
+    roomsLoaded,
     loadingHistory,
     historyError,
     details,

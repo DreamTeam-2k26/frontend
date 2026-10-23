@@ -41,7 +41,7 @@ const router = createRouter({
           component: () => import('@/features/chat/views/ChatView.vue'),
           meta: {
             requiresAuth: true,
-            nav: { label: 'Chat', icon: MessagesSquare, order: 3, exact: false },
+            nav: { label: 'Salas de Projeto', icon: MessagesSquare, order: 3, exact: false },
           },
         },
         {
