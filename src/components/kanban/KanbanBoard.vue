@@ -15,6 +15,7 @@ defineProps({
 
 const emit = defineEmits({
   'open-task': (id) => id != null,
+  'add-task': (columnId) => columnId != null,
   'manage-column': (payload) => payload?.column != null && Boolean(payload.action),
   'add-column': null,
 })
@@ -34,6 +35,7 @@ const emit = defineEmits({
       :first="index === 0"
       :last="index === columns.length - 1"
       @open-task="emit('open-task', $event)"
+      @add-task="emit('add-task', column.id)"
       @manage="emit('manage-column', { column, action: $event })"
     />
     <button v-if="canManage" type="button" class="kanban-board__add" @click="emit('add-column')">

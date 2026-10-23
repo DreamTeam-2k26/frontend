@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, Pencil, Plus, Trash2 } from 'lucide-vue-next'
 import ActionMenu from '@/components/ui/ActionMenu.vue'
 import TaskCard from '@/components/kanban/TaskCard.vue'
 
@@ -29,6 +29,7 @@ const {
 
 const emit = defineEmits({
   'open-task': (id) => id != null,
+  'add-task': null,
   // action: 'rename' | 'move-left' | 'move-right' | 'delete'
   manage: (action) => ['rename', 'move-left', 'move-right', 'delete'].includes(action),
 })
@@ -82,6 +83,10 @@ const emptyText = computed(() =>
       </li>
     </ul>
     <p v-else class="kanban-column__empty">{{ emptyText }}</p>
+    <button type="button" class="kanban-column__add" @click="emit('add-task')">
+      <Plus :size="16" aria-hidden="true" /> Adicionar tarefa
+      <span class="visually-hidden">em {{ column.name }}</span>
+    </button>
   </section>
 </template>
 
@@ -141,6 +146,21 @@ const emptyText = computed(() =>
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+.kanban-column__add {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+.kanban-column__add:hover {
+  color: var(--color-primary);
+  background: var(--color-bg-hover);
 }
 .kanban-column__empty {
   padding: var(--space-6) var(--space-3);

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
 import { ArrowRight, CalendarDays } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 
@@ -114,14 +115,12 @@ function initials(member) {
         <div v-else class="progress-empty" aria-hidden="true" />
         <div class="section-heading deliveries__heading">
           <h2>Próximas entregas</h2>
-          <button
-            type="button"
+          <RouterLink
             class="kanban-link"
-            disabled
-            title="O Kanban ainda não está disponível nesta tela."
+            :to="{ name: 'project-kanban', params: { id: project.id } }"
           >
             Abrir Kanban <span aria-hidden="true">→</span>
-          </button>
+          </RouterLink>
         </div>
         <p v-if="loading" role="status">Carregando próximas entregas…</p>
         <p v-else-if="!upcoming">Não foi possível carregar as entregas.</p>

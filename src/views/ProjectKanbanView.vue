@@ -1,10 +1,11 @@
 <script setup>
 import { computed, onBeforeUnmount, reactive, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Plus } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import ColumnForm from '@/components/kanban/ColumnForm.vue'
+import TaskForm from '@/components/tasks/TaskForm.vue'
 import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
 import KanbanFilters from '@/components/kanban/KanbanFilters.vue'
 import { useKanbanStore } from '@/stores/kanban'
@@ -102,6 +103,45 @@ function manageColumn({ column, action }) {
   else kanban.moveColumn(column.id, action === 'move-left' ? -1 : 1).catch(() => {})
 }
 
+// Criação de tarefa: pela coluna, pelo botão do topo ou vindo da visão geral (?new=1).
+const taskForm = reactive({ open: false, columnId: null, saving: false, fieldErrors: {} })
+
+function openTaskForm(columnId = null) {
+  Object.assign(taskForm, { open: true, columnId, saving: false, fieldErrors: {} })
+}
+
+async function saveTask(payload) {
+  taskForm.saving = true
+  taskForm.fieldErrors = {}
+  try {
+    await kanban.createTask(payload)
+    taskForm.open = false
+  } catch (cause) {
+    // Formulário fica aberto com os dados; erros de campo aparecem em cada campo.
+    taskForm.fieldErrors = apiFieldErrors(cause, [
+      'title',
+      'description',
+      'column',
+      'priority',
+      'assignee',
+      'due_date',
+    ])
+  } finally {
+    taskForm.saving = false
+  }
+}
+
+watch(
+  () => [kanban.status, route.query.new],
+  ([status, isNew]) => {
+    if (status !== 'ready' || !isNew) return
+    const query = { ...route.query }
+    delete query.new
+    router.replace({ query })
+    if (kanban.columns.length) openTaskForm()
+  },
+)
+
 // Abrir tarefa: o modal de detalhe entra na Task 10.
 function openTask() {}
 
@@ -153,6 +193,9 @@ onBeforeUnmount(() => kanban.reset())
           <h1 id="kanban-title">Quadro de tarefas</h1>
           <p>{{ kanban.project.name }}</p>
         </div>
+        <BaseButton :disabled="!kanban.columns.length" @click="openTaskForm()">
+          <Plus :size="16" aria-hidden="true" /> Nova tarefa
+        </BaseButton>
       </header>
 
       <KanbanFilters
@@ -185,12 +228,23 @@ onBeforeUnmount(() => kanban.reset())
           :filtered="filtered"
           :can-manage="kanban.canManage"
           @open-task="openTask"
+          @add-task="openTaskForm"
           @manage-column="manageColumn"
           @add-column="openColumnForm()"
         />
       </template>
     </template>
 
+    <TaskForm
+      v-if="taskForm.open"
+      :columns="kanban.columns"
+      :members="kanban.members"
+      :column-id="taskForm.columnId"
+      :saving="taskForm.saving"
+      :field-errors="taskForm.fieldErrors"
+      @submit="saveTask"
+      @close="taskForm.open = false"
+    />
     <ColumnForm
       v-if="columnForm.open"
       :column="columnForm.column"
