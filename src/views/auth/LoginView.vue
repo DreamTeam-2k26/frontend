@@ -25,6 +25,7 @@ async function onSubmit(credentials) {
 }
 </script>
 
+
 <template>
   <AuthCard title="Entrar" subtitle="Acesse sua conta para continuar.">
     <LoginForm :loading="authStore.loading" @submit="onSubmit" />
