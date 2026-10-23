@@ -1,5 +1,7 @@
 <script setup>
 import { computed } from 'vue'
+import { ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-vue-next'
+import ActionMenu from '@/components/ui/ActionMenu.vue'
 import TaskCard from '@/components/kanban/TaskCard.vue'
 
 const {
@@ -8,6 +10,9 @@ const {
   total,
   today,
   filtered = false,
+  canManage = false,
+  first = false,
+  last = false,
 } = defineProps({
   column: { type: Object, required: true },
   // Tarefas visíveis (já filtradas e ordenadas).
@@ -16,9 +21,24 @@ const {
   total: { type: Number, required: true },
   today: { type: String, required: true },
   filtered: { type: Boolean, default: false },
+  // Dono/administrador: mostra o menu de gestão (o servidor valida de novo).
+  canManage: { type: Boolean, default: false },
+  first: { type: Boolean, default: false },
+  last: { type: Boolean, default: false },
 })
 
-const emit = defineEmits({ 'open-task': (id) => id != null })
+const emit = defineEmits({
+  'open-task': (id) => id != null,
+  // action: 'rename' | 'move-left' | 'move-right' | 'delete'
+  manage: (action) => ['rename', 'move-left', 'move-right', 'delete'].includes(action),
+})
+
+const menuItems = computed(() => [
+  { id: 'rename', label: 'Renomear', icon: Pencil },
+  { id: 'move-left', label: 'Mover para a esquerda', icon: ArrowLeft, disabled: first },
+  { id: 'move-right', label: 'Mover para a direita', icon: ArrowRight, disabled: last },
+  { id: 'delete', label: 'Excluir coluna', icon: Trash2, danger: true },
+])
 
 const done = computed(() => column.category === 'done')
 const headingId = computed(() => `kanban-column-${column.id}`)
@@ -47,6 +67,13 @@ const emptyText = computed(() =>
         <span aria-hidden="true">{{ filtered ? `${tasks.length}/${total}` : total }}</span>
         <span class="visually-hidden">{{ countLabel }}</span>
       </span>
+      <ActionMenu
+        v-if="canManage"
+        class="kanban-column__menu"
+        :label="`Ações da coluna ${column.name}`"
+        :items="menuItems"
+        @select="emit('manage', $event)"
+      />
     </header>
 
     <ul v-if="tasks.length" class="kanban-column__list">
@@ -66,6 +93,8 @@ const emptyText = computed(() =>
   flex: 0 0 18.5rem;
   width: 18.5rem;
   max-width: calc(100vw - 3rem);
+  /* Altura mínima: espaço para o menu da coluna e para soltar cards. */
+  min-height: 16rem;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
@@ -96,6 +125,9 @@ const emptyText = computed(() =>
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
+}
+.kanban-column__menu {
+  margin-left: auto;
 }
 .kanban-column__count {
   padding: 0 var(--space-2);

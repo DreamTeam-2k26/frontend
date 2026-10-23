@@ -1,4 +1,5 @@
 <script setup>
+import { Plus } from 'lucide-vue-next'
 import KanbanColumn from '@/components/kanban/KanbanColumn.vue'
 
 defineProps({
@@ -9,23 +10,35 @@ defineProps({
   tasksByColumn: { type: Map, required: true },
   today: { type: String, required: true },
   filtered: { type: Boolean, default: false },
+  canManage: { type: Boolean, default: false },
 })
 
-const emit = defineEmits({ 'open-task': (id) => id != null })
+const emit = defineEmits({
+  'open-task': (id) => id != null,
+  'manage-column': (payload) => payload?.column != null && Boolean(payload.action),
+  'add-column': null,
+})
 </script>
 
 <template>
   <div class="kanban-board" role="region" aria-label="Colunas do quadro" tabindex="0">
     <KanbanColumn
-      v-for="column in columns"
+      v-for="(column, index) in columns"
       :key="column.id"
       :column="column"
       :tasks="visibleByColumn.get(column.id) ?? []"
       :total="tasksByColumn.get(column.id)?.length ?? 0"
       :today="today"
       :filtered="filtered"
+      :can-manage="canManage"
+      :first="index === 0"
+      :last="index === columns.length - 1"
       @open-task="emit('open-task', $event)"
+      @manage="emit('manage-column', { column, action: $event })"
     />
+    <button v-if="canManage" type="button" class="kanban-board__add" @click="emit('add-column')">
+      <Plus :size="18" aria-hidden="true" /> Nova coluna
+    </button>
   </div>
 </template>
 
@@ -45,6 +58,24 @@ const emit = defineEmits({ 'open-task': (id) => id != null })
 }
 .kanban-board > * {
   scroll-snap-align: start;
+}
+.kanban-board__add {
+  display: inline-flex;
+  flex: 0 0 14rem;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 3.5rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+.kanban-board__add:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-bg-hover);
 }
 .kanban-board:focus-visible {
   outline-offset: 2px;

@@ -1,11 +1,14 @@
 <script setup>
-import { computed, onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import ColumnForm from '@/components/kanban/ColumnForm.vue'
 import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
 import KanbanFilters from '@/components/kanban/KanbanFilters.vue'
 import { useKanbanStore } from '@/stores/kanban'
+import { apiFieldErrors } from '@/utils/apiErrors'
 import { EMPTY_FILTERS, filterTasks, groupTasks, hasActiveFilters, todayISO } from '@/utils/kanban'
 
 const route = useRoute()
@@ -58,6 +61,45 @@ function clearFilters() {
 
 function load() {
   kanban.load(route.params.id)
+}
+
+// Gestão de colunas (dono/administrador). Erros já viram toast na store.
+const columnForm = reactive({ open: false, column: null, saving: false, fieldErrors: {} })
+const columnDelete = reactive({ column: null, busy: false })
+
+function openColumnForm(column = null) {
+  Object.assign(columnForm, { open: true, column, saving: false, fieldErrors: {} })
+}
+
+async function saveColumn({ name, category }) {
+  columnForm.saving = true
+  columnForm.fieldErrors = {}
+  try {
+    if (columnForm.column) await kanban.renameColumn(columnForm.column.id, name)
+    else await kanban.createColumn({ name, category })
+    columnForm.open = false
+  } catch (cause) {
+    columnForm.fieldErrors = apiFieldErrors(cause, ['name', 'category'])
+  } finally {
+    columnForm.saving = false
+  }
+}
+
+async function confirmDeleteColumn() {
+  columnDelete.busy = true
+  try {
+    await kanban.deleteColumn(columnDelete.column.id)
+  } catch {
+    // Mensagem do servidor (ex.: coluna com tarefas) já exibida pela store.
+  } finally {
+    Object.assign(columnDelete, { column: null, busy: false })
+  }
+}
+
+function manageColumn({ column, action }) {
+  if (action === 'rename') openColumnForm(column)
+  else if (action === 'delete') columnDelete.column = column
+  else kanban.moveColumn(column.id, action === 'move-left' ? -1 : 1).catch(() => {})
 }
 
 // Abrir tarefa: o modal de detalhe entra na Task 10.
@@ -126,6 +168,7 @@ onBeforeUnmount(() => kanban.reset())
       <div v-if="!kanban.columns.length" class="kanban-page__state">
         <h2>Este projeto ainda não tem colunas</h2>
         <p>As colunas aparecem aqui assim que forem criadas.</p>
+        <BaseButton v-if="kanban.canManage" @click="openColumnForm()">Nova coluna</BaseButton>
       </div>
       <template v-else>
         <p v-if="filtered && !visibleTasks.length" class="kanban-page__no-results" role="status">
@@ -140,10 +183,31 @@ onBeforeUnmount(() => kanban.reset())
           :tasks-by-column="kanban.tasksByColumn"
           :today="today"
           :filtered="filtered"
+          :can-manage="kanban.canManage"
           @open-task="openTask"
+          @manage-column="manageColumn"
+          @add-column="openColumnForm()"
         />
       </template>
     </template>
+
+    <ColumnForm
+      v-if="columnForm.open"
+      :column="columnForm.column"
+      :saving="columnForm.saving"
+      :field-errors="columnForm.fieldErrors"
+      @submit="saveColumn"
+      @close="columnForm.open = false"
+    />
+    <ConfirmDialog
+      v-if="columnDelete.column"
+      title="Excluir coluna"
+      :message="`Excluir a coluna “${columnDelete.column.name}”? Só é possível excluir colunas vazias, e cada categoria precisa manter ao menos uma coluna.`"
+      confirm-label="Excluir coluna"
+      :busy="columnDelete.busy"
+      @confirm="confirmDeleteColumn"
+      @cancel="columnDelete.column = null"
+    />
   </section>
 </template>
 
