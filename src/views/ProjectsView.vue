@@ -149,9 +149,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .projects {
-  max-width: var(--container-width);
-  margin: auto;
-  padding: var(--space-8);
+  padding: var(--space-8) var(--space-6);
 }
 .projects__header {
   display: flex;

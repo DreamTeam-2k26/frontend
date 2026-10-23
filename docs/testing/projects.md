@@ -22,7 +22,7 @@ Rota autenticada: `/projects`. A navegação usa `meta.nav`; a página de exempl
 
 ## Validação manual pendente
 
-O ambiente de execução negou a abertura da porta do Vite (`listen EPERM`) e a inicialização do Chrome. A API local em `localhost:8000` não respondeu. Portanto não foi possível validar visualmente nem executar operações autenticadas contra o backend real.
+O ambiente de execução negou a abertura da porta do Vite (`listen EPERM`) e a inicialização do Chrome. A validação visual no navegador permanece pendente. Na preparação do banco SQLite local, foram aplicadas as migrações pendentes e adicionados três projetos de demonstração às contas existentes. GET, POST e PATCH foram validados via APIClient com JWT e banco real; os projetos temporários de verificação foram revertidos. As contas e senhas existentes foram preservadas, e nenhum seed foi incluído no código do backend.
 
 Com frontend e backend disponíveis, verificar:
 
