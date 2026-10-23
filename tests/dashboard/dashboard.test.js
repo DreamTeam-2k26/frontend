@@ -86,6 +86,23 @@ test('card resumido omite métricas ausentes e ações indisponíveis sem afetar
   assert.match(standard, /Editar/)
 })
 
+test('card de demonstração não navega para projeto inexistente', async () => {
+  const html = await renderToString(
+    createSSRApp({
+      render: () =>
+        h(Card, {
+          compact: true,
+          preview: true,
+          project: { id: 29001, name: 'Projeto fictício', role: 'owner' },
+        }),
+    }),
+  )
+  assert.match(html, /Projeto de exemplo/)
+  assert.match(html, /disabled/)
+  assert.doesNotMatch(html, /href="\/projects\/29001"/)
+  assert.doesNotMatch(html, /Acessar projeto/)
+})
+
 test('card resumido preserva métricas reais inclusive zero sem calcular progresso', async () => {
   const html = await renderToString(
     createSSRApp({
