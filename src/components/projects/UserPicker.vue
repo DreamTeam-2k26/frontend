@@ -1,16 +1,17 @@
 <script setup>
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { Search, X } from 'lucide-vue-next'
-import { apiErrorMessage } from '../lib/errors'
-import { searchUsers } from '../services/chatApi'
-import ChatAvatar from './ChatAvatar.vue'
+import { apiErrorMessage } from '@/features/chat/lib/errors'
+import { searchPeople } from '@/api/projectMembers'
+import ChatAvatar from '@/features/chat/components/ChatAvatar.vue'
 
-// Busca usuários por e-mail (mínimo de 2 caracteres, resposta sem e-mails) e mantém a seleção.
+// Busca pessoas por nome ou e-mail (mínimo de 2 caracteres) e mantém a seleção.
 const selected = defineModel({ type: Array, default: () => [] })
 
-const { excludeRoom = null, label = 'Adicionar participantes' } = defineProps({
-  excludeRoom: { type: Number, default: null },
-  label: { type: String, default: 'Adicionar participantes' },
+const { excludeProject = null, label = 'Convidar pessoas' } = defineProps({
+  excludeProject: { type: Number, default: null },
+  label: { type: String, default: 'Convidar pessoas' },
+  disabled: Boolean,
 })
 
 const MIN_CHARS = 2
@@ -43,7 +44,7 @@ async function search(value) {
   const current = ++requestId
 
   try {
-    const data = await searchUsers(value, excludeRoom)
+    const data = await searchPeople(value, excludeProject)
 
     // Descarta respostas de buscas antigas que chegaram atrasadas.
     if (current === requestId) results.value = data.results ?? data
@@ -70,13 +71,18 @@ function remove(user) {
 
 <template>
   <div class="picker">
-    <label class="picker__label" for="chat-user-search">{{ label }}</label>
+    <label class="picker__label" for="user-picker-search">{{ label }}</label>
 
     <ul v-if="selected.length" class="picker__chips" aria-label="Selecionados">
       <li v-for="user in selected" :key="user.id" class="picker__chip">
         <ChatAvatar :name="user.name" :src="user.avatar" :size="20" />
         <span>{{ user.name }}</span>
-        <button type="button" :aria-label="`Remover ${user.name}`" @click="remove(user)">
+        <button
+          type="button"
+          :aria-label="`Remover ${user.name}`"
+          :disabled="disabled"
+          @click="remove(user)"
+        >
           <X :size="14" aria-hidden="true" />
         </button>
       </li>
@@ -85,11 +91,12 @@ function remove(user) {
     <div class="picker__search">
       <Search :size="16" aria-hidden="true" class="picker__search-icon" />
       <input
-        id="chat-user-search"
+        id="user-picker-search"
         v-model="term"
         type="search"
         autocomplete="off"
-        placeholder="Buscar por e-mail (mín. 2 letras)"
+        placeholder="Buscar por nome ou e-mail (mín. 2 letras)"
+        :disabled="disabled"
       />
     </div>
 

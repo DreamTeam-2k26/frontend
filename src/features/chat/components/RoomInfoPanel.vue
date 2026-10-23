@@ -1,11 +1,11 @@
 <script setup>
-import { computed, ref } from 'vue'
-import { LogOut, Pencil, ShieldCheck, ShieldOff, UserMinus, X } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { ExternalLink, X } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { formatLastSeen } from '../lib/format'
 import ChatAvatar from './ChatAvatar.vue'
-import UserPicker from './UserPicker.vue'
 
+// Painel somente leitura: nome e participantes vêm do projeto e são geridos lá.
 const { room, detail, meId, presence } = defineProps({
   room: { type: Object, required: true },
   // RoomDetailSerializer (com membros); pode ainda estar carregando.
@@ -13,18 +13,15 @@ const { room, detail, meId, presence } = defineProps({
   meId: { type: Number, default: null },
   // Presença em tempo real por id de usuário (sobrepõe o que veio no detalhe).
   presence: { type: Object, default: () => ({}) },
+  // Esconde o botão "Gerenciar no projeto" quando o chat já está dentro do projeto.
+  inProject: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['close', 'rename', 'add', 'remove', 'admin', 'leave'])
+const emit = defineEmits(['close'])
 
-const editingName = ref(false)
-const name = ref('')
-const adding = ref(false)
-const picked = ref([])
-const image = ref(null)
+const ROLES = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
 
 const members = computed(() => detail?.members ?? [])
-const isAdmin = computed(() => detail?.is_admin ?? room.is_admin)
 
 function status(member) {
   const live = presence[member.user.id]
@@ -34,43 +31,8 @@ function status(member) {
   return { online, label: online ? 'online' : formatLastSeen(lastSeen) }
 }
 
-function startRename() {
-  name.value = room.name
-  image.value = null
-  editingName.value = true
-}
-
-function saveRename() {
-  const trimmed = name.value.trim()
-
-  if (!trimmed) return
-
-  emit('rename', { name: trimmed !== room.name ? trimmed : undefined, image: image.value })
-  editingName.value = false
-}
-
-function confirmAdd() {
-  if (!picked.value.length) return
-
-  emit(
-    'add',
-    picked.value.map((user) => user.id),
-  )
-  picked.value = []
-  adding.value = false
-}
-
-function cancelAdd() {
-  adding.value = false
-  picked.value = []
-}
-
-function confirmRemove(member) {
-  if (window.confirm(`Remover ${member.user.name} da sala?`)) emit('remove', member.user.id)
-}
-
-function confirmLeave() {
-  if (window.confirm(`Sair de "${room.name}"?`)) emit('leave')
+function roleLabel(member) {
+  return ROLES[member.role] ?? (member.is_admin ? 'Administrador' : '')
 }
 </script>
 
@@ -86,47 +48,24 @@ function confirmLeave() {
     <div class="info__body">
       <div class="info__room">
         <ChatAvatar :name="room.name" :src="room.image" :size="72" />
-
-        <form v-if="editingName" class="info__edit" @submit.prevent="saveRename">
-          <label class="sr-only" for="room-name">Nome da sala</label>
-          <input id="room-name" v-model="name" maxlength="80" autocomplete="off" />
-          <input
-            type="file"
-            accept="image/jpeg,image/png"
-            aria-label="Nova imagem"
-            @change="image = $event.target.files[0] ?? null"
-          />
-          <div class="info__edit-actions">
-            <BaseButton variant="secondary" @click="editingName = false">Cancelar</BaseButton>
-            <BaseButton type="submit">Salvar</BaseButton>
-          </div>
-        </form>
-        <template v-else>
-          <h3 class="info__name">{{ room.name }}</h3>
-          <p class="info__count">
-            {{ room.member_count }} participante{{ room.member_count === 1 ? '' : 's' }}
-          </p>
-          <BaseButton v-if="isAdmin" variant="ghost" @click="startRename">
-            <Pencil :size="14" aria-hidden="true" /> Editar nome e imagem
-          </BaseButton>
-        </template>
+        <h3 class="info__name">{{ room.name }}</h3>
+        <p class="info__count">
+          {{ room.member_count }} participante{{ room.member_count === 1 ? '' : 's' }}
+        </p>
+        <BaseButton
+          v-if="room.project && !inProject"
+          variant="secondary"
+          :to="{ name: 'project-detail', params: { id: room.project }, query: { aba: 'membros' } }"
+        >
+          <ExternalLink :size="14" aria-hidden="true" /> Gerenciar no projeto
+        </BaseButton>
+        <p class="info__hint">Os participantes são os mesmos do projeto.</p>
       </div>
 
       <section class="info__section">
         <header class="info__section-header">
           <h3>Participantes</h3>
-          <BaseButton v-if="isAdmin && !adding" variant="ghost" @click="adding = true"
-            >Adicionar</BaseButton
-          >
         </header>
-
-        <div v-if="adding" class="info__add">
-          <UserPicker v-model="picked" :exclude-room="room.id" />
-          <div class="info__edit-actions">
-            <BaseButton variant="secondary" @click="cancelAdd">Cancelar</BaseButton>
-            <BaseButton :disabled="!picked.length" @click="confirmAdd">Adicionar</BaseButton>
-          </div>
-        </div>
 
         <p v-if="!detail" class="info__state" role="status">Carregando participantes...</p>
 
@@ -138,48 +77,16 @@ function confirmLeave() {
               :size="36"
               :online="status(member).online"
             />
-            <span class="member__body">
-              <span class="member__name">
-                {{ member.user.name }}<small v-if="member.user.id === meId"> (você)</small>
-              </span>
+            <div class="member__body">
+              <span class="member__name"
+                >{{ member.user.name }}<small v-if="member.user.id === meId"> (você)</small></span
+              >
               <small class="member__status">{{ status(member).label }}</small>
-            </span>
-            <span v-if="member.is_admin" class="member__badge">admin</span>
-
-            <span v-if="isAdmin && member.user.id !== meId" class="member__actions">
-              <button
-                type="button"
-                :aria-label="
-                  member.is_admin
-                    ? `Remover admin de ${member.user.name}`
-                    : `Tornar ${member.user.name} admin`
-                "
-                :title="member.is_admin ? 'Remover admin' : 'Tornar admin'"
-                @click="emit('admin', { userId: member.user.id, isAdmin: !member.is_admin })"
-              >
-                <component
-                  :is="member.is_admin ? ShieldOff : ShieldCheck"
-                  :size="16"
-                  aria-hidden="true"
-                />
-              </button>
-              <button
-                type="button"
-                class="member__danger"
-                :aria-label="`Remover ${member.user.name}`"
-                title="Remover da sala"
-                @click="confirmRemove(member)"
-              >
-                <UserMinus :size="16" aria-hidden="true" />
-              </button>
-            </span>
+            </div>
+            <span v-if="roleLabel(member)" class="member__badge">{{ roleLabel(member) }}</span>
           </li>
         </ul>
       </section>
-
-      <BaseButton variant="secondary" class="info__leave" @click="confirmLeave">
-        <LogOut :size="16" aria-hidden="true" /> Sair da sala
-      </BaseButton>
     </div>
   </aside>
 </template>
@@ -232,26 +139,10 @@ function confirmLeave() {
 }
 
 .info__count,
+.info__hint,
 .info__state {
   color: var(--color-text-secondary);
   font-size: 0.875rem;
-}
-
-.info__edit {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-}
-
-.info__edit input {
-  padding: 0.5rem 0.75rem;
-}
-
-.info__edit-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
 }
 
 .info__section {
@@ -264,15 +155,6 @@ function confirmLeave() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.info__add {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
 }
 
 .member {
@@ -309,39 +191,5 @@ function confirmLeave() {
     var(--color-primary) 12%,
     var(--chat-bg, var(--color-background))
   );
-}
-
-.member__actions {
-  display: inline-flex;
-}
-
-.member__actions button {
-  display: inline-flex;
-  padding: 0.375rem;
-  color: var(--color-text-secondary);
-  border-radius: 50%;
-}
-
-.member__actions button:hover {
-  color: var(--color-text);
-  background-color: var(--color-surface);
-}
-
-.member__actions .member__danger:hover {
-  color: var(--color-danger);
-}
-
-.info__leave.button--secondary,
-.info__leave.button--secondary:hover:not(:disabled) {
-  color: var(--color-danger);
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
 }
 </style>

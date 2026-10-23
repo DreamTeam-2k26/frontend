@@ -5,6 +5,7 @@ import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import ProjectList from '@/components/projects/ProjectList.vue'
 import ProjectForm from '@/components/projects/ProjectForm.vue'
+import ProjectInvites from '@/components/projects/ProjectInvites.vue'
 import ProjectEmptyState from '@/components/projects/ProjectEmptyState.vue'
 import {
   filterProjects,
@@ -12,12 +13,15 @@ import {
   projectFieldErrors,
 } from '@/components/projects/projectState'
 import { listProjects, createProject, updateProject } from '@/api/projects'
+import { inviteUser } from '@/api/projectMembers'
+import { inviteMany, inviteSummary } from '@/components/projects/memberRules'
 
 const projects = ref([])
 const search = ref('')
 const loading = ref(true)
 const loadError = ref('')
 const success = ref('')
+const warning = ref('')
 const formOpen = ref(false)
 const editing = ref(null)
 const saving = ref(false)
@@ -48,6 +52,7 @@ function openForm(project = null) {
   saveError.value = ''
   fieldErrors.value = {}
   success.value = ''
+  warning.value = ''
   formOpen.value = true
 }
 
@@ -58,7 +63,7 @@ async function closeForm() {
   else document.getElementById('new-project')?.focus()
 }
 
-async function save(values) {
+async function save({ invitees = [], ...values }) {
   if (saving.value) return
   saving.value = true
   saveError.value = ''
@@ -77,6 +82,12 @@ async function save(values) {
     else projects.value = [saved, ...projects.value]
     search.value = ''
     success.value = isEditing ? 'Projeto atualizado com sucesso.' : 'Projeto criado com sucesso.'
+    if (!isEditing && invitees.length) {
+      const result = await inviteMany(saved.id, invitees, inviteUser)
+      if (result.sent.length)
+        success.value += ` ${inviteSummary({ sent: result.sent, failed: [] })}`
+      if (result.failed.length) warning.value = inviteSummary({ sent: [], failed: result.failed })
+    }
     await closeForm()
     await load()
   } catch (error) {
@@ -105,6 +116,7 @@ onBeforeUnmount(() => {
         ><Plus :size="18" aria-hidden="true" /> Novo projeto</BaseButton
       >
     </header>
+    <ProjectInvites @accepted="load" />
     <div class="projects__toolbar">
       <div class="projects__search">
         <BaseInput
@@ -121,6 +133,7 @@ onBeforeUnmount(() => {
       </p>
     </div>
     <p v-if="success" class="projects__success" role="status">{{ success }}</p>
+    <p v-if="warning" class="projects__warning" role="alert">{{ warning }}</p>
     <div v-if="loading" class="projects__state" role="status" aria-live="polite" aria-busy="true">
       Carregando projetos…
     </div>
@@ -200,6 +213,13 @@ p {
   padding: var(--space-3);
   background: var(--color-success-soft);
   color: var(--color-success);
+  border-radius: var(--radius-md);
+}
+.projects__warning {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
   border-radius: var(--radius-md);
 }
 @media (max-width: 650px) {
