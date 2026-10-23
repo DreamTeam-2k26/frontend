@@ -3,23 +3,17 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '@/components/auth/AuthCard.vue'
 import GoogleSignIn from '@/components/auth/GoogleSignIn.vue'
 import LoginForm from '@/components/auth/LoginForm.vue'
+import { authDestination, authQuery } from '@/utils/authRedirect'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-// Só aceita caminhos internos (começam com uma única barra) para evitar redirecionamento aberto.
-function destination() {
-  const redirect = route.query.redirect
-
-  return typeof redirect === 'string' && /^\/(?![/\\])/.test(redirect) ? redirect : { name: 'home' }
-}
-
 async function onSubmit(credentials) {
   try {
     await authStore.login(credentials)
-    router.push(destination())
+    router.push(authDestination(route.query.redirect))
   } catch {
     // Store já mostra toast de erro.
   }
@@ -35,7 +29,11 @@ async function onSubmit(credentials) {
 
     <template #footer>
       Ainda não tem uma conta?
-      <RouterLink :to="{ name: 'register' }" class="auth-link">Criar conta</RouterLink>
+      <RouterLink
+        :to="{ name: 'register', query: authQuery(route.query.redirect) }"
+        class="auth-link"
+        >Criar conta</RouterLink
+      >
     </template>
   </AuthCard>
 </template>

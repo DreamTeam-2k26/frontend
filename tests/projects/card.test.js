@@ -49,6 +49,7 @@ async function renderComponent(component, data, extra = {}) {
       { path: '/', component: { render: () => null } },
       { path: '/projects', name: 'projects', component: { render: () => null } },
       { path: '/projects/:id', name: 'project-detail', component: { render: () => null } },
+      { path: '/projects/:id/members', name: 'project-members', component: { render: () => null } },
     ],
   })
   await router.push('/')

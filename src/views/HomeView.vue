@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Plus, RefreshCw, WifiOff } from 'lucide-vue-next'
+import ReceivedInvites from '@/components/invites/ReceivedInvites.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import DashboardStatCard from '@/components/dashboard/DashboardStatCard.vue'
 import RecentProjects from '@/components/dashboard/RecentProjects.vue'
@@ -104,11 +105,13 @@ onMounted(() => {
     /* Saudação neutra enquanto o perfil não estiver disponível. */
   })
   load()
+  window.addEventListener('projects:changed', load)
   window.addEventListener('online', syncConnection)
   window.addEventListener('offline', syncConnection)
 })
 onBeforeUnmount(() => {
   active = false
+  window.removeEventListener('projects:changed', load)
   window.removeEventListener('online', syncConnection)
   window.removeEventListener('offline', syncConnection)
 })
@@ -179,6 +182,7 @@ onBeforeUnmount(() => {
         </dl>
       </section>
     </template>
+    <ReceivedInvites @accepted="load" />
     <ProjectForm
       v-if="formOpen"
       :saving="saving"

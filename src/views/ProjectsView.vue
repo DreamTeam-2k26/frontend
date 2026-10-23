@@ -99,9 +99,10 @@ async function save({ invitees = [], ...values }) {
     saving.value = false
   }
 }
-onMounted(load)
+onMounted(() => { load(); window.addEventListener('projects:changed', load) })
 onBeforeUnmount(() => {
   active = false
+  window.removeEventListener('projects:changed', load)
 })
 </script>
 
