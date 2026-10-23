@@ -32,4 +32,3 @@ A rota autenticada `/` usa a HomeView existente, o layout, a store de autentica�
 Fixture de navegador: `/tests/dashboard/browser.html`. Simula respostas da API exclusivamente no código de teste; o aplicativo usa a API real. Suporta `scenario=success|error|empty|offline|profile-error`, `theme=dark` e `preview=1` para inspeção sem executar as ações de criação. O chat é desativado somente nessa fixture para não abrir WebSocket durante a verificação da Home.
 
 A criação e consulta contra o backend real dependem de uma sessão válida e do servidor disponível; as verificações de navegador usam o contrato simulado descrito acima, sem inserir registros reais no banco.
-
