@@ -34,6 +34,12 @@ const router = createRouter({
           meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2, group: 'projects' } },
         },
         {
+          path: 'projects/:id/folders/:folderId?',
+          name: 'project-folders',
+          component: () => import('@/views/ProjectFoldersView.vue'),
+          meta: { title: 'Pastas do projeto' },
+        },
+        {
           path: 'projects/:id',
           name: 'project-detail',
           component: () => import('@/views/ProjectDetailView.vue'),

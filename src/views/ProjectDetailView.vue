@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, FolderOpen } from 'lucide-vue-next'
 import { getProject, getProjectOverview } from '@/api/projects'
 import { projectError } from '@/components/projects/projectState'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -121,6 +121,12 @@ onBeforeUnmount(() => {
     </div>
     <template v-else-if="project">
       <ProjectHeader :project="project" />
+      <BaseButton
+        class="project-folders-link"
+        variant="secondary"
+        :to="{ name: 'project-folders', params: { id: project.id } }"
+        ><FolderOpen :size="18" aria-hidden="true" /> Pastas do projeto</BaseButton
+      >
       <div class="project-detail__tabs" role="tablist" aria-label="Seções do projeto">
         <button
           v-for="item in TABS"
@@ -160,6 +166,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-8) var(--space-6);
+}
+.project-folders-link {
+  align-self: flex-start;
 }
 .project-detail__back {
   display: inline-flex;
