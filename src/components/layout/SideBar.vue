@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { UserRound } from 'lucide-vue-next'
 import NavItem from './NavItem.vue'
+import AppBrand from './AppBrand.vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { useSidebar } from '@/composables/useSidebar'
 import { useAuthStore } from '@/stores/auth'
@@ -29,6 +30,9 @@ const initials = computed(() =>
 
 <template>
   <aside id="app-sidebar" class="sidebar" :class="{ 'sidebar--collapsed': collapsed }">
+    <div class="sidebar__brand">
+      <AppBrand />
+    </div>
     <nav class="sidebar__nav" aria-label="Menu principal">
       <section
         v-for="group in groups"
@@ -61,12 +65,12 @@ const initials = computed(() =>
 <style scoped>
 .sidebar {
   position: sticky;
-  top: var(--header-height);
+  top: 0;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   width: var(--sidebar-width);
-  height: calc(100dvh - var(--header-height));
+  height: 100dvh;
   min-height: 0;
   color: var(--color-text-secondary);
   background-color: var(--color-bg-card);
@@ -75,6 +79,27 @@ const initials = computed(() =>
 }
 .sidebar--collapsed {
   width: var(--sidebar-width-collapsed);
+}
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  min-height: var(--header-height);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+}
+.sidebar__brand :deep(.brand) {
+  min-width: 0;
+  max-width: 100%;
+}
+.sidebar__brand :deep(.brand__logo) {
+  max-width: 100%;
+  height: auto;
+  max-height: var(--space-8);
+}
+.sidebar--collapsed .sidebar__brand {
+  justify-content: center;
+  padding-inline: var(--space-2);
 }
 .sidebar__nav {
   flex: 1;

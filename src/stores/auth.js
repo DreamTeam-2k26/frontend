@@ -13,6 +13,24 @@ export const useAuthStore = defineStore('authStore', () => {
   const user = computed(() => state.user)
   const loading = computed(() => state.loading)
 
+  let userRequest = null
+
+  function fetchUser() {
+    if (state.user) return Promise.resolve(state.user)
+    if (userRequest) return userRequest
+
+    userRequest = authApi
+      .getCurrentUser()
+      .then(({ data }) => {
+        state.user = data
+        return data
+      })
+      .finally(() => {
+        userRequest = null
+      })
+    return userRequest
+  }
+
   async function login({ email, password }) {
     const toastId = toast.loading('Fazendo login...')
 
@@ -27,6 +45,7 @@ export const useAuthStore = defineStore('authStore', () => {
       const accessToken = response.data.access
       const refreshToken = response.data.refresh
 
+      state.user = null
       setAccessToken(accessToken)
       setRefreshToken(refreshToken)
 
@@ -71,6 +90,7 @@ export const useAuthStore = defineStore('authStore', () => {
         password,
       })
 
+      state.user = null
       setAccessToken(response.data.access)
       setRefreshToken(response.data.refresh)
 
@@ -104,5 +124,6 @@ export const useAuthStore = defineStore('authStore', () => {
     user,
     login,
     register,
+    fetchUser,
   }
 })

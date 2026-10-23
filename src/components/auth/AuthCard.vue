@@ -1,5 +1,5 @@
 <script setup>
-import { appConfig } from '@/config/app'
+import AppBrand from '@/components/layout/AppBrand.vue'
 
 const { title, subtitle = '' } = defineProps({
   title: { type: String, required: true },
@@ -11,8 +11,7 @@ const { title, subtitle = '' } = defineProps({
   <section class="auth-card">
     <header class="auth-card__header">
       <div class="auth-card__brand">
-        <component :is="appConfig.logo" :size="28" aria-hidden="true" />
-        <span>{{ appConfig.name }}</span>
+        <AppBrand />
       </div>
       <h1 class="auth-card__title">{{ title }}</h1>
       <p v-if="subtitle" class="auth-card__subtitle">{{ subtitle }}</p>

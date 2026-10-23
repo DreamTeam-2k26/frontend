@@ -48,7 +48,7 @@ const router = createRouter({
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
-          meta: { nav: { label: 'Configurações', icon: Settings, order: 4, group: 'projects' } },
+          meta: { nav: { label: 'Configurações', icon: Settings, order: 4, group: 'personal' } },
         },
       ],
     },
