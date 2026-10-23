@@ -1,17 +1,17 @@
-import api from "./api";
+import api from './api'
 
 export function getAccesssToken({ email, password }) {
-    return api.post('/token/', { email, password })
+  return api.post('/token/', { email, password })
 }
 
 export function getRefreshToken({ refreshToken }) {
-    return api.post('/token/refresh/', { refresh: refreshToken })
+  return api.post('/token/refresh/', { refresh: refreshToken })
 }
 
 export function verifyToken({ accessToken }) {
-    return api.post('/token/verify/', { token: accessToken })
+  return api.post('/token/verify/', { token: accessToken })
 }
 
-export function register({ email, password }) {
-    return api.post('/register/', { email, password })
+export function register({ name, email, password }) {
+  return api.post('/register/', { name, email, password })
 }

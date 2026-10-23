@@ -31,6 +31,12 @@ async function onSubmit(credentials) {
 <style scoped>
 .auth-link {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+
+.auth-link:hover {
+  color: var(--color-primary-hover);
 }
 </style>

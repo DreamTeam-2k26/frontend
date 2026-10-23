@@ -23,16 +23,49 @@ const {
   to: { type: [String, Object], default: undefined },
 })
 
-const classes = computed(() => ['button', `button--${variant}`, { 'button--block': block }])
+defineOptions({ inheritAttrs: false })
+
+const unavailable = computed(() => disabled || loading)
+const classes = computed(() => [
+  'button',
+  `button--${variant}`,
+  { 'button--block': block, 'button--disabled': unavailable.value },
+])
+
+function guardInteraction(event) {
+  if (unavailable.value) {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+  }
+}
 </script>
 
 <template>
-  <RouterLink v-if="to" :to="to" :class="classes">
-    <slot />
+  <RouterLink v-if="to" v-slot="{ href, navigate }" :to="to" custom>
+    <a
+      v-bind="$attrs"
+      :href="unavailable ? undefined : href"
+      :class="classes"
+      :aria-disabled="unavailable || undefined"
+      :aria-busy="loading"
+      :tabindex="unavailable ? -1 : $attrs.tabindex"
+      @click.capture="guardInteraction"
+      @click="navigate"
+    >
+      <span v-if="loading" class="button__spinner" aria-hidden="true" />
+      <span class="button__content"><slot /></span>
+    </a>
   </RouterLink>
-  <button v-else :type="type" :class="classes" :disabled="disabled || loading" :aria-busy="loading">
+  <button
+    v-else
+    v-bind="$attrs"
+    :type="type"
+    :class="classes"
+    :disabled="unavailable"
+    :aria-busy="loading"
+  >
     <span v-if="loading" class="button__spinner" aria-hidden="true" />
-    <slot />
+    <span class="button__content"><slot /></span>
   </button>
 </template>
 
@@ -41,12 +74,20 @@ const classes = computed(() => ['button', `button--${variant}`, { 'button--block
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.125rem;
+  gap: var(--space-2);
+  min-height: 2.75rem;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--space-2) var(--space-4);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  font-weight: 500;
-  line-height: 1.5;
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-base);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
   transition:
     background-color 0.15s ease,
     border-color 0.15s ease,
@@ -58,13 +99,13 @@ const classes = computed(() => ['button', `button--${variant}`, { 'button--block
 }
 
 .button--primary {
-  color: #ffffff;
-  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  background-color: var(--color-button-primary-bg);
 }
 
-.button--primary:hover:not(:disabled) {
-  color: #ffffff;
-  background-color: var(--color-primary-hover);
+.button--primary:hover:not(.button--disabled) {
+  color: var(--color-on-primary);
+  background-color: var(--color-button-primary-hover);
 }
 
 .button--secondary {
@@ -73,21 +114,38 @@ const classes = computed(() => ['button', `button--${variant}`, { 'button--block
   border-color: var(--color-border);
 }
 
-.button--secondary:hover:not(:disabled) {
+.button--secondary:hover:not(.button--disabled) {
   color: var(--color-text);
-  background-color: var(--color-surface);
+  background-color: var(--color-bg-hover);
 }
 
 .button--ghost {
   color: var(--color-primary);
+  background-color: transparent;
 }
 
-.button--ghost:hover:not(:disabled) {
+.button--ghost:hover:not(.button--disabled) {
   color: var(--color-primary-hover);
-  background-color: var(--color-surface);
+  background-color: var(--color-bg-hover);
+}
+
+.button--disabled,
+.button--disabled:hover {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.button__content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .button__spinner {
+  flex-shrink: 0;
   width: 1em;
   height: 1em;
   border: 2px solid currentColor;

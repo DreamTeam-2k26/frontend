@@ -1,37 +1,106 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/*
+ * Identidade Fluxo — Sálvia & Marfim.
+ * Tema claro é o padrão. Tema escuro: <html data-theme="dark">.
+ * Componentes usam apenas var(--...); nenhum hex fora deste arquivo.
+ */
 :root {
-  /* Typography */
-  font-family: 'Roboto', sans-serif;
+  color-scheme: light;
+
+  /* Tipografia */
+  --font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-tight: 1.2;
+  --line-height-base: 1.5;
+
+  font-family: var(--font-family);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Colors */
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
+  /* Cores — fundos e superfícies */
+  --color-bg-page: #f7f8f3;
+  --color-bg-card: #ffffff;
+  --color-bg-subtle: #eff3ec;
+  --color-bg-hover: #e8eee7;
+  --color-input-bg: #ffffff;
 
-  --color-text: #111827;
-  --color-text-secondary: #6b7280;
+  /* Cores — marca */
+  --color-primary: #647f70;
+  --color-primary-hover: #526b5d;
+  --color-secondary: #bdd0c2;
+  --color-accent: #c2a487;
 
-  --color-background: #ffffff;
-  --color-surface: #f9fafb;
+  /* Cores — texto e bordas */
+  --color-text: #26362e;
+  --color-text-secondary: #67766a;
+  --color-border: #dce5da;
+  --color-disabled: #b9c4ba;
 
-  --color-border: #e5e7eb;
+  /* Botão principal */
+  --color-button-primary-bg: #526b5d;
+  --color-button-primary-hover: color-mix(in srgb, var(--color-button-primary-bg) 85%, var(--color-text));
+  --color-on-primary: #ffffff;
 
-  --color-success: #16a34a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
+  /* Logo monocromática */
+  --color-logo: var(--color-text);
+
+  /* Feedback */
+  --color-success: #3c795a;
+  --color-warning: #956725;
+  --color-danger: #ae4e50;
+  --color-info: #416e87;
+
+  /* Fundos suaves para badges e alertas (derivados do feedback, valem nos dois temas) */
+  --color-success-soft: color-mix(in srgb, var(--color-success) 14%, var(--color-bg-card));
+  --color-warning-soft: color-mix(in srgb, var(--color-warning) 14%, var(--color-bg-card));
+  --color-danger-soft: color-mix(in srgb, var(--color-danger) 14%, var(--color-bg-card));
+  --color-info-soft: color-mix(in srgb, var(--color-info) 14%, var(--color-bg-card));
+
+  /* Estados do Kanban */
+  --color-status-todo: #67766a;
+  --color-status-doing: #647f70;
+  --color-status-done: #3c795a;
+  --color-status-late: #ae4e50;
+
+  /* Compatibilidade: nomes usados pelos componentes atuais */
+  --color-background: var(--color-bg-card); /* superfícies elevadas: header, sidebar, cards, inputs */
+  --color-surface: var(--color-bg-page); /* fundo da página e hover discreto */
+  --color-error: var(--color-danger);
+
+  /* Espaçamento */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
 
   /* Border radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.625rem;
   --radius-lg: 1rem;
+  --radius-full: 999px;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
-  --shadow-md: 0 4px 12px rgb(0 0 0 / 8%);
+  --shadow-sm: 0 1px 2px rgb(38 54 46 / 6%);
+  --shadow-md: 0 4px 12px rgb(38 54 46 / 8%);
+
+  /* Foco */
+  --focus-ring: 2px solid var(--color-primary);
 
   /* Layout */
   --container-width: 1200px;
@@ -43,6 +112,45 @@
   /* Camadas */
   --z-header: 20;
   --z-nav: 30;
+}
+
+/* Tema escuro: superfícies grafite-esverdeadas, nunca preto absoluto. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg-page: #141c17;
+  --color-bg-card: #1d2921;
+  --color-bg-subtle: #25342a;
+  --color-bg-hover: #304337;
+  --color-input-bg: #243128;
+
+  --color-primary: #a8c7b2;
+  --color-primary-hover: #bed7c5;
+  --color-secondary: #829d8b;
+  --color-accent: #d4b697;
+
+  --color-text: #edf3ed;
+  --color-text-secondary: #a9b9ac;
+  --color-border: #35483b;
+  --color-disabled: #56675a;
+
+  --color-button-primary-bg: #a8c7b2;
+  --color-button-primary-hover: #bed7c5;
+  --color-on-primary: #141c17;
+
+  --color-success: #79b998;
+  --color-warning: #e5c18d;
+  --color-danger: #f09d9a;
+  --color-info: #9dbcdd;
+
+  --color-status-todo: #a9b9ac;
+  --color-status-doing: #a8c7b2;
+  --color-status-done: #79b998;
+  --color-status-late: #f09d9a;
+
+  /* Sombras quase imperceptíveis no escuro; a borda faz a separação. */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 12%);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 16%);
 }
 
 *,
@@ -63,9 +171,9 @@ html {
 body {
   min-width: 320px;
   min-height: 100vh;
-  line-height: 1.5;
+  line-height: var(--line-height-base);
   color: var(--color-text);
-  background-color: var(--color-background);
+  background-color: var(--color-bg-page);
 }
 
 #app {
@@ -79,20 +187,20 @@ h4,
 h5,
 h6 {
   color: inherit;
-  font-weight: 600;
-  line-height: 1.2;
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
 }
 
 h1 {
-  font-size: 2rem;
+  font-size: var(--font-size-2xl);
 }
 
 h2 {
-  font-size: 1.5rem;
+  font-size: var(--font-size-xl);
 }
 
 h3 {
-  font-size: 1.25rem;
+  font-size: var(--font-size-lg);
 }
 
 p {
@@ -100,12 +208,12 @@ p {
 }
 
 small {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 strong,
 b {
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 a {
@@ -143,6 +251,7 @@ textarea,
 select {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  background-color: var(--color-input-bg);
 }
 
 input,
@@ -162,6 +271,15 @@ textarea {
   resize: vertical;
 }
 
+/* Autofill do navegador mantém as cores do tema (Chrome pinta de azul por padrão). */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-text);
+  box-shadow: 0 0 0 1000px var(--color-input-bg) inset;
+  caret-color: var(--color-text);
+}
+
 input[type='checkbox'],
 input[type='radio'] {
   width: auto;
@@ -170,7 +288,7 @@ input[type='radio'] {
 
 input::placeholder,
 textarea::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-secondary);
   opacity: 1;
 }
 
@@ -203,13 +321,13 @@ table {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: var(--focus-ring);
   outline-offset: 3px;
 }
 
 ::selection {
-  color: #ffffff;
-  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  background-color: var(--color-button-primary-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -10,7 +10,8 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 1.5rem 1rem;
-  background-color: var(--color-surface);
+  min-height: 100dvh;
+  padding: var(--space-6) var(--space-4);
+  background-color: var(--color-bg-page);
 }
 </style>
