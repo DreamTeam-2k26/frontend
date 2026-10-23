@@ -53,8 +53,9 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
     })
 
     try {
-      const [{ data }, checklistItems, commentList, linkList] = await Promise.all([
-        getTask(taskId, { signal }),
+      // Tarefa primeiro: id inexistente responde 404 aqui (as listas filtradas dariam 400).
+      const { data } = await getTask(taskId, { signal })
+      const [checklistItems, commentList, linkList] = await Promise.all([
         checklistApi.listAllChecklistItems(taskId, { signal }),
         commentApi.listAllComments(taskId, { signal }),
         linkApi.listAllSupportLinks(taskId, { signal }),

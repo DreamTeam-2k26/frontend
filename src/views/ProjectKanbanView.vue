@@ -5,6 +5,7 @@ import { ArrowLeft, Plus } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import ColumnForm from '@/components/kanban/ColumnForm.vue'
+import TaskDetails from '@/components/tasks/TaskDetails.vue'
 import TaskForm from '@/components/tasks/TaskForm.vue'
 import KanbanBoard from '@/components/kanban/KanbanBoard.vue'
 import KanbanFilters from '@/components/kanban/KanbanFilters.vue'
@@ -178,8 +179,21 @@ async function moveTask({ taskId, columnId, index }) {
   }
 }
 
-// Abrir tarefa: o modal de detalhe entra na Task 10.
-function openTask() {}
+// Tarefa aberta fica na URL (?task=id): abre direto por link e sobrevive ao F5, mantendo os filtros.
+const openTaskId = computed(() => {
+  const value = route.query.task
+  return typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : null
+})
+
+function openTask(id) {
+  router.push({ query: { ...route.query, task: String(id) } })
+}
+
+function closeTask() {
+  const query = { ...route.query }
+  delete query.task
+  router.push({ query })
+}
 
 watch(() => route.params.id, load, { immediate: true })
 onBeforeUnmount(() => kanban.reset())
@@ -274,6 +288,13 @@ onBeforeUnmount(() => kanban.reset())
 
     <p class="visually-hidden" aria-live="polite">{{ announcement }}</p>
 
+    <TaskDetails
+      v-if="openTaskId && kanban.status === 'ready'"
+      :key="openTaskId"
+      :task-id="openTaskId"
+      :today="today"
+      @close="closeTask"
+    />
     <TaskForm
       v-if="taskForm.open"
       :columns="kanban.columns"
