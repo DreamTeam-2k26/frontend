@@ -34,23 +34,49 @@ const {
 
 <style scoped>
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
   border-radius: var(--radius-md);
   transition:
     background-color 0.15s ease,
     color 0.15s ease;
 }
 
-.nav-item:hover {
-  color: var(--color-text);
-  background-color: var(--color-surface);
+/* Hover só em mouse: no toque o estado ficaria preso após o clique. */
+@media (hover: hover) {
+  .nav-item:hover {
+    color: var(--color-text);
+    background-color: var(--color-bg-subtle);
+  }
 }
 
+.nav-item:focus-visible {
+  color: var(--color-text);
+}
+
+/* Ativo: texto forte + barra de destaque (forma, não só cor). */
 .nav-item--active,
 .nav-item--active:hover {
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+}
+
+.nav-item--active .nav-item__icon {
   color: var(--color-primary);
+}
+
+.nav-item--active::before {
+  position: absolute;
+  content: '';
+  background-color: var(--color-primary);
+  border-radius: var(--radius-full);
+}
+
+.nav-item__icon {
+  flex-shrink: 0;
 }
 
 .nav-item__label {
@@ -61,13 +87,23 @@ const {
 
 /* Sidebar */
 .nav-item--sidebar {
-  gap: 0.75rem;
-  padding: 0.625rem 0.75rem;
-  font-weight: 500;
+  gap: var(--space-3);
+  min-height: 2.625rem;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
 }
 
-.nav-item--sidebar.nav-item--active {
-  background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+.nav-item--sidebar.nav-item--active,
+.nav-item--sidebar.nav-item--active:hover {
+  background-color: var(--color-bg-hover);
+}
+
+/* Barra na borda da sidebar, como no Figma: recua o padding lateral da SideBar. */
+.nav-item--sidebar.nav-item--active::before {
+  top: var(--space-1);
+  bottom: var(--space-1);
+  left: calc(-1 * var(--space-3));
+  width: 3px;
 }
 
 .nav-item--collapsed {
@@ -79,14 +115,36 @@ const {
   flex: 1;
   flex-direction: column;
   justify-content: center;
-  gap: 0.125rem;
+  gap: var(--space-1);
   min-width: 0;
-  padding: 0.375rem 0.25rem;
-  font-size: 0.75rem;
+  min-height: 2.75rem;
+  padding: var(--space-1) 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
 }
 
+.nav-item--mobile.nav-item--active {
+  font-weight: var(--font-weight-semibold);
+}
+
+.nav-item--mobile.nav-item--active::before {
+  top: 0;
+  left: 50%;
+  width: 1.5rem;
+  height: 3px;
+  transform: translateX(-50%);
+}
+
+/* Rótulos de várias palavras quebram em até duas linhas ("Salas de / Projeto"). */
 .nav-item--mobile .nav-item__label {
+  display: -webkit-box;
   max-width: 100%;
+  line-height: var(--line-height-tight);
+  text-align: center;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .sr-only {
