@@ -4,13 +4,21 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import MobileNavBar from '@/components/layout/MobileNavBar.vue'
 import SideBar from '@/components/layout/SideBar.vue'
+import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import { useChatStore } from '@/features/chat/stores/chat'
 
 // O chat fica ligado em todas as páginas logadas para avisar de mensagens novas.
 const chat = useChatStore()
+const auth = useAuthStore()
 
-onMounted(() => chat.start())
+onMounted(() => {
+  auth.fetchUser().catch(() => {
+    // Mantém o nome de fallback se o perfil estiver indisponível.
+    // A API já trata renovação de token e sessão expirada.
+  })
+  chat.start()
+})
 onBeforeUnmount(() => chat.stop())
 </script>
 
@@ -34,12 +42,13 @@ onBeforeUnmount(() => chat.stop())
 .layout {
   display: grid;
   grid-template-areas:
-    'header header'
+    'sidebar header'
     'sidebar main'
     'sidebar footer';
   grid-template-rows: auto 1fr auto;
   grid-template-columns: auto minmax(0, 1fr);
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--color-surface);
 }
 
