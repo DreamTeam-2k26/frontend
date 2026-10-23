@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { House, MessagesSquare, Settings } from 'lucide-vue-next'
+import { House, FolderOpen, MessagesSquare, Settings } from 'lucide-vue-next'
 import {
   getAccessToken,
   getRefreshToken,
@@ -28,12 +28,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'projects',
+          name: 'projects',
+          component: () => import('@/views/ProjectsView.vue'),
+          meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2, group: 'projects' } },
+        },
+        {
           path: 'example',
           name: 'example',
           component: () => import('@/views/ExampleView.vue'),
-          meta: {
-            title: 'Exemplo',
-          },
+          meta: { title: 'Exemplo' },
         },
         {
           path: 'chat/:roomId(\\d+)?',
@@ -41,7 +45,13 @@ const router = createRouter({
           component: () => import('@/features/chat/views/ChatView.vue'),
           meta: {
             requiresAuth: true,
-            nav: { label: 'Salas de Projeto', icon: MessagesSquare, order: 3, exact: false, group: 'projects' },
+            nav: {
+              label: 'Salas de Projeto',
+              icon: MessagesSquare,
+              order: 3,
+              exact: false,
+              group: 'projects',
+            },
           },
         },
         {
@@ -84,10 +94,7 @@ function isAccessTokenValid(token) {
     const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
     const decoded = JSON.parse(atob(normalized))
 
-    return (
-      typeof decoded.exp === 'number' &&
-      decoded.exp * 1000 > Date.now() + 10000
-    )
+    return typeof decoded.exp === 'number' && decoded.exp * 1000 > Date.now() + 10000
   } catch {
     return false
   }
@@ -95,9 +102,7 @@ function isAccessTokenValid(token) {
 
 // Protege as rotas privadas.
 router.beforeEach(async (to) => {
-  const requiresAuth = to.matched.some(
-    (route) => route.meta.requiresAuth
-  )
+  const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
 
   // Rotas públicas continuam acessíveis.
   if (!requiresAuth) return true
