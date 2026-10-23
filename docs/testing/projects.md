@@ -10,14 +10,15 @@ Rota autenticada: `/projects`. A navegação usa `meta.nav`; a página de exempl
 - Após salvar, a lista é atualizada e revalidada via GET. Falha nessa revalidação permite tentar novamente sem repetir a escrita.
 - Owner/admin podem abrir edição; o backend continua responsável por autorizar as operações.
 - O acesso interno está desabilitado com explicação, pois não existe rota de detalhes na dev. A task da tela interna deve conectar esse botão à rota real ao entregá-la.
-- Progresso, avatares e quantidade de participantes não são retornados pelo contrato e não foram simulados.
+- A listagem retorna `progress` (0–100), `total_memberships` e `memberships` (`id` e `profile_picture`). Os cards exibem barra de progresso, total real e até três fotos sobrepostas, com indicador dos demais participantes. Fotos relativas usam a origem da API; ausência ou falha de imagem usa ícone neutro, pois nomes/iniciais não fazem parte desse contrato.
+- POST/PATCH continuam retornando apenas os dados básicos: a revalidação via GET fornece as métricas. Enquanto indisponíveis, elas não são simuladas como zero.
 
 ## Verificação automatizada executada
 
 - `npm run build`
 - `npm run lint`, `npx oxlint .` e `npx eslint .`
 - `npm run test:chat`
-- `npm run test:projects`: busca por nome/todos os papéis, mensagens 400/401/403/404/rede, validação de campos, múltiplas páginas e falha em página intermediária.
+- `npm run test:projects`: busca por nome/todos os papéis, mensagens 400/401/403/404/rede, validação de campos, múltiplas páginas e falha em página intermediária; renderização dos cards com métricas, fotos e permissões.
 
 ## Validação manual pendente
 
@@ -33,5 +34,6 @@ Com frontend e backend disponíveis, verificar:
 - [ ] Validação 400 junto aos campos, 403/404 preservando formulário e sessão expirada pelo fluxo existente.
 - [ ] Carregamento lento, lista vazia, erro de rede e tentativa novamente; falha no GET após escrita não repete POST/PATCH.
 - [ ] Escape, Tab/Shift+Tab, foco inicial no nome e retorno ao botão que abriu o modal; ações bloqueadas durante envio.
+- [ ] Progresso 0%, parcial e 100%, total singular/plural, fotos relativas/absolutas, participantes sem foto e imagem quebrada; mais de três participantes.
 - [ ] Mobile 320px e desktop, textos longos, descrição multilinha e troca de tema Light/Dark.
 - [ ] Início, Exemplo por URL, chat e configurações continuam funcionando.

@@ -1,9 +1,25 @@
 <script setup>
-import { Pencil, ArrowUpRight } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { Pencil, ArrowUpRight, UsersRound } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import ProjectMemberAvatar from './ProjectMemberAvatar.vue'
 
-defineProps({ project: { type: Object, required: true } })
+const props = defineProps({ project: { type: Object, required: true } })
 defineEmits(['edit'])
+const progress = computed(() =>
+  Number.isFinite(props.project.progress)
+    ? Math.min(100, Math.max(0, props.project.progress))
+    : null,
+)
+const memberCount = computed(() =>
+  Number.isInteger(props.project.total_memberships) && props.project.total_memberships >= 0
+    ? props.project.total_memberships
+    : null,
+)
+const visibleMembers = computed(() => (props.project.memberships ?? []).slice(0, 3))
+const remainingMembers = computed(() =>
+  Math.max(0, (memberCount.value ?? 0) - visibleMembers.value.length),
+)
 const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
 </script>
 
@@ -11,9 +27,51 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
   <article class="project-card">
     <div class="project-card__cover" aria-hidden="true" />
     <div class="project-card__body">
-      <h2>{{ project.name }}</h2>
+      <div class="project-card__heading">
+        <h2>{{ project.name }}</h2>
+        <span class="project-card__role">{{ roles[project.role] || 'Participante' }}</span>
+      </div>
       <p class="project-card__description">{{ project.description || 'Sem descrição.' }}</p>
-      <span class="project-card__role">{{ roles[project.role] || 'Participante' }}</span>
+      <div class="project-card__metrics">
+        <div class="project-card__progress-label">
+          <span>Progresso</span>
+          <strong>{{ progress === null ? 'Indisponível' : `${progress}%` }}</strong>
+        </div>
+        <progress
+          v-if="progress !== null"
+          :value="progress"
+          max="100"
+          :aria-label="`Progresso de ${project.name}`"
+        >
+          {{ progress }}%
+        </progress>
+        <div class="project-card__members">
+          <span class="project-card__member-count">
+            <UsersRound :size="16" aria-hidden="true" />
+            {{
+              memberCount === null
+                ? 'Participantes indisponíveis'
+                : `${memberCount} ${memberCount === 1 ? 'participante' : 'participantes'}`
+            }}
+          </span>
+          <ul
+            v-if="visibleMembers.length"
+            class="project-card__avatars"
+            aria-label="Participantes do projeto"
+          >
+            <li v-for="member in visibleMembers" :key="member.id">
+              <ProjectMemberAvatar :member="member" />
+            </li>
+            <li
+              v-if="remainingMembers"
+              class="project-card__remaining"
+              :aria-label="`Mais ${remainingMembers} participantes`"
+            >
+              +{{ remainingMembers }}
+            </li>
+          </ul>
+        </div>
+      </div>
       <div class="project-card__actions">
         <BaseButton disabled :aria-describedby="`project-access-${project.id}`">
           Acessar projeto <ArrowUpRight :size="16" aria-hidden="true" />
@@ -45,7 +103,8 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
 }
 .project-card__cover {
   position: relative;
-  height: 5.75rem;
+  height: 6rem;
+  flex-shrink: 0;
   overflow: hidden;
   border-radius: var(--radius-sm);
   background: linear-gradient(110deg, var(--color-bg-subtle), var(--color-secondary));
@@ -78,6 +137,92 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
 }
 h2 {
   font-size: var(--font-size-md);
+  min-width: 0;
+}
+.project-card__heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  flex-wrap: wrap;
+}
+.project-card__metrics {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  width: 100%;
+}
+.project-card__progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+.project-card__progress-label strong {
+  color: var(--color-text);
+}
+progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 0.5rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  color: var(--color-primary);
+  background: var(--color-bg-subtle);
+}
+progress::-webkit-progress-bar {
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+}
+progress::-webkit-progress-value {
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+}
+progress::-moz-progress-bar {
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+}
+.project-card__members {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.project-card__member-count {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+}
+.project-card__avatars {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.project-card__avatars li {
+  display: flex;
+}
+.project-card__avatars li + li {
+  margin-left: -0.5rem;
+}
+.project-card__remaining {
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 var(--space-1);
+  border: 2px solid var(--color-bg-card);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
 }
 .project-card__description {
   white-space: pre-wrap;
@@ -85,7 +230,7 @@ h2 {
   font-size: var(--font-size-sm);
 }
 .project-card__role {
-  margin-top: auto;
+  flex-shrink: 0;
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
   background: var(--color-bg-subtle);
