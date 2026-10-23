@@ -50,6 +50,13 @@ const router = createRouter({
           component: () => import('@/views/SettingsView.vue'),
           meta: { nav: { label: 'Configurações', icon: Settings, order: 4, group: 'personal' } },
         },
+        {
+          // Sem item de menu: acesso pelo bloco da conta na Sidebar e pelo avatar no header (mobile).
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/views/ProfileView.vue'),
+          meta: { title: 'Perfil' },
+        },
       ],
     },
     {

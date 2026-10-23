@@ -19,3 +19,11 @@ export function register({ name, email, password }) {
 export function getCurrentUser() {
   return api.get('/users/me/')
 }
+
+// Só o próprio usuário: o backend identifica quem edita pelo token, não por id.
+export function updateCurrentUser({ name, profilePictureKey }) {
+  return api.patch('/users/me/', {
+    ...(name !== undefined && { name }),
+    ...(profilePictureKey !== undefined && { profile_picture_attachment_key: profilePictureKey }),
+  })
+}

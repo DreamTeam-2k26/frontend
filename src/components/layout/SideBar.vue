@@ -1,8 +1,8 @@
 <script setup>
 import { computed } from 'vue'
-import { UserRound } from 'lucide-vue-next'
 import NavItem from './NavItem.vue'
 import AppBrand from './AppBrand.vue'
+import UserAvatar from '@/components/user/UserAvatar.vue'
 import { useNavigation } from '@/composables/useNavigation'
 import { useSidebar } from '@/composables/useSidebar'
 import { useAuthStore } from '@/stores/auth'
@@ -17,15 +17,6 @@ const groups = computed(() =>
   ].filter((group) => group.items.length),
 )
 const userName = computed(() => authStore.user?.name || 'Minha conta')
-const initials = computed(() =>
-  authStore.user?.name
-    ?.trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase(),
-)
 </script>
 
 <template>
@@ -48,17 +39,23 @@ const initials = computed(() =>
         </ul>
       </section>
     </nav>
-    <div class="sidebar__account" :title="collapsed ? userName : undefined">
-      <span class="sidebar__avatar" aria-hidden="true">
-        <span v-if="initials">{{ initials }}</span>
-        <UserRound v-else :size="18" />
-      </span>
+    <RouterLink
+      :to="{ name: 'profile' }"
+      class="sidebar__account"
+      active-class="sidebar__account--active"
+      :title="collapsed ? userName : undefined"
+    >
+      <UserAvatar
+        :name="authStore.user?.name"
+        :src="authStore.user?.profile_picture?.url"
+        size="sm"
+      />
       <div v-if="!collapsed" class="sidebar__identity">
         <span class="sidebar__name">{{ userName }}</span>
-        <span class="sidebar__caption">Espaço pessoal</span>
+        <span class="sidebar__caption">Ver perfil</span>
       </div>
-      <span v-else class="sr-only">{{ userName }}</span>
-    </div>
+      <span v-else class="sr-only">{{ userName }}, ver perfil</span>
+    </RouterLink>
   </aside>
 </template>
 
@@ -131,20 +128,16 @@ const initials = computed(() =>
   gap: var(--space-3);
   min-height: var(--header-height);
   padding: var(--space-3) var(--space-4);
+  color: inherit;
   border-top: 1px solid var(--color-border);
+  transition: background-color 0.15s ease;
 }
-.sidebar__avatar {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-8);
-  height: var(--space-8);
-  color: var(--color-primary);
-  background-color: var(--color-bg-subtle);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
+.sidebar__account:hover,
+.sidebar__account--active {
+  background-color: var(--color-bg-hover);
+}
+.sidebar__account:focus-visible {
+  outline-offset: -3px;
 }
 .sidebar__identity {
   display: flex;
