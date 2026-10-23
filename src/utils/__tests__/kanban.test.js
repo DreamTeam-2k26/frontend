@@ -15,6 +15,7 @@ import {
   moveLocally,
   sortByPosition,
   targetPosition,
+  timeAgo,
   todayISO,
 } from '../kanban.js'
 
@@ -230,4 +231,19 @@ describe('moveLocally', () => {
     moveLocally(tasks, 1, 20, 0)
     assert.equal(tasks[0].column, 10)
   })
+})
+
+describe('timeAgo', () => {
+  const now = new Date('2026-10-23T15:00:00')
+  const at = (text) => new Date(text).toISOString()
+  test('menos de um minuto', () => assert.equal(timeAgo(at('2026-10-23T14:59:30'), now), 'agora'))
+  test('minutos', () => assert.equal(timeAgo(at('2026-10-23T14:55:00'), now), 'há 5 min'))
+  test('horas', () => assert.equal(timeAgo(at('2026-10-23T12:00:00'), now), 'há 3 h'))
+  test('ontem', () => assert.equal(timeAgo(at('2026-10-22T10:00:00'), now), 'ontem'))
+  test('dias', () => assert.equal(timeAgo(at('2026-10-19T10:00:00'), now), 'há 4 dias'))
+  test('mais de uma semana mostra a data', () =>
+    assert.equal(timeAgo(at('2026-10-02T10:00:00'), now), '2 out'))
+  test('outro ano inclui o ano', () =>
+    assert.equal(timeAgo(at('2025-12-31T10:00:00'), now), '31 dez 2025'))
+  test('data inválida', () => assert.equal(timeAgo('x', now), ''))
 })

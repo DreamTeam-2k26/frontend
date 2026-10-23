@@ -153,3 +153,21 @@ export function moveLocally(tasks, taskId, columnId, position) {
   }))
   return [...tasks.filter((task) => !columnIds.has(task.column)), ...renumbered]
 }
+
+// Tempo relativo dos comentários ("agora", "há 5 min", "ontem", "2 out").
+export function timeAgo(iso, now = new Date()) {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const minutes = Math.floor((now - date) / 60000)
+  if (minutes < 1) return 'agora'
+  if (minutes < 60) return `há ${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `há ${hours} h`
+
+  const days = Math.round((toUTC(todayISO(now)) - toUTC(todayISO(date))) / DAY_MS)
+  if (days === 1) return 'ontem'
+  if (days < 7) return `há ${days} dias`
+  const label = `${date.getDate()} ${MONTHS[date.getMonth()]}`
+  return date.getFullYear() === now.getFullYear() ? label : `${label} ${date.getFullYear()}`
+}
