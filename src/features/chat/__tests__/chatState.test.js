@@ -262,3 +262,13 @@ test('message.new de outra pessoa avisa (notify), exceto quando a sala está abe
   effects = applyEvent(state, { type: 'message.update', room: 1, message: msg(5) }, { meId: 7 })
   assert.deepEqual(effects, [], 'edição não avisa')
 })
+
+test('upsertMessage mantém o _key do elemento ao atualizar', async () => {
+  const { upsertMessage } = await import('../lib/chatState.js')
+  const items = [{ id: 5, body: 'a', _key: -1 }]
+
+  upsertMessage(items, { id: 5, body: 'a', read: true })
+
+  assert.equal(items[0]._key, -1)
+  assert.equal(items[0].read, true)
+})

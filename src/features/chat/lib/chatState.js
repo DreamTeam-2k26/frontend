@@ -25,7 +25,10 @@ export function upsertMessage(items, message) {
   const index = items.findIndex((item) => item.id === message.id)
 
   if (index >= 0) {
-    items[index] = message
+    // _key identifica o elemento na tela; mantê-lo evita recriar o balão quando a mensagem é atualizada.
+    const key = items[index]._key
+
+    items[index] = key && !message._key ? { ...message, _key: key } : message
 
     return items
   }

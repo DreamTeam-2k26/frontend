@@ -44,7 +44,11 @@ const url = computed(() => mediaUrl(src))
   height: var(--avatar-size);
   border-radius: 50%;
   color: color-mix(in srgb, var(--color-primary) 75%, #000000);
-  background-color: color-mix(in srgb, var(--color-primary) 18%, var(--color-background));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 18%,
+    var(--chat-bg, var(--color-background))
+  );
   font-size: calc(var(--avatar-size) * 0.38);
   font-weight: 600;
 }
@@ -64,7 +68,7 @@ const url = computed(() => mediaUrl(src))
   height: 28%;
   min-width: 8px;
   min-height: 8px;
-  border: 2px solid var(--color-background);
+  border: 2px solid var(--chat-bg, var(--color-background));
   border-radius: 50%;
   background-color: #9ca3af;
 }

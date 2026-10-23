@@ -36,4 +36,17 @@ const { url, failed } = useAttachmentPreview(messageId)
   gap: 0.5rem;
   color: rgb(255 255 255 / 80%);
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .viewer-image {
+    animation: image-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+
+@keyframes image-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
 </style>

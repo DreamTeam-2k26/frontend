@@ -221,4 +221,21 @@ onBeforeUnmount(() => {
     right: 0.25rem;
   }
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  .viewer {
+    animation: viewer-in 0.2s ease-out;
+  }
+
+  .viewer__button,
+  .viewer__nav {
+    transition: background-color 0.15s ease;
+  }
+}
+
+@keyframes viewer-in {
+  from {
+    opacity: 0;
+  }
+}
 </style>

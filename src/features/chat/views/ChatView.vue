@@ -176,12 +176,25 @@ async function leave() {
 </template>
 
 <style scoped>
+/* Claro: fundo branco como antes. Escuro: o mesmo fundo da página inicial. */
+.chat {
+  --chat-bg: var(--color-background);
+  --chat-deep: var(--chat-bg);
+}
+
+:global(:root[data-theme='dark']) .chat {
+  --chat-bg: var(--color-bg-page, var(--color-surface));
+
+  /* Área das mensagens: um degrau mais escuro que o fundo da página (#141c17 -> #101612). */
+  --chat-deep: color-mix(in srgb, var(--chat-bg) 80%, #000000);
+}
+
 .chat {
   display: grid;
   grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: calc(100dvh - var(--header-height));
-  background-color: var(--color-background);
+  background-color: var(--chat-bg, var(--color-background));
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -235,7 +248,7 @@ async function leave() {
   justify-content: center;
   gap: 0.75rem;
   color: var(--color-text-secondary);
-  background-color: var(--color-background);
+  background-color: var(--chat-deep, var(--chat-bg, var(--color-background)));
 }
 
 /* Celular: uma tela por vez (lista -> conversa), detalhes sobre a conversa. */
@@ -268,6 +281,30 @@ async function leave() {
 
   .chat__info {
     border-left: none;
+  }
+}
+
+/* Painel de detalhes desliza da direita. */
+@media (prefers-reduced-motion: no-preference) {
+  .chat__info {
+    animation: info-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .chat__empty {
+    animation: fade-in 0.3s ease-out both;
+  }
+}
+
+@keyframes info-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.5rem);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
 }
 </style>
