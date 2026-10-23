@@ -1,4 +1,5 @@
 <script setup>
+import { LockKeyhole, Mail } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import { useForm } from '@/composables/useForm'
@@ -28,6 +29,7 @@ const onSubmit = handleSubmit((payload) => emit('submit', payload))
     <BaseInput
       v-model="values.email"
       label="E-mail"
+      :icon="Mail"
       name="email"
       type="email"
       autocomplete="email"
@@ -40,6 +42,7 @@ const onSubmit = handleSubmit((payload) => emit('submit', payload))
     <BaseInput
       v-model="values.password"
       label="Senha"
+      :icon="LockKeyhole"
       name="password"
       type="password"
       autocomplete="current-password"

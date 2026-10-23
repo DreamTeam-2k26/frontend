@@ -1,6 +1,7 @@
 <script setup>
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AuthCard from '@/components/auth/AuthCard.vue'
+import GoogleSignIn from '@/components/auth/GoogleSignIn.vue'
 import LoginForm from '@/components/auth/LoginForm.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -28,17 +29,26 @@ async function onSubmit(credentials) {
 
 
 <template>
-  <AuthCard title="Entrar" subtitle="Acesse sua conta para continuar.">
-    <LoginForm :loading="authStore.loading" @submit="onSubmit" />
+  <AuthCard title="Bem-vindo ao Fluxo" subtitle="Entre na sua conta para continuar de onde parou.">
+    <div class="auth-actions">
+      <LoginForm :loading="authStore.loading" @submit="onSubmit" />
+      <GoogleSignIn :disabled="authStore.loading" />
+    </div>
 
     <template #footer>
-      Não tem conta?
-      <RouterLink :to="{ name: 'register' }" class="auth-link">Cadastre-se</RouterLink>
+      Ainda não tem uma conta?
+      <RouterLink :to="{ name: 'register' }" class="auth-link">Criar conta</RouterLink>
     </template>
   </AuthCard>
 </template>
 
 <style scoped>
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .auth-link {
   color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
