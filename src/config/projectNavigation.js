@@ -14,11 +14,11 @@ import {
 export const projectSections = [
   { key: 'geral', label: 'Visão geral', icon: LayoutDashboard },
   { key: 'kanban', label: 'Kanban', icon: LayoutGrid },
-  { key: 'membros', label: 'Participantes', icon: UsersRound },
-  { key: 'conversa', label: 'Conversa', icon: MessageSquare },
   { key: 'pastas', label: 'Arquivos', icon: FolderOpen },
-  { key: 'links', label: 'Links de apoio', icon: Link2 },
+  { key: 'conversa', label: 'Conversas', icon: MessageSquare },
   { key: 'reunioes', label: 'Reuniões', icon: Video },
+  { key: 'membros', label: 'Participantes', icon: UsersRound },
+  { key: 'links', label: 'Links de apoio', icon: Link2 },
   { key: 'atividades', label: 'Registros recentes', icon: History },
 ]
 
