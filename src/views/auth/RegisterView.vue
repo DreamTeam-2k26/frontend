@@ -1,16 +1,21 @@
 <script setup>
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import AuthCard from '@/components/auth/AuthCard.vue'
+import GoogleSignIn from '@/components/auth/GoogleSignIn.vue'
 import RegisterForm from '@/components/auth/RegisterForm.vue'
+import { authQuery } from '@/utils/authRedirect'
+import { useAuthEntry } from '@/composables/useAuthEntry'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
-const router = useRouter()
+const route = useRoute()
+const enterApp = useAuthEntry()
 
 async function onSubmit(credentials) {
   try {
-    await authStore.register(credentials)
-    router.push({ name: 'home' })
+    if ((await authStore.register(credentials)) === false) return
+    // Só depois da resposta positiva da API.
+    enterApp()
   } catch {
     // Store já mostra toast de erro.
   }
@@ -18,19 +23,36 @@ async function onSubmit(credentials) {
 </script>
 
 <template>
-  <AuthCard title="Criar conta" subtitle="Preencha os dados para começar.">
-    <RegisterForm :loading="authStore.loading" @submit="onSubmit" />
+  <AuthCard title="Crie sua conta" subtitle="Comece a organizar seus projetos com sua equipe.">
+    <div class="auth-actions">
+      <RegisterForm :loading="authStore.loading" @submit="onSubmit" />
+      <GoogleSignIn :disabled="authStore.loading" @success="enterApp" />
+    </div>
 
     <template #footer>
-      Já tem conta?
-      <RouterLink :to="{ name: 'login' }" class="auth-link">Entrar</RouterLink>
+      Já possui conta?
+      <RouterLink :to="{ name: 'login', query: authQuery(route.query.redirect) }" class="auth-link"
+        >Entrar</RouterLink
+      >
     </template>
   </AuthCard>
 </template>
 
 <style scoped>
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .auth-link {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+
+.auth-link:hover {
+  color: var(--color-primary-hover);
 }
 </style>

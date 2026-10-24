@@ -1,10 +1,12 @@
-import { Hexagon } from 'lucide-vue-next'
+import fluxoLogo from '@/assets/fluxo-logo.png'
+import fluxoLogoCompact from '@/assets/fluxo-logo-compact.svg'
 
-// Dados do app. Troque aqui para mudar marca, footer e menu.
+// Marca centralizada. Logo oficial fornecida pela equipe.
 export const appConfig = {
-  name: 'Hackathon 2026',
-  logo: Hexagon,
+  name: 'Fluxo',
+  logo: fluxoLogo,
+  logoCompact: fluxoLogoCompact,
+  logoDark: null,
   footerText: 'Todos os direitos reservados.',
-  // Máximo de itens na barra inferior do celular.
   mobileNavLimit: 5,
 }

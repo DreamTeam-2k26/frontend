@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { House, LayoutGrid, Settings } from 'lucide-vue-next'
-
+import { House, FolderOpen, MessagesSquare, Settings } from 'lucide-vue-next'
 import {
   getAccessToken,
   getRefreshToken,
@@ -29,22 +28,97 @@ const router = createRouter({
           },
         },
         {
+          path: 'projects',
+          name: 'projects',
+          component: () => import('@/views/ProjectsView.vue'),
+          meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2, group: 'personal' } },
+        },
+        {
+          path: 'projects/:id/folders/:folderId?',
+          name: 'project-folders',
+          redirect: (to) => ({
+            name: 'project-detail',
+            params: { id: to.params.id },
+            query: { ...to.query, aba: 'pastas', pasta: to.params.folderId || undefined },
+          }),
+          meta: { title: 'Pastas do projeto' },
+        },
+        {
+          path: 'projects/:id',
+          name: 'project-detail',
+          component: () => import('@/views/ProjectDetailView.vue'),
+          meta: { title: 'Detalhes do projeto' },
+        },
+        {
+          path: 'projects/:id/settings',
+          name: 'project-settings',
+          component: () => import('@/views/ProjectSettingsView.vue'),
+          meta: { title: 'Configurações do projeto' },
+        },
+        {
+          path: 'projects/:id/kanban',
+          name: 'project-kanban',
+          component: () => import('@/views/ProjectKanbanView.vue'),
+          meta: { title: 'Quadro de tarefas' },
+        },
+        {
+          path: 'projects/:id(\\d+)/brainstorm/:topicId(\\d+)',
+          name: 'project-brainstorm-topic',
+          component: () => import('@/views/BrainstormTopicView.vue'),
+          meta: { title: 'Discussão do Brainstorm' },
+        },
+        {
+          path: 'projects/:id/members',
+          name: 'project-members',
+          component: () => import('@/views/ProjectMembersView.vue'),
+          meta: { title: 'Participantes' },
+        },
+        {
           path: 'example',
           name: 'example',
           component: () => import('@/views/ExampleView.vue'),
+          meta: { title: 'Exemplo' },
+        },
+        {
+          path: 'chat/:roomId(\\d+)?',
+          name: 'chat',
+          component: () => import('@/features/chat/views/ChatView.vue'),
           meta: {
-            nav: { label: 'Exemplo', icon: LayoutGrid, order: 2 },
+            requiresAuth: true,
+            nav: {
+              label: 'Salas de Projeto',
+              icon: MessagesSquare,
+              order: 3,
+              exact: false,
+              group: 'personal',
+            },
           },
+        },
+        {
+          path: 'projects/:id(\\d+)/calls/:callId(\\d+)',
+          name: 'call',
+          component: () => import('@/features/calls/views/CallView.vue'),
+          meta: { requiresAuth: true, title: 'Chamada' },
         },
         {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
-          meta: {
-            nav: { label: 'Configurações', icon: Settings, order: 3 },
-          },
+          meta: { nav: { label: 'Configurações', icon: Settings, order: 4, group: 'personal' } },
+        },
+        {
+          // Sem item de menu: acesso pelo bloco da conta na Sidebar e pelo avatar no header (mobile).
+          path: 'profile',
+          name: 'profile',
+          component: () => import('@/views/ProfileView.vue'),
+          meta: { title: 'Perfil' },
         },
       ],
+    },
+    {
+      path: '/invite/:token',
+      name: 'invite-redeem',
+      component: () => import('@/views/InviteRedeemView.vue'),
     },
     {
       path: '/auth/',
@@ -78,10 +152,7 @@ function isAccessTokenValid(token) {
     const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
     const decoded = JSON.parse(atob(normalized))
 
-    return (
-      typeof decoded.exp === 'number' &&
-      decoded.exp * 1000 > Date.now() + 10000
-    )
+    return typeof decoded.exp === 'number' && decoded.exp * 1000 > Date.now() + 10000
   } catch {
     return false
   }
@@ -89,9 +160,7 @@ function isAccessTokenValid(token) {
 
 // Protege as rotas privadas.
 router.beforeEach(async (to) => {
-  const requiresAuth = to.matched.some(
-    (route) => route.meta.requiresAuth
-  )
+  const requiresAuth = to.matched.some((route) => route.meta.requiresAuth)
 
   // Rotas públicas continuam acessíveis.
   if (!requiresAuth) return true

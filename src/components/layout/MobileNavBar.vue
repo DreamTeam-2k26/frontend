@@ -22,7 +22,8 @@ const visibleItems = items.slice(0, appConfig.mobileNavLimit)
   z-index: var(--z-nav);
   display: flex;
   height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
-  padding: 0.25rem 0.5rem env(safe-area-inset-bottom);
+  padding: var(--space-1) max(var(--space-2), env(safe-area-inset-right)) env(safe-area-inset-bottom)
+    max(var(--space-2), env(safe-area-inset-left));
   background-color: var(--color-background);
   border-top: 1px solid var(--color-border);
 }

@@ -1,47 +1,60 @@
 <script setup>
-import { RouterLink, useRouter } from "vue-router";
-import AuthCard from "@/components/auth/AuthCard.vue";
-import LoginForm from "@/components/auth/LoginForm.vue";
-import { useAuthStore } from "@/stores/auth";
+import { RouterLink, useRoute } from 'vue-router'
+import AuthCard from '@/components/auth/AuthCard.vue'
+import GoogleSignIn from '@/components/auth/GoogleSignIn.vue'
+import LoginForm from '@/components/auth/LoginForm.vue'
+import { authQuery } from '@/utils/authRedirect'
+import { useAuthEntry } from '@/composables/useAuthEntry'
+import { useAuthStore } from '@/stores/auth'
 
-const authStore = useAuthStore();
-const router = useRouter();
+const authStore = useAuthStore()
+const route = useRoute()
+const enterApp = useAuthEntry()
 
 async function onSubmit(credentials) {
   try {
-    await authStore.login(credentials);
-
-    const redirect = router.currentRoute.value.query.redirect;
-
-    const destination =
-      typeof redirect === "string" &&
-      redirect.startsWith("/") &&
-      !redirect.startsWith("//")
-        ? redirect
-        : { name: "home" };
-
-    await router.push(destination);
+    if ((await authStore.login(credentials)) === false) return
+    // Só depois da resposta positiva da API.
+    enterApp()
   } catch {
     // Store já mostra toast de erro.
   }
 }
 </script>
 
-
 <template>
-  <AuthCard title="Entrar" subtitle="Acesse sua conta para continuar.">
-    <LoginForm :loading="authStore.loading" @submit="onSubmit" />
+  <AuthCard title="Bem-vindo ao Fluxo" subtitle="Entre na sua conta para continuar de onde parou.">
+    <div class="auth-actions">
+      <LoginForm :loading="authStore.loading" @submit="onSubmit" />
+      <GoogleSignIn :disabled="authStore.loading" @success="enterApp" />
+    </div>
 
     <template #footer>
-      Não tem conta?
-      <RouterLink :to="{ name: 'register' }" class="auth-link">Cadastre-se</RouterLink>
+      Ainda não tem uma conta?
+      <RouterLink
+        :to="{ name: 'register', query: authQuery(route.query.redirect) }"
+        class="auth-link"
+        >Criar conta</RouterLink
+      >
     </template>
   </AuthCard>
 </template>
 
 <style scoped>
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
 .auth-link {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+
+.auth-link:hover {
+  color: var(--color-primary-hover);
 }
 </style>

@@ -1,4 +1,5 @@
 <script setup>
+import { LockKeyhole, Mail } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import { useForm } from '@/composables/useForm'
@@ -24,21 +25,30 @@ const onSubmit = handleSubmit((payload) => emit('submit', payload))
 </script>
 
 <template>
-  <form class="auth-form" novalidate @submit.prevent="onSubmit">
+  <form class="auth-form" novalidate :aria-busy="loading" @submit.prevent="!loading && onSubmit()">
     <BaseInput
       v-model="values.email"
       label="E-mail"
+      :icon="Mail"
+      name="email"
       type="email"
       autocomplete="email"
       placeholder="voce@exemplo.com"
+      required
+      :disabled="loading"
       :error="errors.email"
       @blur="validateField('email')"
     />
     <BaseInput
       v-model="values.password"
       label="Senha"
+      :icon="LockKeyhole"
+      name="password"
       type="password"
       autocomplete="current-password"
+      placeholder="Digite sua senha"
+      required
+      :disabled="loading"
       :error="errors.password"
       @blur="validateField('password')"
     />
@@ -50,6 +60,6 @@ const onSubmit = handleSubmit((payload) => emit('submit', payload))
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: var(--space-4);
 }
 </style>

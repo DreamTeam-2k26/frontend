@@ -12,9 +12,20 @@ const year = new Date().getFullYear()
 
 <style scoped>
 .footer {
-  padding: 1rem;
+  padding: var(--space-4) var(--space-6);
   color: var(--color-text-secondary);
   text-align: center;
   border-top: 1px solid var(--color-border);
+}
+
+.footer small {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-base);
+}
+
+@media (max-width: 767px) {
+  .footer {
+    padding: var(--space-3) var(--space-4);
+  }
 }
 </style>
