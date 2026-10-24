@@ -428,6 +428,7 @@ const statusText = (field) => ({ saving: 'Salvando…', saved: 'Salvo' })[fieldS
                 :error="fieldError.due_date || ''"
                 :calendar-title="task.title"
                 :calendar-description="task.description || ''"
+                show-google-calendar
                 @change="changeDueDate"
               />
               <span
