@@ -1,10 +1,13 @@
 <script setup>
 import { computed, onMounted, shallowRef } from 'vue'
+import { useRouter } from 'vue-router'
+import { LogOut } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProfileForm from '@/components/user/ProfileForm.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const status = shallowRef('loading') // loading | ready | error
 const loadError = shallowRef('')
 
@@ -32,6 +35,13 @@ async function onSubmit(changes) {
   } catch {
     // Store já mostra toast de erro; o formulário mantém o que foi digitado.
   }
+}
+
+// O layout logado é desmontado ao ir para o login, o que também desliga o chat e os avisos de chamada.
+async function onLogout() {
+  // Primeiro sai da página: limpar o usuário antes faria o formulário do perfil renderizar sem dados.
+  await router.replace({ name: 'login' })
+  authStore.logout()
 }
 
 onMounted(load)
@@ -64,6 +74,16 @@ onMounted(load)
       :saving="authStore.saving"
       @submit="onSubmit"
     />
+
+    <section class="profile-page__session" aria-labelledby="session-title">
+      <div>
+        <h2 id="session-title" class="profile-page__error-title">Sessão</h2>
+        <p class="profile-page__subtitle">Sai da sua conta neste navegador.</p>
+      </div>
+      <BaseButton variant="secondary" @click="onLogout">
+        <LogOut :size="16" aria-hidden="true" /> Sair da conta
+      </BaseButton>
+    </section>
   </section>
 </template>
 
@@ -109,6 +129,18 @@ onMounted(load)
 .profile-page__error-title {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
+}
+
+.profile-page__session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .skeleton {
