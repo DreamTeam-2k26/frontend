@@ -175,3 +175,33 @@ export function allSelected(cards) {
 export function setAllSelected(cards, selected) {
   for (const card of cards) card.selected = selected
 }
+
+const SNIPPET_MAX = 24
+
+// Primeira frase/oração do texto, curta o bastante para uma bolha ("Robótica com sucata").
+function snippet(text) {
+  const clause = String(text ?? '')
+    .split(/[.,;:!?\n]/)[0]
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (clause.length <= SNIPPET_MAX) return clause
+  const cut = clause.slice(0, SNIPPET_MAX + 1)
+  const space = cut.lastIndexOf(' ')
+  return `${(space > 0 ? cut.slice(0, space) : clause.slice(0, SNIPPET_MAX)).trimEnd()}…`
+}
+
+// Ideias da animação da IA: trechos reais da discussão (sugestão inicial e respostas mais votadas).
+export function ideaSnippets(topic, replies, max = 8) {
+  const ranked = [...(replies ?? [])].sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || a.id - b.id)
+  const seen = new Set()
+  const ideas = []
+  for (const text of [topic?.initial_suggestion, ...ranked.map((reply) => reply.content)]) {
+    const value = snippet(text)
+    const key = value.toLocaleLowerCase('pt-BR')
+    if (!value || seen.has(key)) continue
+    seen.add(key)
+    ideas.push(value)
+    if (ideas.length === max) break
+  }
+  return ideas
+}

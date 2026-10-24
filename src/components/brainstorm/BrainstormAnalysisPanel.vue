@@ -1,10 +1,10 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, shallowRef, watch } from 'vue'
 import { Bot, History, Lock, RotateCw, Sparkles, TriangleAlert } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BrainstormAiThinking from './BrainstormAiThinking.vue'
 import { useBrainstormTopicStore } from '@/stores/brainstormTopic'
-import { formatWhen, priorityLabel } from '@/utils/brainstorm'
+import { formatWhen, ideaSnippets, priorityLabel } from '@/utils/brainstorm'
 
 // Síntese da IA do ciclo atual + histórico de versões. Só mostra; nada é criado a partir daqui.
 const { flags } = defineProps({
@@ -28,6 +28,18 @@ const notConfigured = computed(() => store.analysisError?.code === 'ai_not_confi
 const sources = (ids) => (ids ?? []).filter((id) => replyIds.value.has(id))
 const versions = computed(() => [...store.versions].reverse())
 
+// Animação da IA: trechos reais da discussão e, quando a síntese chega, ~1,2 s das ideias entrando no
+// tornado antes de mostrar o resultado (só a exibição espera; falha aparece na hora).
+const ideas = computed(() => ideaSnippets(store.topic, store.replies))
+const absorbing = shallowRef(false)
+// O pedido terminou bem (sem erro): segura a exibição até as ideias entrarem no tornado. A store passa por
+// ready → loading → ready ao reler o histórico; olhar o fim do pedido evita interromper a animação.
+const analyzing = computed(() => Boolean(store.busy.analyze))
+watch(analyzing, (now, before) => {
+  if (before && !now && !store.analysisError) absorbing.value = true
+})
+const thinking = computed(() => status.value === 'running' || analyzing.value || absorbing.value)
+
 // Títulos das tarefas que a IA apontou como já existentes (para evitar duplicata).
 onMounted(() => store.loadDecisionData())
 
@@ -48,7 +60,9 @@ function run() {
         <span v-if="store.topic" class="analysis__cycle">versão {{ store.topic.cycle }}</span>
       </h2>
       <BaseButton
-        v-if="flags.canAnalyze && ['ready', 'failed', 'none', 'error'].includes(status)"
+        v-if="
+          flags.canAnalyze && !thinking && ['ready', 'failed', 'none', 'error'].includes(status)
+        "
         :variant="status === 'ready' ? 'secondary' : 'primary'"
         :loading="Boolean(store.busy.analyze)"
         @click="run"
@@ -66,9 +80,16 @@ function run() {
     </header>
 
     <Transition name="analysis-swap" mode="out-in">
-      <p v-if="status === 'loading'" class="analysis__state" role="status">Carregando a síntese…</p>
+      <BrainstormAiThinking
+        v-if="thinking"
+        :ideas="ideas"
+        :finishing="absorbing"
+        @done="absorbing = false"
+      />
 
-      <BrainstormAiThinking v-else-if="status === 'running'" />
+      <p v-else-if="status === 'loading'" class="analysis__state" role="status">
+        Carregando a síntese…
+      </p>
 
       <div
         v-else-if="status === 'failed'"

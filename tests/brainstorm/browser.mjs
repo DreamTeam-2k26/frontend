@@ -364,6 +364,20 @@ await step('síntese da IA (real, modelo gratuito)', async () => {
     5000,
   )
   await ana.shot('05-sintese-gerando')
+  await pause(2500)
+  await ana.shot('05b-tornado-girando')
+  assert.ok(
+    await ana.evaluate(`document.querySelectorAll('.tornado__idea').length > 0`),
+    'ideias no tornado',
+  )
+  // Final: as ideias entram no tornado (~1,2 s) antes da síntese aparecer.
+  await ana.waitFor(
+    `document.body.innerText.includes('Juntando as ideias') || document.querySelector('.analysis__state--error')`,
+    'final do tornado',
+    240000,
+  )
+  await pause(500)
+  await ana.shot('05c-ideias-entrando')
   await ana.waitFor(
     `document.body.innerText.includes('Proposta principal') || document.querySelector('.analysis__state--error')`,
     'síntese pronta ou falha',

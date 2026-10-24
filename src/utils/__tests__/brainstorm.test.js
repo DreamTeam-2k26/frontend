@@ -7,6 +7,7 @@ import {
   cardsFromAnalysis,
   categoryLabel,
   formatWhen,
+  ideaSnippets,
   listQueryToRoute,
   normalizeListQuery,
   preview,
@@ -256,5 +257,32 @@ describe('selecionar todas as tarefas', () => {
       [false, false],
     )
     assert.equal(allSelected([]), false)
+  })
+})
+
+describe('ideaSnippets', () => {
+  test('sugestão inicial primeiro, depois as respostas mais votadas, curtas e sem repetir', () => {
+    const topic = { initial_suggestion: 'Robótica' }
+    const replies = [
+      { id: 1, score: 0, content: 'Feira de astronomia com telescópio caseiro, muito legal' },
+      { id: 2, score: 3, content: 'Robótica com sucata: barato e chama atenção.' },
+      { id: 3, score: 1, content: 'robótica' },
+      { id: 4, score: 2, content: '   ' },
+    ]
+    assert.deepEqual(ideaSnippets(topic, replies), [
+      'Robótica',
+      'Robótica com sucata',
+      'Feira de astronomia com…',
+    ])
+  })
+
+  test('respeita o limite e funciona sem dados', () => {
+    const replies = Array.from({ length: 12 }, (_, index) => ({
+      id: index,
+      score: 0,
+      content: `Ideia ${index}`,
+    }))
+    assert.equal(ideaSnippets({}, replies, 8).length, 8)
+    assert.deepEqual(ideaSnippets(null, []), [])
   })
 })
