@@ -168,6 +168,16 @@ export const useAuthStore = defineStore('authStore', () => {
     state.loading = true
     try {
       const { data } = await authApi.linkGoogle(credential)
+      // O backend também importa a foto Google no vínculo; atualiza todos os avatares.
+      if (data?.linked) {
+        try {
+          await fetchUser({ force: true })
+        } catch {
+          toast.info(
+            'Conta Google vinculada. Recarregue o Perfil para atualizar a foto e os dados.',
+          )
+        }
+      }
       return data
     } finally {
       state.loading = false

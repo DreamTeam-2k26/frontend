@@ -26,7 +26,7 @@ before(async () => {
           if (id === '\0test-router')
             return `export const pushes = []; export default {currentRoute: {value: {name: 'profile', fullPath: '/profile'}}, push: (...args) => pushes.push(args)}`
           if (id === '\0test-toast')
-            return 'export const toast = {loading(){}, update(){}, success(){}}'
+            return 'export const toast = {loading(){}, update(){}, success(){}, info(){}}'
         },
       },
     ],
@@ -133,6 +133,11 @@ test('vínculo envia JWT; 401 e conflitos preservam sessão; sem sessão não en
   for (const status of [401, 409, 503, 200]) {
     api.defaults.adapter = (config) => {
       assert.equal(config.headers.Authorization, 'Bearer existing')
+      if (config.url === '/users/me/')
+        return reply(config, {
+          name: 'Conta vinculada',
+          profile_picture: { url: '/media/google.jpg' },
+        })
       assert.equal(config.url, '/auth/google/link/')
       return reply(
         config,
@@ -140,8 +145,10 @@ test('vínculo envia JWT; 401 e conflitos preservam sessão; sem sessão não en
         status,
       )
     }
-    if (status === 200) assert.equal((await auth.linkGoogle('credential')).linked, true)
-    else await assert.rejects(auth.linkGoogle('credential'))
+    if (status === 200) {
+      assert.equal((await auth.linkGoogle('credential')).linked, true)
+      assert.equal(auth.user.profile_picture.url, '/media/google.jpg')
+    } else await assert.rejects(auth.linkGoogle('credential'))
     assert.equal(tokens.getAccessToken(), 'existing')
     assert.equal(tokens.getRefreshToken(), 'existing-refresh')
   }
@@ -222,4 +229,27 @@ test('endpoint privado continua renovando JWT pelo fluxo existente', async () =>
   } finally {
     axios.defaults.adapter = original
   }
+})
+
+test('vínculo concluído mantém sucesso se atualização da foto falhar e permite recarregar perfil', async () => {
+  const auth = store()
+  tokens.setAccessToken('existing')
+  tokens.setRefreshToken('existing-refresh')
+  const calls = []
+  api.defaults.adapter = (config) => {
+    calls.push(config.url)
+    if (config.url === '/auth/google/link/') return reply(config, { linked: true })
+    return reply(config, {}, 503)
+  }
+  assert.equal((await auth.linkGoogle('credential')).linked, true)
+  assert.deepEqual(calls, ['/auth/google/link/', '/users/me/'])
+  assert.equal(tokens.getAccessToken(), 'existing')
+  assert.equal(tokens.getRefreshToken(), 'existing-refresh')
+  api.defaults.adapter = (config) =>
+    reply(config, {
+      name: 'Perfil',
+      profile_picture: { url: 'https://res.cloudinary.com/fluxo/image/upload/google.jpg' },
+    })
+  await auth.fetchUser({ force: true })
+  assert.match(auth.user.profile_picture.url, /google\.jpg$/)
 })

@@ -27,7 +27,7 @@ Referência: https://developers.google.com/identity/gsi/web/reference/js-referen
 
 ## Checks executados
 
-- `npm run test:google`: 11 cenários passaram.
+- `npm run test:google`: 12 cenários passaram.
 - `npx eslint .` e `npx oxlint .`: passaram.
 - `npm run build` e `git diff --check`: passaram.
 - Regressão: `test:members`, `test:dashboard`, `test:projects`, `test:folders`, `test:chat` e `test:calls` passaram.
@@ -49,3 +49,9 @@ Antes de considerar a issue concluída e mover para In Review, executar com back
 - [ ] Anexar capturas reais de Login/Cadastro e comprovação do fluxo completo à PR.
 
 A implementação frontend pode ser revisada, mas a issue não deve ser fechada antes dessa validação ponta a ponta.
+
+## Foto Google — atualização do backend `806ee5e`
+
+O backend passou a importar a foto Google no login e no vínculo, devolvendo o resultado no campo existente `profile_picture.url`. A store recarrega o perfil também depois do vínculo, atualizando os avatares sem exigir F5. Se essa leitura falhar após um vínculo bem-sucedido, o vínculo continua confirmado e a interface orienta recarregar o Perfil.
+
+A suíte `core.tests.test_google_auth_picture` passou com 14 testes em banco descartável; downloads Google são simulados nessa suíte. A migração `0016_google_identity_picture` já estava aplicada no banco local. O Client ID foi configurado posteriormente nos `.env` locais do frontend e backend. Ainda é necessário novo login Google real para importar a foto de uma conta que já estava vinculada antes da atualização. Não houve uso da sessão Google real do usuário pelo agente.
