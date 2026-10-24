@@ -46,3 +46,11 @@ Ainda validar com backend integrado e contas reais de owner/admin/member e uma c
 4. Owner não tem saída funcional. Como admin/member, cancelar e confirmar saída; verificar POST real com 204, perda de acesso e 404 na repetição. POST forçado de owner deve retornar 403. Em falha, permanecer na tela e permitir recuperação.
 5. Abrir Participantes/Convites e conferir as permissões já existentes. Testar desktop/mobile, Light/Dark, Tab, Shift+Tab, Enter e Escape; confirmar foco preso no modal e devolvido ao gatilho ao cancelar.
 6. Testar perda de rede, expiração/renovação real de sessão e resposta atrasada durante PATCH/DELETE/saída ao trocar de rota. O harness cobre mensagens de 401 no componente, sem substituir o teste real de renovação da sessão.
+
+## Ajustes finais para integração parcial
+
+- **Acesso no mobile:** o projeto agora exibe link `Configurações` em `ProjectDetailView.vue` em telas pequenas. A sidebar permanece a navegação do desktop.
+- **Identidade visual:** a mudança global de tema escuro para preto absoluto foi revertida. O site conserva os tokens de tema existentes na `dev`. As capturas anexadas antes desta correção representam a versão anterior e precisam ser refeitas para validação visual atual.
+- **Backend #46 pendente:** por padrão a ação de sair é **indisponível**; o usuário vê texto explicativo, e nenhuma requisição é disparada. Após integrar e validar `POST /api/projects/{id}/leave/` no ambiente, habilitar `VITE_PROJECT_LEAVE_ENABLED=true` no build do frontend. Atenção: só habilitar depois da implantação do backend, pois a variável é definida em tempo de build.
+- O teste controlado atualizado verifica a indisponibilidade por padrão. O cenário de saída 204/404 deve ser executado com backend real quando a #46 for entregue.
+- Este merge não conclui a Frontend #45; a issue deve permanecer aberta para testes integrados da saída.
