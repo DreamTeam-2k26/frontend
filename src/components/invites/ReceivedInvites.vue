@@ -129,7 +129,7 @@ async function respond(invite, accept) {
     >
     <ul v-if="!loading">
       <!-- Convite respondido (após a API) recolhe em vez de sumir de repente. -->
-      <AnimatePresence :initial="false">
+      <AnimatePresence>
         <motion.li
           v-for="invite in invites"
           :key="invite.id"

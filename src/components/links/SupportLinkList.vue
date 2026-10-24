@@ -22,12 +22,12 @@ const emit = defineEmits({ edit: (link) => !!link, remove: (link) => !!link })
 <template>
   <ul class="link-list">
     <!-- Link criado entra, link excluído sai e os demais se reposicionam (a lista não remonta). -->
-    <AnimatePresence :initial="false" mode="popLayout">
+    <AnimatePresence mode="popLayout">
       <motion.li
-        v-for="link in links"
+        v-for="(link, index) in links"
         :key="link.id"
         layout
-        v-bind="listItemMotion(0)"
+        v-bind="listItemMotion(index)"
         class="link-list__item"
       >
         <span class="link-list__tile" aria-hidden="true"><Link2 :size="16" /></span>
