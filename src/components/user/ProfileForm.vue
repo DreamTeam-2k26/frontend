@@ -1,9 +1,10 @@
 <script setup>
 import { computed, onBeforeUnmount, shallowRef, useTemplateRef } from 'vue'
-import { ImageUp, Mail, Trash2, UserRound } from 'lucide-vue-next'
+import { ImageUp, Mail, Trash2, UserRound, Crop } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
+import PhotoCropper from '@/components/user/PhotoCropper.vue'
 import { useForm } from '@/composables/useForm'
 import { required } from '@/utils/validators'
 
@@ -30,6 +31,10 @@ const photo = shallowRef(null)
 const photoPreview = shallowRef('')
 const removePhoto = shallowRef(false)
 const photoError = shallowRef('')
+const cropSource = shallowRef(null)
+const cropInitial = shallowRef(null)
+const originalPhoto = shallowRef(null)
+const appliedCrop = shallowRef(null)
 
 const currentPicture = computed(() => user.profile_picture?.url ?? '')
 const avatarSrc = computed(() => {
@@ -64,14 +69,29 @@ function onFileChange(event) {
   }
 
   photoError.value = ''
+  cropInitial.value = null
+  cropSource.value = file
+}
+
+function applyCrop({ file, crop }) {
+  originalPhoto.value = cropSource.value
+  appliedCrop.value = crop
   photo.value = file
   removePhoto.value = false
   setPreview(file)
+  cropSource.value = null
+}
+function editCrop() {
+  cropInitial.value = appliedCrop.value
+  cropSource.value = originalPhoto.value
 }
 
 function onRemovePhoto() {
   photoError.value = ''
   photo.value = null
+  originalPhoto.value = null
+  appliedCrop.value = null
+  cropSource.value = null
   setPreview(null)
   removePhoto.value = Boolean(currentPicture.value)
 }
@@ -81,6 +101,9 @@ function discard() {
   errors.name = ''
   photoError.value = ''
   photo.value = null
+  originalPhoto.value = null
+  appliedCrop.value = null
+  cropSource.value = null
   removePhoto.value = false
   setPreview(null)
 }
@@ -100,19 +123,23 @@ onBeforeUnmount(() => setPreview(null))
 
 <template>
   <form class="profile-form" novalidate :aria-busy="saving" @submit.prevent="!saving && onSubmit()">
-    <section class="profile-form__section profile-form__photo" aria-labelledby="profile-photo-title">
+    <section
+      class="profile-form__section profile-form__photo"
+      aria-labelledby="profile-photo-title"
+    >
       <UserAvatar :name="values.name || user.name" :src="avatarSrc" size="lg" />
 
       <div class="profile-form__photo-body">
         <h2 id="profile-photo-title" class="profile-form__heading">Foto do perfil</h2>
-        <p class="profile-form__hint">
-          Aparece para quem participa dos seus projetos. PNG ou JPG.
-        </p>
+        <p class="profile-form__hint">Aparece para quem participa dos seus projetos. PNG ou JPG.</p>
 
         <div class="profile-form__photo-actions">
           <BaseButton variant="secondary" :disabled="saving" @click="chooseFile">
             <ImageUp :size="16" aria-hidden="true" />
             {{ hasPicture ? 'Trocar foto' : 'Enviar foto' }}
+          </BaseButton>
+          <BaseButton v-if="originalPhoto" variant="secondary" :disabled="saving" @click="editCrop">
+            <Crop :size="16" aria-hidden="true" /> Ajustar foto
           </BaseButton>
           <BaseButton v-if="hasPicture" variant="ghost" :disabled="saving" @click="onRemovePhoto">
             <Trash2 :size="16" aria-hidden="true" />
@@ -130,7 +157,9 @@ onBeforeUnmount(() => setPreview(null))
           @change="onFileChange"
         />
         <p v-if="photoError" class="profile-form__error" role="alert">{{ photoError }}</p>
-        <p v-else-if="photo" class="profile-form__note">Nova foto selecionada. Salve para aplicar.</p>
+        <p v-else-if="photo" class="profile-form__note">
+          Nova foto selecionada. Salve para aplicar.
+        </p>
         <p v-else-if="removePhoto" class="profile-form__note">
           A foto será removida quando você salvar.
         </p>
@@ -172,10 +201,19 @@ onBeforeUnmount(() => setPreview(null))
         <BaseButton variant="ghost" :disabled="!dirty || saving" @click="discard">
           Descartar
         </BaseButton>
-        <BaseButton type="submit" :loading="saving" :disabled="!dirty">Salvar alterações</BaseButton>
+        <BaseButton type="submit" :loading="saving" :disabled="!dirty"
+          >Salvar alterações</BaseButton
+        >
       </div>
     </footer>
   </form>
+  <PhotoCropper
+    v-if="cropSource"
+    :file="cropSource"
+    :initial="cropInitial"
+    @apply="applyCrop"
+    @close="cropSource = null"
+  />
 </template>
 
 <style scoped>
