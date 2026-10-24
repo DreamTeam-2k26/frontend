@@ -6,25 +6,38 @@ export async function getProject(id, { signal } = {}) {
   return data
 }
 
-export async function getProjectOverview(id, { signal } = {}) {
-  const load = (resource) =>
-    loadProjectPages(async (page) => {
-      const { data } = await api.get(`/${resource}/`, {
-        params: { project: id, page, page_size: 100 },
+// Indicadores agregados da Visão geral (calculados pelo backend, sem baixar as tarefas).
+export async function getProjectDashboard(id, { signal } = {}) {
+  const { data } = await api.get(`/projects/${encodeURIComponent(id)}/dashboard/`, { signal })
+  return data
+}
+
+// Próximas entregas: só as primeiras de cada categoria pendente, já ordenadas por prazo no servidor.
+export async function listUpcomingTasks(id, { limit = 3, signal } = {}) {
+  const page = (status) =>
+    api
+      .get('/tasks/', {
+        params: {
+          project: id,
+          status,
+          due_date__isnull: false,
+          ordering: 'due_date',
+          page_size: limit,
+        },
         signal,
       })
-      return data
+      .then(({ data }) => (Array.isArray(data) ? data : data.results))
+  return Promise.all([page('todo'), page('in_progress')])
+}
+
+export async function listProjectMembers(id, { signal } = {}) {
+  return loadProjectPages(async (page) => {
+    const { data } = await api.get('/memberships/', {
+      params: { project: id, page, page_size: 100 },
+      signal,
     })
-  const [tasks, columns, members] = await Promise.allSettled([
-    load('tasks'),
-    load('columns'),
-    load('memberships'),
-  ])
-  return {
-    tasks: tasks.status === 'fulfilled' ? tasks.value : null,
-    columns: columns.status === 'fulfilled' ? columns.value : null,
-    members: members.status === 'fulfilled' ? members.value : null,
-  }
+    return data
+  })
 }
 
 export async function listProjects() {
