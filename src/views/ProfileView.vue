@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { LogOut } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -53,9 +53,15 @@ async function load() {
   }
 }
 
+// Confirmação breve no formulário depois que a API aceita o salvamento.
+const justSaved = shallowRef(false)
+let savedTimer
 async function onSubmit(changes) {
   try {
     await authStore.updateProfile(changes)
+    justSaved.value = true
+    clearTimeout(savedTimer)
+    savedTimer = setTimeout(() => (justSaved.value = false), 2500)
   } catch {
     // Store já mostra toast de erro; o formulário mantém o que foi digitado.
   }
@@ -80,6 +86,8 @@ async function onLogout() {
     // Navegação falhou: a sessão já foi encerrada; o guard leva ao login no próximo acesso.
   }
 }
+
+onBeforeUnmount(() => clearTimeout(savedTimer))
 
 onMounted(() => {
   load()
@@ -112,6 +120,7 @@ onMounted(() => {
       :key="formKey"
       :user="authStore.user"
       :saving="authStore.saving"
+      :just-saved="justSaved"
       @submit="onSubmit"
     />
 
