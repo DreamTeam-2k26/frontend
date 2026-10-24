@@ -26,7 +26,7 @@ const userName = computed(() =>
 <template>
   <aside id="app-sidebar" class="sidebar" :class="{ 'sidebar--collapsed': collapsed }">
     <div class="sidebar__brand">
-      <AppBrand />
+      <AppBrand :compact="collapsed" />
     </div>
     <nav class="sidebar__nav" aria-label="Menu principal">
       <section
@@ -72,7 +72,7 @@ const userName = computed(() =>
   color: var(--color-text-secondary);
   background-color: var(--color-bg-card);
   border-right: 1px solid var(--color-border);
-  transition: width 0.2s ease;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .sidebar--collapsed {
   width: var(--sidebar-width-collapsed);
@@ -84,6 +84,8 @@ const userName = computed(() =>
   min-height: var(--header-height);
   padding: var(--space-3) var(--space-6);
   border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
+  transition: padding-inline 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .sidebar__brand :deep(.brand) {
   min-width: 0;
@@ -95,8 +97,7 @@ const userName = computed(() =>
   max-height: var(--space-8);
 }
 .sidebar--collapsed .sidebar__brand {
-  justify-content: center;
-  padding-inline: var(--space-2);
+  padding-inline: calc((var(--sidebar-width-collapsed) - 2.75rem) / 2);
 }
 .sidebar__nav {
   flex: 1;
