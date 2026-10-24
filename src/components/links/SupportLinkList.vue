@@ -1,5 +1,7 @@
 <script setup>
 import { ExternalLink, Link2, Pencil, Trash2 } from 'lucide-vue-next'
+import { AnimatePresence, motion } from 'motion-v'
+import { listItemMotion } from '@/utils/motion'
 import { linkDate, linkHost } from '@/utils/supportLinks'
 
 // Lista de links de apoio (gerais ou da tarefa). Texto vem só por interpolação: nada de HTML do usuário.
@@ -19,50 +21,60 @@ const emit = defineEmits({ edit: (link) => !!link, remove: (link) => !!link })
 
 <template>
   <ul class="link-list">
-    <li v-for="link in links" :key="link.id" class="link-list__item">
-      <span class="link-list__tile" aria-hidden="true"><Link2 :size="16" /></span>
-      <div class="link-list__body">
-        <a class="link-list__anchor" :href="link.url" target="_blank" rel="noopener noreferrer">
-          <span class="link-list__name">{{ link.title }}</span>
-          <ExternalLink class="link-list__external" :size="13" aria-hidden="true" />
-          <span class="visually-hidden">(abre em nova aba)</span>
-        </a>
-        <span class="link-list__meta">
-          <span class="link-list__host">{{ linkHost(link.url) }}</span>
-          <template v-if="showMeta">
-            <span v-if="link.created_by_name"> · {{ link.created_by_name }}</span>
-            <time v-if="linkDate(link.created_at)" :datetime="link.created_at">
-              · {{ linkDate(link.created_at) }}</time
-            >
-          </template>
-        </span>
-      </div>
-      <div class="link-list__actions">
-        <button
-          type="button"
-          class="link-list__action"
-          :disabled="disabled"
-          :aria-label="`Editar link ${link.title}`"
-          @click="emit('edit', link)"
-        >
-          <Pencil :size="15" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          class="link-list__action link-list__action--danger"
-          :disabled="disabled"
-          :aria-label="`Excluir link ${link.title}`"
-          @click="emit('remove', link)"
-        >
-          <Trash2 :size="15" aria-hidden="true" />
-        </button>
-      </div>
-    </li>
+    <!-- Link criado entra, link excluído sai e os demais se reposicionam (a lista não remonta). -->
+    <AnimatePresence :initial="false" mode="popLayout">
+      <motion.li
+        v-for="link in links"
+        :key="link.id"
+        layout
+        v-bind="listItemMotion(0)"
+        class="link-list__item"
+      >
+        <span class="link-list__tile" aria-hidden="true"><Link2 :size="16" /></span>
+        <div class="link-list__body">
+          <a class="link-list__anchor" :href="link.url" target="_blank" rel="noopener noreferrer">
+            <span class="link-list__name">{{ link.title }}</span>
+            <ExternalLink class="link-list__external" :size="13" aria-hidden="true" />
+            <span class="visually-hidden">(abre em nova aba)</span>
+          </a>
+          <span class="link-list__meta">
+            <span class="link-list__host">{{ linkHost(link.url) }}</span>
+            <template v-if="showMeta">
+              <span v-if="link.created_by_name"> · {{ link.created_by_name }}</span>
+              <time v-if="linkDate(link.created_at)" :datetime="link.created_at">
+                · {{ linkDate(link.created_at) }}</time
+              >
+            </template>
+          </span>
+        </div>
+        <div class="link-list__actions">
+          <button
+            type="button"
+            class="link-list__action"
+            :disabled="disabled"
+            :aria-label="`Editar link ${link.title}`"
+            @click="emit('edit', link)"
+          >
+            <Pencil :size="15" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="link-list__action link-list__action--danger"
+            :disabled="disabled"
+            :aria-label="`Excluir link ${link.title}`"
+            @click="emit('remove', link)"
+          >
+            <Trash2 :size="15" aria-hidden="true" />
+          </button>
+        </div>
+      </motion.li>
+    </AnimatePresence>
   </ul>
 </template>
 
 <style scoped>
 .link-list {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
