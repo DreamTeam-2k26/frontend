@@ -79,8 +79,10 @@ const {
   color: var(--color-primary);
 }
 
+/* Tamanho fixo: o svg global (max-width: 100%) não pode encolher o ícone em itens estreitos. */
 .nav-item__icon {
   flex-shrink: 0;
+  max-width: none;
 }
 
 .nav-item__label {

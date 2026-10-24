@@ -263,6 +263,14 @@ const userName = computed(() =>
   overflow-x: hidden;
   padding: var(--space-8) var(--space-3);
 }
+/* Recolhida, a barra de rolagem (~17 px) apertava os itens e o svg global (max-width: 100%)
+   encolhia os ícones. Some só nesse modo; roda do mouse e teclado continuam rolando. */
+.sidebar--collapsed .sidebar__nav {
+  scrollbar-width: none;
+}
+.sidebar--collapsed .sidebar__nav::-webkit-scrollbar {
+  display: none;
+}
 .sidebar__group + .sidebar__group {
   margin-top: var(--space-8);
 }
@@ -320,6 +328,10 @@ const userName = computed(() =>
 .sidebar-project-enter-from {
   opacity: 0;
   transform: translateY(-4px);
+}
+.sidebar__section-link > svg {
+  flex-shrink: 0;
+  max-width: none;
 }
 .sidebar__section-link--active > svg {
   color: var(--color-primary);
