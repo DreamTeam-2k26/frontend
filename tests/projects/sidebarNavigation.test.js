@@ -53,3 +53,34 @@ test('não atribui projeto a páginas pessoais, chat global ou ids inválidos', 
   assert.equal(projectIdFromRoute({ name: 'project-detail', params: { id: 'oops' } }), null)
   assert.equal(projectSectionFromRoute({ name: 'projects', params: {} }), null)
 })
+
+import { rememberOpenedProject } from '../../src/utils/openedProjects.js'
+
+test('sidebar inicia vazia e só mostra projetos efetivamente abertos', () => {
+  const initially = []
+  assert.deepEqual(initially, [])
+  const first = rememberOpenedProject(initially, { id: 31, name: 'Feira de Ciências 2026' })
+  assert.deepEqual(first, [{ id: 31, name: 'Feira de Ciências 2026' }])
+  assert.deepEqual(initially, [])
+})
+
+test('abrir outro projeto mantém o anterior recolhível e traz o novo para o fim', () => {
+  const a = rememberOpenedProject([], { id: 1, name: 'Feira de Ciências 2026' })
+  const b = rememberOpenedProject(a, { id: 2, name: 'Projeto de Extensão' })
+  assert.deepEqual(b.map(({ id }) => id), [1, 2])
+  const revisited = rememberOpenedProject(b, { id: 1, name: 'Feira de Ciências Atualizada' })
+  assert.deepEqual(revisited, [
+    { id: 2, name: 'Projeto de Extensão' },
+    { id: 1, name: 'Feira de Ciências Atualizada' },
+  ])
+})
+
+test('limita projetos recentes e descarta payloads sem id/nome válidos', () => {
+  let recent = []
+  for (let id = 1; id <= 9; id++) {
+    recent = rememberOpenedProject(recent, { id, name: 'Projeto ' + id })
+  }
+  assert.deepEqual(recent.map((project) => project.id), [5, 6, 7, 8, 9])
+  assert.deepEqual(rememberOpenedProject(recent, { id: 0, name: 'Inválido' }), recent)
+  assert.deepEqual(rememberOpenedProject(recent, { id: 10, name: ' ' }), recent)
+})
