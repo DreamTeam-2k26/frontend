@@ -164,7 +164,12 @@ onBeforeUnmount(() => clearTimeout(celebrateTimer))
         <span class="visually-hidden">Comentários:</span> {{ task.comments_count }}
       </span>
       <span class="task-card__assignee" :title="task.assignee_name || 'Sem responsável'">
-        <UserAvatar v-if="task.assignee" :name="task.assignee_name || ''" size="sm" />
+        <UserAvatar
+          v-if="task.assignee"
+          :name="task.assignee_name || ''"
+          :src="task.assignee_profile_picture || ''"
+          size="sm"
+        />
         <span v-else class="task-card__nobody"><UserRound :size="14" aria-hidden="true" /></span>
         <span class="visually-hidden">
           Responsável: {{ task.assignee ? task.assignee_name : 'ninguém' }}

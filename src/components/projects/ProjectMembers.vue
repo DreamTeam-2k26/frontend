@@ -132,7 +132,11 @@ onBeforeUnmount(() => {
     </div>
     <ul v-else class="members__list">
       <li v-for="member in members" :key="member.id">
-        <ChatAvatar :name="personName(member.user_name, member.user_email)" :size="36" />
+        <ChatAvatar
+          :name="personName(member.user_name, member.user_email)"
+          :src="member.user_profile_picture"
+          :size="36"
+        />
         <div class="members__who">
           <strong
             >{{ personName(member.user_name, member.user_email)

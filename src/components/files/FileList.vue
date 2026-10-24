@@ -1,6 +1,6 @@
 <script setup>
 import { FileText, MoreHorizontal } from 'lucide-vue-next'
-import { getInitials } from '@/utils/user'
+import UserAvatar from '@/components/user/UserAvatar.vue'
 import { extension, formatSize, uploadDate } from './fileState'
 defineProps({
   files: { type: Array, required: true },
@@ -53,10 +53,11 @@ function escape(event) {
         </td>
         <td>
           <span class="author"
-            ><span class="avatar" aria-hidden="true">{{
-              getInitials(file.uploaded_by_name) || '?'
-            }}</span
-            ><span>{{ file.uploaded_by_name || 'Pessoa não disponível' }}</span></span
+            ><UserAvatar
+              :name="file.uploaded_by_name || ''"
+              :src="file.uploaded_by_profile_picture || ''"
+              size="sm"
+            /><span>{{ file.uploaded_by_name || 'Pessoa não disponível' }}</span></span
           >
         </td>
         <td class="file-actions">
@@ -139,16 +140,6 @@ time {
   display: flex;
   gap: var(--space-2);
   align-items: center;
-}
-.avatar {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  background: var(--color-secondary);
-  font-size: var(--font-size-xs);
 }
 .file-actions {
   width: 4rem;

@@ -46,7 +46,7 @@ export function createActivityClient(api) {
         warnings = []
       let taskFailures = 0,
         missingDates = 0
-      const make = (type, entity, date, actor, actorName, summary) => {
+      const make = (type, entity, date, actor, actorName, summary, picture = null) => {
         if (!validDate(date)) {
           missingDates++
           return
@@ -63,7 +63,10 @@ export function createActivityClient(api) {
           target_type: type,
           target_id: entity.id,
           created_at: date,
-          actor: actor == null ? null : { id: actor, name: actorName || 'Participante' },
+          actor:
+            actor == null
+              ? null
+              : { id: actor, name: actorName || 'Participante', picture: picture || null },
           summary,
         }
         record.destination = targetRoute(record, project, entity)
@@ -92,6 +95,7 @@ export function createActivityClient(api) {
                   entity.created_by,
                   entity.created_by_name,
                   `Tarefa criada: ${entity.title || 'Sem título'}`,
+                  entity.created_by_profile_picture,
                 )
               } catch (cause) {
                 if (signal?.aborted || [401, 403].includes(cause.response?.status)) throw cause
@@ -110,6 +114,7 @@ export function createActivityClient(api) {
             file.uploaded_by,
             file.uploaded_by_name,
             `Arquivo enviado: ${file.name || 'Sem nome'}`,
+            file.uploaded_by_profile_picture,
           )
       if (results[2].status === 'fulfilled')
         for (const member of results[2].value)
@@ -120,6 +125,7 @@ export function createActivityClient(api) {
             member.user,
             member.user_name,
             'Passou a participar do projeto.',
+            member.user_profile_picture,
           )
       for (let i = 0; i < results.length; i++)
         if (results[i].status === 'rejected')

@@ -40,6 +40,7 @@ const groups = computed(() => [
         value: String(member.user),
         label: member.user_name || member.user_email,
         avatar: member.user_name || member.user_email,
+        avatarSrc: member.user_profile_picture || '',
       })),
     ],
   },
@@ -145,6 +146,7 @@ function onKeydown(event) {
                   v-else-if="option.avatar"
                   class="filter__avatar"
                   :name="option.avatar"
+                  :src="option.avatarSrc"
                   size="sm"
                 />
                 {{ option.label }}

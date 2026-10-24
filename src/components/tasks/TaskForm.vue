@@ -65,7 +65,7 @@ const assigneeOptions = computed(() => [
   ...members.map((member) => ({
     value: member.user,
     label: member.user_name || member.user_email,
-    avatar: { name: member.user_name || member.user_email, src: '' },
+    avatar: { name: member.user_name || member.user_email, src: member.user_profile_picture || '' },
   })),
 ])
 
