@@ -15,12 +15,28 @@ import ProjectFolders from '@/views/ProjectFoldersView.vue'
 import ProjectActivities from '@/components/activities/ProjectActivities.vue'
 import ProjectCalls from '@/features/calls/components/ProjectCalls.vue'
 import ProjectLinks from '@/components/links/ProjectLinks.vue'
+import BrainstormBoard from '@/components/brainstorm/BrainstormBoard.vue'
+import { useBrainstormListStore } from '@/stores/brainstormList'
 import { useCallNotifier } from '@/features/calls/stores/callNotifier'
 import { useProjectOverviewStore } from '@/stores/projectOverview'
 
 const route = useRoute()
 const callNotifier = useCallNotifier()
 const overview = useProjectOverviewStore()
+const brainstorm = useBrainstormListStore()
+// Contagem real do atalho do Brainstorm na Visão geral (null = carregando ou indisponível).
+const brainstormOpen = ref(null)
+let brainstormRequest = 0
+async function loadBrainstormOpen(id) {
+  const current = ++brainstormRequest
+  brainstormOpen.value = null
+  try {
+    const count = await brainstorm.countOpen(id)
+    if (current === brainstormRequest) brainstormOpen.value = count
+  } catch {
+    // Sem contagem: o atalho continua levando à aba.
+  }
+}
 const router = useRouter()
 const TABS = projectTabs
 const tab = computed(() => {
@@ -77,6 +93,7 @@ async function load() {
       loading.value = false
       // Indicadores, entregas e participantes carregam (e falham) separadamente na store.
       overview.load(id)
+      loadBrainstormOpen(id)
     }
   } catch (cause) {
     if (current !== request) return
@@ -92,7 +109,9 @@ async function load() {
 
 // Membros mudaram ou a pessoa voltou para a aba: atualiza os números sem limpar a tela.
 function reloadOverview() {
-  if (project.value) overview.refresh()
+  if (!project.value) return
+  overview.refresh()
+  loadBrainstormOpen(project.value.id)
 }
 
 watch(tab, (current, previous) => {
@@ -184,6 +203,7 @@ onBeforeUnmount(() => {
           <ProjectOverview
             v-if="tab === 'geral'"
             :project="project"
+            :brainstorm-open="brainstormOpen"
             :metrics="overview.metrics"
             :upcoming="overview.upcoming"
             :members="overview.members"
@@ -197,6 +217,7 @@ onBeforeUnmount(() => {
           <ProjectChat v-else-if="tab === 'conversa'" :project-id="project.id" />
           <ProjectFolders v-else-if="tab === 'pastas'" />
           <ProjectLinks v-else-if="tab === 'links'" :project-id="project.id" />
+          <BrainstormBoard v-else-if="tab === 'brainstorm'" :key="project.id" :project="project" />
           <ProjectActivities
             v-else-if="tab === 'atividades'"
             :key="project.id"
