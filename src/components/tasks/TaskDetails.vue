@@ -19,6 +19,7 @@ import BaseSelect from '@/components/ui/BaseSelect.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import TaskChecklist from '@/components/tasks/TaskChecklist.vue'
 import TaskComments from '@/components/tasks/TaskComments.vue'
+import TaskFiles from '@/components/tasks/TaskFiles.vue'
 import TaskLinks from '@/components/tasks/TaskLinks.vue'
 import { useTaskLink } from '@/composables/useTaskLink'
 import { useKanbanStore } from '@/stores/kanban'
@@ -485,6 +486,7 @@ const statusText = (field) => ({ saving: 'Salvando…', saved: 'Salvo' })[fieldS
 
         <TaskChecklist class="details__section" />
         <TaskComments class="details__section" />
+        <TaskFiles class="details__section" />
         <TaskLinks class="details__section" />
       </article>
     </div>
@@ -492,7 +494,7 @@ const statusText = (field) => ({ saving: 'Salvando…', saved: 'Salvo' })[fieldS
     <ConfirmDialog
       v-if="confirmDelete.open"
       title="Excluir tarefa"
-      :message="`Excluir “${task?.title}”? Checklist, comentários e links dela também serão removidos.`"
+      :message="`Excluir “${task?.title}”? Checklist, comentários e links dela também serão removidos; os arquivos continuam no projeto.`"
       confirm-label="Excluir tarefa"
       :busy="confirmDelete.busy"
       @confirm="deleteTask"

@@ -33,3 +33,12 @@ export function deleteTask(id) {
 export function moveTask(id, { columnId, position }) {
   return api.post(`/tasks/${id}/move/`, { column_id: columnId, position })
 }
+
+// Anexos: vincula um arquivo que já está no projeto (o arquivo continua no projeto ao desvincular).
+export function attachTaskFile(taskId, fileId) {
+  return api.post(`/tasks/${taskId}/files/`, { file: fileId })
+}
+
+export function detachTaskFile(taskId, fileId) {
+  return api.delete(`/tasks/${taskId}/files/${fileId}/`)
+}

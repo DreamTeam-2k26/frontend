@@ -3,9 +3,11 @@ import { computed, reactive } from 'vue'
 import { toast } from 'vue3-toastify'
 import * as checklistApi from '@/api/checklistItems'
 import * as commentApi from '@/api/comments'
+import * as fileApi from '@/api/files'
 import * as linkApi from '@/api/supportLinks'
-import { getTask } from '@/api/tasks'
+import { attachTaskFile, detachTaskFile, getTask } from '@/api/tasks'
 import { apiErrorMessage } from '@/utils/apiErrors'
+import { uploadError } from '@/utils/files'
 import { sortByPosition } from '@/utils/kanban'
 import { useKanbanStore } from './kanban'
 
@@ -17,6 +19,9 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
     checklist: [],
     comments: [],
     links: [],
+    files: [],
+    // Envios em andamento ou que falharam: { key, name, progress, status: 'sending'|'error', error, file }
+    uploads: [],
     status: 'idle', // idle | loading | ready | missing | error
     error: '',
   })
@@ -28,6 +33,8 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
   const checklist = computed(() => sortByPosition(state.checklist))
   const comments = computed(() => state.comments)
   const links = computed(() => state.links)
+  const files = computed(() => state.files)
+  const uploads = computed(() => state.uploads)
   const status = computed(() => state.status)
   const error = computed(() => state.error)
   const checklistDone = computed(() => state.checklist.filter((item) => item.is_done).length)
@@ -48,6 +55,8 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
       checklist: [],
       comments: [],
       links: [],
+      files: [],
+      uploads: [],
       status: 'loading',
       error: '',
     })
@@ -66,6 +75,7 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
         checklist: checklistItems,
         comments: commentList,
         links: linkList,
+        files: data.files ?? [],
         status: 'ready',
       })
     } catch (cause) {
@@ -87,6 +97,8 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
       checklist: [],
       comments: [],
       links: [],
+      files: [],
+      uploads: [],
       status: 'idle',
     })
   }
@@ -249,8 +261,97 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
     }
   }
 
+  // Arquivos: envia ao projeto e vincula à tarefa. Cada envio mostra progresso e pode falhar sozinho.
+
+  let uploadKey = 0
+
+  async function sendUpload(entry) {
+    const taskId = state.taskId
+    const project = state.task.project
+    Object.assign(entry, { status: 'sending', progress: 0, error: '' })
+    try {
+      const { data: uploaded } = await fileApi.uploadFile(
+        { project, file: entry.file },
+        { onProgress: (value) => (entry.progress = value) },
+      )
+      const { data: attached } = await attachTaskFile(taskId, uploaded.id)
+      if (!sameTask(taskId)) return
+      state.files = [...state.files, attached]
+      state.uploads = state.uploads.filter((item) => item.key !== entry.key)
+    } catch (cause) {
+      if (!sameTask(taskId)) return
+      entry.status = 'error'
+      entry.error = apiErrorMessage(cause, 'Não foi possível enviar o arquivo.')
+    }
+  }
+
+  function uploadFiles(fileList) {
+    const rejected = []
+    for (const file of fileList) {
+      const problem = uploadError(file)
+      if (problem) {
+        rejected.push(problem)
+        continue
+      }
+      const entry = reactive({
+        key: ++uploadKey,
+        name: file.name,
+        file,
+        progress: 0,
+        status: 'sending',
+        error: '',
+      })
+      state.uploads = [...state.uploads, entry]
+      sendUpload(entry)
+    }
+    if (rejected.length) toast.error(rejected.join(' '))
+  }
+
+  function retryUpload(key) {
+    const entry = state.uploads.find((item) => item.key === key)
+    if (entry) sendUpload(entry)
+  }
+
+  function dismissUpload(key) {
+    state.uploads = state.uploads.filter((item) => item.key !== key)
+  }
+
+  // Desvincula da tarefa; o arquivo continua na área de arquivos do projeto.
+  async function removeFile(file) {
+    const taskId = state.taskId
+    try {
+      await detachTaskFile(taskId, file.id)
+      if (sameTask(taskId)) state.files = state.files.filter((other) => other.id !== file.id)
+      toast.success('Arquivo removido da tarefa.')
+    } catch (cause) {
+      return fail(cause, 'Não foi possível remover o arquivo da tarefa.')
+    }
+  }
+
+  // Download autenticado (blob) salvo com o nome original.
+  async function downloadFile(file) {
+    try {
+      const { data } = await fileApi.downloadFile(file.id)
+      const url = URL.createObjectURL(data)
+      const link = Object.assign(document.createElement('a'), { href: url, download: file.name })
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (cause) {
+      return fail(cause, 'Não foi possível baixar o arquivo.')
+    }
+  }
+
   return {
     task,
+    files,
+    uploads,
+    uploadFiles,
+    retryUpload,
+    dismissUpload,
+    removeFile,
+    downloadFile,
     checklist,
     checklistDone,
     comments,
