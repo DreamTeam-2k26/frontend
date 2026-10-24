@@ -10,6 +10,7 @@ import CallRoom from '../components/CallRoom.vue'
 import PreJoin from '../components/PreJoin.vue'
 import { useCallRoom, PHASE } from '../composables/useCallRoom'
 import { useLocalMedia } from '../composables/useLocalMedia'
+import { useTranscription } from '../composables/useTranscription'
 import { isLive } from '../lib/callRules'
 import { mediaSupported } from '../lib/mediaErrors'
 import { endCall, getCall } from '../services/callsApi'
@@ -31,6 +32,7 @@ const stage = ref('loading') // loading | prejoin | room | over
 
 const { media, view } = useLocalMedia({ keepAlive: true })
 const room = reactive(useCallRoom({ callId, media }))
+const transcription = reactive(useTranscription({ callId, room, view }))
 
 const me = computed(() => ({
   name: personName(auth.user?.name, auth.user?.email) || 'Você',
@@ -184,6 +186,7 @@ const canEnd = computed(() => !!call.value?.can_manage)
       :room="room"
       :view="view"
       :me="me"
+      :transcription="transcription"
       :can-end="canEnd"
       @leave="finishAndLeave"
       @end="confirmingEnd = true"

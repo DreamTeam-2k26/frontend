@@ -24,4 +24,16 @@ export const endCall = (id) => api.post(`/calls/${id}/end/`).then(unwrap)
 
 export const removeCall = (id) => api.delete(`/calls/${id}/`)
 
+/** Dono/admin liga ou desliga a transcrição durante a chamada. */
+export const setTranscription = (id, enabled) =>
+  api.post(`/calls/${id}/transcription/`, { enabled }).then(unwrap)
+
+/** Falas da reunião. `after` (id da última fala conhecida) devolve só as novas. */
+export const getTranscript = (id, after = 0) =>
+  api.get(`/calls/${id}/transcript/`, { params: after ? { after } : {} }).then(unwrap)
+
+/** Dono/admin gera o resumo com IA (pode levar alguns segundos). */
+export const summarizeCall = (id) =>
+  api.post(`/calls/${id}/summary/`, null, { timeout: 120_000 }).then(unwrap)
+
 export const listLiveCalls = () => api.get('/calls/live/').then(unwrap)

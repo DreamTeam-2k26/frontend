@@ -1,5 +1,6 @@
 <script setup>
 import {
+  Captions,
   Hand,
   MessageSquare,
   Mic,
@@ -19,7 +20,8 @@ defineProps({
   screenOn: Boolean,
   hand: Boolean,
   canShare: { type: Boolean, default: true },
-  panel: { type: String, default: '' }, // '' | 'people' | 'chat'
+  panel: { type: String, default: '' }, // '' | 'people' | 'chat' | 'transcript'
+  transcribing: Boolean, // transcrição ligada: o botão mostra um aviso
   canEnd: Boolean,
 })
 
@@ -101,6 +103,17 @@ defineEmits(['mic', 'camera', 'screen', 'hand', 'settings', 'panel', 'leave', 'e
     </button>
     <button
       type="button"
+      class="control"
+      :class="{ 'control--active': panel === 'transcript', 'control--rec': transcribing }"
+      :aria-pressed="panel === 'transcript'"
+      :title="transcribing ? 'Transcrição ligada' : 'Transcrição'"
+      @click="$emit('panel', 'transcript')"
+    >
+      <Captions :size="20" aria-hidden="true" />
+      <span>Transcrição</span>
+    </button>
+    <button
+      type="button"
       class="control control--leave"
       title="Sair da chamada"
       @click="$emit('leave')"
@@ -168,6 +181,21 @@ defineEmits(['mic', 'camera', 'screen', 'hand', 'settings', 'panel', 'leave', 'e
   color: var(--color-primary-hover);
   border-color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 16%, var(--color-bg-card));
+}
+
+.control--rec {
+  position: relative;
+}
+
+.control--rec::after {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-danger);
+  content: '';
 }
 
 .control--leave {

@@ -4,6 +4,7 @@ import { getAccessToken } from '@/utils/token'
 import { ChatSocket, STATUS } from '../../chat/lib/socketClient'
 import { PeerMesh } from '../lib/peerMesh'
 import { watchSpeaking } from '../lib/speaking'
+import { mergeSegments } from '../lib/transcript'
 import { callsSocketUrl } from '../lib/urls'
 
 // Sala de uma chamada: WebSocket de sinalização + malha WebRTC + estado de cada participante.
@@ -19,6 +20,7 @@ export const PHASE = Object.freeze({
 })
 
 const EMPTY_STATE = { mic: false, camera: false, screen: false, hand: false }
+const MAX_PENDING_SEGMENTS = 50 // falas guardadas enquanto a conexão está fora
 
 export function useCallRoom({ callId, media }) {
   const phase = ref(PHASE.CONNECTING)
@@ -31,12 +33,17 @@ export function useCallRoom({ callId, media }) {
   const mediaRev = ref(0)
   const localCameraStream = shallowRef(null)
   const localScreenStream = shallowRef(null)
+  const transcriptionOn = ref(false)
+  const transcriptionBy = ref(null)
+  const welcomes = ref(0) // quantas vezes o servidor nos deu boas-vindas (1 + reconexões)
+  const segments = shallowRef([])
 
   let socket = null
   let mesh = null
   let stopSelfSpeaking = () => {}
   let unsubscribe = () => {}
   const stopPeerSpeaking = new Map()
+  let pendingSegments = []
 
   const peerList = computed(() =>
     Object.values(peers).sort((a, b) => a.joinedOrder - b.joinedOrder),
@@ -156,8 +163,12 @@ export function useCallRoom({ callId, media }) {
           mesh.connect(info.user)
         })
         phase.value = PHASE.LIVE
+        transcriptionOn.value = !!event.transcription
+        transcriptionBy.value = null
+        welcomes.value += 1
         rebuildLocalStreams()
         sendState()
+        flushSegments()
         break
       case 'peer.joined':
         if (!peers[event.peer.user]) addPeer(event.peer)
@@ -171,6 +182,13 @@ export function useCallRoom({ callId, media }) {
       case 'signal':
         mesh?.handleSignal(event.from, event.data)
         break
+      case 'transcription.changed':
+        transcriptionBy.value = event.by ?? null
+        transcriptionOn.value = !!event.enabled
+        break
+      case 'transcript.segment':
+        segments.value = mergeSegments(segments.value, [event.segment])
+        break
       case 'call.ended':
         finish(PHASE.ENDED)
         break
@@ -182,6 +200,27 @@ export function useCallRoom({ callId, media }) {
         finish(PHASE.DENIED)
         break
     }
+  }
+
+  /** Envia uma fala transcrita; se a conexão caiu, guarda e reenvia ao reconectar (o servidor ignora repetidas). */
+  function sendTranscript(payload) {
+    const message = { action: 'transcript', ...payload }
+
+    if (socket?.send(message)) return
+
+    pendingSegments = [...pendingSegments, message].slice(-MAX_PENDING_SEGMENTS)
+  }
+
+  function flushSegments() {
+    const waiting = pendingSegments
+
+    pendingSegments = []
+    waiting.forEach((message) => sendTranscript(message))
+  }
+
+  /** Acrescenta falas já guardadas (histórico carregado pela API) às recebidas ao vivo. */
+  function addSegments(list) {
+    segments.value = mergeSegments(segments.value, list)
   }
 
   function cleanup() {
@@ -248,6 +287,12 @@ export function useCallRoom({ callId, media }) {
     mediaRev,
     localCameraStream,
     localScreenStream,
+    transcriptionOn,
+    transcriptionBy,
+    welcomes,
+    segments,
+    sendTranscript,
+    addSegments,
     join,
     leave,
     toggleMic,

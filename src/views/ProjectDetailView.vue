@@ -10,6 +10,7 @@ import ProjectOverview from '@/components/projects/ProjectOverview.vue'
 import ProjectMembers from '@/components/projects/ProjectMembers.vue'
 import ProjectChat from '@/components/projects/ProjectChat.vue'
 import ProjectFolders from '@/views/ProjectFoldersView.vue'
+import ProjectActivities from '@/components/activities/ProjectActivities.vue'
 import ProjectCalls from '@/features/calls/components/ProjectCalls.vue'
 import ProjectLinks from '@/components/links/ProjectLinks.vue'
 import { useCallNotifier } from '@/features/calls/stores/callNotifier'
@@ -26,6 +27,7 @@ const TABS = [
   { key: 'pastas', label: 'Pastas do Projeto' },
   { key: 'links', label: 'Links de apoio' },
   { key: 'reunioes', label: 'Reuniões' },
+  { key: 'atividades', label: 'Registros recentes' },
 ]
 const tab = computed(() => {
   const key = String(route.query.aba ?? '')
@@ -33,6 +35,17 @@ const tab = computed(() => {
 })
 function selectTab(key) {
   router.replace({ query: { ...route.query, aba: key === 'geral' ? undefined : key } })
+}
+function navigateTab(event, index) {
+  let next
+  if (event.key === 'ArrowRight') next = (index + 1) % TABS.length
+  else if (event.key === 'ArrowLeft') next = (index - 1 + TABS.length) % TABS.length
+  else if (event.key === 'Home') next = 0
+  else if (event.key === 'End') next = TABS.length - 1
+  else return
+  event.preventDefault()
+  selectTab(TABS[next].key)
+  document.getElementById(`tab-${TABS[next].key}`)?.focus()
 }
 const project = ref(null)
 const loading = ref(true)
@@ -127,15 +140,17 @@ onBeforeUnmount(() => {
       <ProjectHeader :project="project" />
       <div class="project-detail__tabs" role="tablist" aria-label="Seções do projeto">
         <button
-          v-for="item in TABS"
+          v-for="(item, index) in TABS"
           :id="`tab-${item.key}`"
           :key="item.key"
           type="button"
           role="tab"
           :aria-selected="tab === item.key"
+          :tabindex="tab === item.key ? 0 : -1"
           :aria-controls="`panel-${item.key}`"
           :class="{ 'is-active': tab === item.key }"
           @click="selectTab(item.key)"
+          @keydown="navigateTab($event, index)"
         >
           {{ item.label }}
           <span
@@ -163,6 +178,7 @@ onBeforeUnmount(() => {
         <ProjectChat v-else-if="tab === 'conversa'" :project-id="project.id" />
         <ProjectFolders v-else-if="tab === 'pastas'" />
         <ProjectLinks v-else-if="tab === 'links'" :project-id="project.id" />
+        <ProjectActivities v-else-if="tab === 'atividades'" :key="project.id" :project="project" />
         <ProjectCalls v-else :project="project" />
       </div>
     </template>
