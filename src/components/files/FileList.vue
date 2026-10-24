@@ -2,7 +2,12 @@
 import { FileText, MoreHorizontal } from 'lucide-vue-next'
 import { getInitials } from '@/utils/user'
 import { extension, formatSize, uploadDate } from './fileState'
-defineProps({ files: { type: Array, required: true }, busy: Boolean })
+defineProps({
+  files: { type: Array, required: true },
+  busy: Boolean,
+  // Arquivo recém-enviado (confirmado pela API): a linha recebe um destaque breve.
+  highlightId: { type: [Number, String], default: null },
+})
 const emit = defineEmits(['action'])
 function choose(event, file, action) {
   event.currentTarget.closest('details').open = false
@@ -27,7 +32,11 @@ function escape(event) {
       </tr>
     </thead>
     <tbody>
-      <tr v-for="file in files" :key="file.id">
+      <tr
+        v-for="file in files"
+        :key="file.id"
+        :class="{ 'files-table__row--new': highlightId != null && file.id === highlightId }"
+      >
         <td>
           <span class="file-name"
             ><FileText :size="18" aria-hidden="true" /><span
@@ -215,6 +224,16 @@ button:hover {
     grid-column: 2;
     grid-row: 1 / 4;
     width: auto;
+  }
+}
+
+.files-table__row--new > td {
+  animation: file-row-new 2.4s var(--ease-flow) both;
+}
+@keyframes file-row-new {
+  from,
+  25% {
+    background-color: var(--color-success-soft);
   }
 }
 </style>
