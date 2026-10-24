@@ -3,6 +3,7 @@ import * as mediaApi from '@/api/media'
 import { defineStore } from 'pinia'
 import { computed, reactive } from 'vue'
 import { toast } from 'vue3-toastify'
+import { clearSession } from '@/api/session'
 import { setAccessToken, setRefreshToken } from '@/utils/token'
 
 export const useAuthStore = defineStore('authStore', () => {
@@ -175,12 +176,20 @@ export const useAuthStore = defineStore('authStore', () => {
     }
   }
 
+  // Encerra a sessão neste navegador: apaga os tokens e o usuário em memória.
+  function logout() {
+    clearSession()
+    state.user = null
+    userRequest = null
+  }
+
   return {
     loading,
     saving,
     user,
     login,
     register,
+    logout,
     fetchUser,
     updateProfile,
   }
