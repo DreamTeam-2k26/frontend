@@ -3,6 +3,7 @@ import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { Link, Copy, Send } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseDatePicker from '@/components/ui/BaseDatePicker.vue'
 import TeamDialog from '@/components/members/TeamDialog.vue'
 import { createInvite, findInviteUser } from '@/api/invites'
 import { inviteUrl, inviteStatus, teamError, roles } from '@/components/members/teamState'
@@ -170,10 +171,11 @@ onBeforeUnmount(() => {
         <option value="member">Membro</option>
         <option v-if="actorRole === 'owner'" value="admin">Administrador</option>
       </select>
-      <BaseInput
+      <BaseDatePicker
         v-model="expiresAt"
         label="Validade (opcional)"
-        type="datetime-local"
+        datetime
+        calendar-title="Validade do convite no Fluxo"
         :disabled="saving || offline"
       />
       <BaseButton

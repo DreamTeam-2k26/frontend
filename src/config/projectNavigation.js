@@ -7,6 +7,7 @@ import {
   Link2,
   Video,
   History,
+  Settings,
 } from 'lucide-vue-next'
 
 // Fonte única da navegação interna: a sidebar usa todas as seções;
@@ -20,14 +21,16 @@ export const projectSections = [
   { key: 'membros', label: 'Participantes', icon: UsersRound },
   { key: 'links', label: 'Links de apoio', icon: Link2 },
   { key: 'atividades', label: 'Registros recentes', icon: History },
+  { key: 'settings', label: 'Configurações', icon: Settings },
 ]
 
 export const projectTabs = projectSections
-  .filter((section) => section.key !== 'kanban')
+  .filter((section) => !['kanban', 'settings'].includes(section.key))
   .map(({ key, label }) => ({ key, label }))
 
 const projectRouteNames = new Set([
   'project-detail',
+  'project-settings',
   'project-kanban',
   'project-members',
   'project-folders',
@@ -42,6 +45,7 @@ export function projectIdFromRoute(route) {
 
 export function projectSectionFromRoute(route) {
   if (!projectIdFromRoute(route)) return null
+  if (route.name === 'project-settings') return 'settings'
   if (route.name === 'project-kanban') return 'kanban'
   if (route.name === 'project-members') return 'membros'
   if (route.name === 'project-folders') return 'pastas'
@@ -52,6 +56,7 @@ export function projectSectionFromRoute(route) {
 
 export function projectSectionLocation(projectId, section) {
   const id = String(projectId)
+  if (section === 'settings') return { name: 'project-settings', params: { id } }
   if (section === 'kanban') return { name: 'project-kanban', params: { id } }
   return {
     name: 'project-detail',
@@ -61,5 +66,7 @@ export function projectSectionLocation(projectId, section) {
 }
 
 export function isProjectSectionActive(route, projectId, section) {
-  return projectIdFromRoute(route) === String(projectId) && projectSectionFromRoute(route) === section
+  return (
+    projectIdFromRoute(route) === String(projectId) && projectSectionFromRoute(route) === section
+  )
 }

@@ -60,35 +60,58 @@ async function loadCurrentProject(id) {
 
 // A rota define o contexto. Nas páginas pessoais, mantém o último projeto aberto
 // na sidebar para o usuário poder voltar rapidamente.
-watch(currentProjectId, (id) => {
-  if (id && String(activeProject.value?.id) !== id) loadCurrentProject(id)
-}, { immediate: true })
+watch(
+  currentProjectId,
+  (id) => {
+    if (id && String(activeProject.value?.id) !== id) loadCurrentProject(id)
+  },
+  { immediate: true },
+)
 
 function onProjectUpdated(event) {
   const updated = event?.detail?.project
-  if (updated?.id != null && String(updated.id) === String(activeProject.value?.id) && updated.name) {
+  if (
+    updated?.id != null &&
+    String(updated.id) === String(activeProject.value?.id) &&
+    updated.name
+  ) {
     activeProject.value = { ...activeProject.value, name: updated.name }
   }
 }
 
+function onProjectRemoved(event) {
+  const id = String(event.detail?.id)
+  if (id !== String(activeProject.value?.id) && id !== currentProjectId.value) return
+  request++
+  controller?.abort()
+  activeProject.value = null
+  loadingProject.value = false
+  projectLoadError.value = ''
+}
+
 // Nunca reaproveitar o contexto de uma conta na conta seguinte.
-watch(() => authStore.user?.id, (next, previous) => {
-  if (previous != null && next !== previous) {
-    request++
-    controller?.abort()
-    activeProject.value = null
-    loadingProject.value = false
-    projectLoadError.value = ''
-  }
-})
+watch(
+  () => authStore.user?.id,
+  (next, previous) => {
+    if (previous != null && next !== previous) {
+      request++
+      controller?.abort()
+      activeProject.value = null
+      loadingProject.value = false
+      projectLoadError.value = ''
+    }
+  },
+)
 
 onMounted(() => {
   window.addEventListener('sidebar:project-updated', onProjectUpdated)
+  window.addEventListener('sidebar:project-removed', onProjectRemoved)
 })
 onBeforeUnmount(() => {
   request++
   controller?.abort()
   window.removeEventListener('sidebar:project-updated', onProjectUpdated)
+  window.removeEventListener('sidebar:project-removed', onProjectRemoved)
 })
 
 const userName = computed(() =>
@@ -121,7 +144,9 @@ const userName = computed(() =>
           class="sidebar__heading sidebar__project-heading"
           :class="{ 'sr-only': collapsed }"
           :title="activeProject.name"
-        >{{ activeProject.name }}</h2>
+        >
+          {{ activeProject.name }}
+        </h2>
         <h2 v-else class="sidebar__heading" :class="{ 'sr-only': collapsed }">Projeto atual</h2>
         <p v-if="loadingProject && !collapsed" class="sidebar__state" role="status">
           Carregando projeto…
@@ -137,20 +162,32 @@ const userName = computed(() =>
             <RefreshCw :size="14" aria-hidden="true" /> Tentar novamente
           </button>
         </div>
-        <ul v-if="activeProject" class="sidebar__list" :aria-label="'Navegação de ' + activeProject.name">
+        <ul
+          v-if="activeProject"
+          class="sidebar__list"
+          :aria-label="'Navegação de ' + activeProject.name"
+        >
           <li v-for="section in projectSections" :key="section.key">
             <RouterLink
               :to="projectSectionLocation(activeProject.id, section.key)"
               class="sidebar__section-link"
               :class="{
                 'sidebar__section-link--collapsed': collapsed,
-                'sidebar__section-link--active': isProjectSectionActive(route, activeProject.id, section.key),
+                'sidebar__section-link--active': isProjectSectionActive(
+                  route,
+                  activeProject.id,
+                  section.key,
+                ),
               }"
               :title="collapsed ? section.label : undefined"
-              :aria-current="isProjectSectionActive(route, activeProject.id, section.key) ? 'page' : undefined"
+              :aria-current="
+                isProjectSectionActive(route, activeProject.id, section.key) ? 'page' : undefined
+              "
             >
               <component :is="section.icon" :size="20" aria-hidden="true" />
-              <span class="sidebar__section-name" :class="{ 'sr-only': collapsed }">{{ section.label }}</span>
+              <span class="sidebar__section-name" :class="{ 'sr-only': collapsed }">{{
+                section.label
+              }}</span>
             </RouterLink>
           </li>
         </ul>
@@ -252,7 +289,9 @@ const userName = computed(() =>
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 @media (hover: hover) {
   .sidebar__section-link:hover {
