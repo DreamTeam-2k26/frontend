@@ -366,6 +366,13 @@ body.is-dragging {
   background-color: var(--color-button-primary-bg);
 }
 
+/* Troca de tema (useTheme + View Transitions): crossfade curto da página inteira. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--motion-slow);
+  animation-timing-function: var(--ease-flow);
+}
+
 /* Diálogos (<dialog class="dialog-motion">, ver useModalDialog): entrada ao abrir e saída no
    clone que substitui o diálogo desmontado. */
 .dialog-motion[open] {
