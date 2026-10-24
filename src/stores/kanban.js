@@ -192,34 +192,70 @@ export const useKanbanStore = defineStore('kanbanStore', () => {
   // Tarefas (qualquer participante)
 
   // As respostas de POST/PATCH não trazem os campos calculados (responsável, atraso, checklist):
-  // busca a tarefa completa para o card ficar igual ao do servidor.
-  async function syncTask(id) {
+  // busca a tarefa completa para o card ficar igual ao do servidor. Só aplica se o quadro ainda é o
+  // mesmo da operação (current) e se a tarefa é deste projeto.
+  async function syncTask(id, current = version) {
     const { data } = await taskApi.getTask(id)
-    const exists = state.tasks.some((task) => task.id === id)
-    state.tasks = exists
-      ? state.tasks.map((task) => (task.id === id ? { ...task, ...data } : task))
-      : [...state.tasks, data]
+    if (current === version && data.project === state.project?.id) upsertTask(data)
     return data
   }
 
+  function upsertTask(data) {
+    const exists = state.tasks.some((task) => task.id === data.id)
+    state.tasks = exists
+      ? state.tasks.map((task) => (task.id === data.id ? { ...task, ...data } : task))
+      : [...state.tasks, data]
+  }
+
+  // Card provisório com o que o POST/PATCH devolveu, quando a leitura completa falha.
+  function provisional(data) {
+    const member = state.members.find((item) => item.user === data.assignee)
+    return {
+      is_overdue: false,
+      checklist_total: 0,
+      checklist_done: 0,
+      comments_count: 0,
+      ...data,
+      assignee_name: member?.user_name ?? null,
+    }
+  }
+
+  // A escrita e a leitura seguinte falham separadamente: se o POST deu certo, a tarefa está criada
+  // (não deixar o formulário aberto para criar outra igual).
   async function createTask(payload) {
+    const current = version
+    let created
     try {
-      const { data } = await taskApi.createTask({ ...payload, project: state.project.id })
-      const task = await syncTask(data.id)
-      toast.success('Tarefa criada.')
-      return task
+      ;({ data: created } = await taskApi.createTask({ ...payload, project: state.project.id }))
     } catch (cause) {
       return fail(cause, 'Não foi possível criar a tarefa.')
+    }
+    toast.success('Tarefa criada.')
+    try {
+      return await syncTask(created.id, current)
+    } catch {
+      if (current === version) upsertTask(provisional(created))
+      return created
     }
   }
 
   async function updateTaskFields(id, fields) {
+    const current = version
+    let saved
     try {
-      await taskApi.updateTask(id, fields)
-      return await syncTask(id)
+      ;({ data: saved } = await taskApi.updateTask(id, fields))
     } catch (cause) {
       if (cause.response?.status === 404) await refreshTasks()
       return fail(cause, 'Não foi possível salvar a tarefa.')
+    }
+    try {
+      return await syncTask(id, current)
+    } catch {
+      // Salvo no servidor; sem a leitura completa, aplica só os campos devolvidos pelo PATCH.
+      const known = state.tasks.find((task) => task.id === id)
+      const merged = provisional({ ...known, ...saved })
+      if (current === version && known) upsertTask(merged)
+      return merged
     }
   }
 

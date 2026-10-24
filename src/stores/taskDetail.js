@@ -64,6 +64,14 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
     try {
       // Tarefa primeiro: id inexistente responde 404 aqui (as listas filtradas dariam 400).
       const { data } = await getTask(taskId, { signal })
+      // O backend libera tarefas de qualquer projeto do usuário: um link ?task=id de outro projeto
+      // não pode abrir (nem misturar dados) no quadro atual.
+      const projectId = useKanbanStore().project?.id
+      if (projectId != null && data.project !== projectId) {
+        if (current !== version) return
+        Object.assign(state, { status: 'missing', error: 'A tarefa não pertence a este projeto.' })
+        return
+      }
       const [checklistItems, commentList, linkList] = await Promise.all([
         checklistApi.listAllChecklistItems(taskId, { signal }),
         commentApi.listAllComments(taskId, { signal }),
@@ -192,17 +200,27 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
 
   // Comentários
 
+  // Publicar e reler falham separadamente: com o POST feito, o comentário já existe (não manter o
+  // texto no campo para não publicar de novo).
   async function addComment(body) {
     const taskId = state.taskId
+    let created
     try {
-      await commentApi.createComment({ task: taskId, body })
-      // A resposta de criação não traz a foto do autor: recarrega a lista completa.
+      ;({ data: created } = await commentApi.createComment({ task: taskId, body }))
+    } catch (cause) {
+      return fail(cause, 'Não foi possível publicar o comentário.')
+    }
+    if (!sameTask(taskId)) return
+    state.comments = [...state.comments, { author_profile_picture: null, ...created }]
+    syncCommentCount()
+    // A resposta de criação não traz a foto do autor: relê a lista; se falhar, fica o que já temos.
+    try {
       const list = await commentApi.listAllComments(taskId)
       if (!sameTask(taskId)) return
       state.comments = list
       syncCommentCount()
-    } catch (cause) {
-      return fail(cause, 'Não foi possível publicar o comentário.')
+    } catch {
+      // Comentário publicado; a foto aparece na próxima abertura.
     }
   }
 
@@ -268,13 +286,18 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
   async function sendUpload(entry) {
     const taskId = state.taskId
     const project = state.task.project
-    Object.assign(entry, { status: 'sending', progress: 0, error: '' })
+    Object.assign(entry, { status: 'sending', error: '' })
     try {
-      const { data: uploaded } = await fileApi.uploadFile(
-        { project, file: entry.file },
-        { onProgress: (value) => (entry.progress = value) },
-      )
-      const { data: attached } = await attachTaskFile(taskId, uploaded.id)
+      // Upload já feito numa tentativa anterior: repete só o vínculo (não duplica o arquivo).
+      if (entry.uploadedId == null) {
+        entry.progress = 0
+        const { data: uploaded } = await fileApi.uploadFile(
+          { project, file: entry.file },
+          { onProgress: (value) => (entry.progress = value) },
+        )
+        entry.uploadedId = uploaded.id
+      }
+      const { data: attached } = await attachTaskFile(taskId, entry.uploadedId)
       if (!sameTask(taskId)) return
       state.files = [...state.files, attached]
       state.uploads = state.uploads.filter((item) => item.key !== entry.key)
@@ -294,6 +317,7 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
         continue
       }
       const entry = reactive({
+        uploadedId: null,
         key: ++uploadKey,
         name: file.name,
         file,
