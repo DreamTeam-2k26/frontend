@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from 'lucide-vue-next'
-import { getProject, getProjectOverview } from '@/api/projects'
+import { getProject } from '@/api/projects'
 import { projectError } from '@/components/projects/projectState'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectHeader from '@/components/projects/ProjectHeader.vue'
@@ -12,9 +12,11 @@ import ProjectChat from '@/components/projects/ProjectChat.vue'
 import ProjectFolders from '@/views/ProjectFoldersView.vue'
 import ProjectCalls from '@/features/calls/components/ProjectCalls.vue'
 import { useCallNotifier } from '@/features/calls/stores/callNotifier'
+import { useProjectOverviewStore } from '@/stores/projectOverview'
 
 const route = useRoute()
 const callNotifier = useCallNotifier()
+const overview = useProjectOverviewStore()
 const router = useRouter()
 const TABS = [
   { key: 'geral', label: 'Visão geral' },
@@ -34,8 +36,6 @@ const project = ref(null)
 const loading = ref(true)
 const error = ref('')
 const status = ref(null)
-const overview = ref(null)
-const overviewLoading = ref(false)
 const errorTitle = computed(() => {
   if (status.value === 404) return 'Projeto não encontrado'
   if (status.value === 403) return 'Acesso negado'
@@ -51,8 +51,7 @@ async function load() {
   controller = new AbortController()
   loading.value = true
   project.value = null
-  overview.value = null
-  overviewLoading.value = false
+  overview.reset()
   error.value = ''
   status.value = null
   const id = String(route.params.id ?? '')
@@ -67,9 +66,8 @@ async function load() {
     if (current === request) {
       project.value = data
       loading.value = false
-      overviewLoading.value = true
-      const summary = await getProjectOverview(id, { signal: controller.signal })
-      if (current === request) overview.value = summary
+      // Indicadores, entregas e participantes carregam (e falham) separadamente na store.
+      overview.load(id)
     }
   } catch (cause) {
     if (current !== request) return
@@ -79,26 +77,24 @@ async function load() {
         ? 'O projeto não existe ou não está disponível para sua conta.'
         : projectError(cause)
   } finally {
-    if (current === request) {
-      loading.value = false
-      overviewLoading.value = false
-    }
+    if (current === request) loading.value = false
   }
 }
 
-async function reloadOverview() {
-  if (!project.value) return
-  try {
-    overview.value = await getProjectOverview(project.value.id)
-  } catch {
-    // A visão geral é recarregada ao voltar para a aba.
-  }
+// Membros mudaram ou a pessoa voltou para a aba: atualiza os números sem limpar a tela.
+function reloadOverview() {
+  if (project.value) overview.refresh()
 }
+
+watch(tab, (current, previous) => {
+  if (current === 'geral' && previous !== 'geral') reloadOverview()
+})
 
 watch(() => route.params.id, load, { immediate: true })
 onBeforeUnmount(() => {
   request++
   controller?.abort()
+  overview.reset()
 })
 </script>
 
@@ -152,8 +148,10 @@ onBeforeUnmount(() => {
         <ProjectOverview
           v-if="tab === 'geral'"
           :project="project"
-          :overview="overview"
-          :loading="overviewLoading"
+          :metrics="overview.metrics"
+          :upcoming="overview.upcoming"
+          :members="overview.members"
+          @retry="overview.retry"
         />
         <ProjectMembers
           v-else-if="tab === 'membros'"
