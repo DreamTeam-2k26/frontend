@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test:dashboard": "node --test --test-isolation=none tests/dashboard/*.test.js",
+    "test:folders": "node --test --test-isolation=none tests/folders/*.test.js",
     "test:projects": "node --test --test-isolation=none tests/projects/*.test.js",
     "test:chat": "node --test \"src/features/chat/__tests__/*.test.js\"",
     "test:calls": "node --test \"src/features/calls/__tests__/*.test.js\"",
