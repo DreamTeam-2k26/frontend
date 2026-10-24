@@ -46,6 +46,11 @@ async function renderComponent(component, data, extra = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
+      {
+        path: '/projects/:id/calendar',
+        name: 'project-calendar',
+        component: { render: () => null },
+      },
       { path: '/', component: { render: () => null } },
       { path: '/projects', name: 'projects', component: { render: () => null } },
       { path: '/projects/:id', name: 'project-detail', component: { render: () => null } },

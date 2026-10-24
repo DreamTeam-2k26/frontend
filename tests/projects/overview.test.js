@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, beforeEach, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
+import { createPinia, setActivePinia } from 'pinia'
 
 // Store da Visão geral do projeto: a API real é trocada por fakeProjectsApi.js.
 const here = (path) => fileURLToPath(new URL(path, import.meta.url))
@@ -22,7 +23,7 @@ before(async () => {
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     appType: 'custom',
   })
-  pinia = await server.ssrLoadModule('pinia')
+  pinia = { createPinia, setActivePinia }
   ;({ useProjectOverviewStore } = await server.ssrLoadModule('/src/stores/projectOverview.js'))
 })
 
@@ -54,7 +55,7 @@ beforeEach(() => {
   pinia.setActivePinia(pinia.createPinia())
   calls = { dashboard: 0, upcoming: 0, members: 0 }
   globalThis.fakeProjectsApi = {
-    getProjectDashboard: (id) => {
+    getProjectDashboard: (_id) => {
       calls.dashboard++
       return Promise.resolve(
         dashboard(12, 8, { overdue_tasks: 1, in_progress_tasks: 1, todo_tasks: 3 }),

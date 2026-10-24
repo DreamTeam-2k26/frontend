@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, beforeEach, test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
+import { createPinia, setActivePinia } from 'pinia'
 
 // Cenários de integridade das stores do Kanban (revisão do PR #44): a API real é trocada por fakeApi.js.
 const here = (path) => fileURLToPath(new URL(path, import.meta.url))
@@ -40,7 +41,7 @@ before(async () => {
     server: { middlewareMode: true, hmr: false, ws: false, watch: null },
     appType: 'custom',
   })
-  pinia = await server.ssrLoadModule('pinia')
+  pinia = { createPinia, setActivePinia }
   ;({ useKanbanStore } = await server.ssrLoadModule('/src/stores/kanban.js'))
   ;({ useTaskDetailStore } = await server.ssrLoadModule('/src/stores/taskDetail.js'))
   ;({ toasts } = await server.ssrLoadModule(here('./fakeToast.js')))
