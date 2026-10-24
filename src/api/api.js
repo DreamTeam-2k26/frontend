@@ -8,7 +8,7 @@ const api = axios.create({
 })
 
 // Endpoints em que um 401 significa "credenciais erradas", não "token expirado".
-const PUBLIC_PATHS = ['/token/', '/register/']
+const PUBLIC_PATHS = ['/token/', '/register/', '/auth/google/']
 
 api.interceptors.request.use((config) => {
   const token = getAccessToken()
@@ -24,9 +24,20 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const { config, response } = error
-    const isPublic = PUBLIC_PATHS.some((path) => config?.url?.startsWith(path))
+    const isPublic = PUBLIC_PATHS.some((path) => config?.url === path)
 
-    if (response?.status !== 401 || !config || config._retried || isPublic) {
+    // 401 do ID token Google não deve renovar nem apagar o JWT Fluxo.
+    const googleCredentialError = response?.data?.code === 'invalid_google_token'
+    const googleLink = config?.url === '/auth/google/link/'
+
+    if (
+      googleCredentialError ||
+      googleLink ||
+      response?.status !== 401 ||
+      !config ||
+      config._retried ||
+      isPublic
+    ) {
       return Promise.reject(error)
     }
 

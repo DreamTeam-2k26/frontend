@@ -1,4 +1,5 @@
 import * as authApi from '@/api/auth'
+import { getAccessToken } from '@/utils/token'
 import * as mediaApi from '@/api/media'
 import { defineStore } from 'pinia'
 import { computed, reactive } from 'vue'
@@ -18,25 +19,29 @@ export const useAuthStore = defineStore('authStore', () => {
   const saving = computed(() => state.saving)
 
   let userRequest = null
+  let sessionVersion = 0
 
   // `force` ignora o usuário já carregado (o perfil sempre busca o dado atual).
   function fetchUser({ force = false } = {}) {
     if (state.user && !force) return Promise.resolve(state.user)
     if (userRequest) return userRequest
 
-    userRequest = authApi
+    const requestSession = sessionVersion
+    const request = authApi
       .getCurrentUser()
       .then(({ data }) => {
-        state.user = data
+        if (requestSession === sessionVersion) state.user = data
         return data
       })
       .finally(() => {
-        userRequest = null
+        if (userRequest === request) userRequest = null
       })
-    return userRequest
+    userRequest = request
+    return request
   }
 
   async function login({ email, password }) {
+    if (state.loading) return false
     const toastId = toast.loading('Fazendo login...')
 
     state.loading = true
@@ -50,6 +55,7 @@ export const useAuthStore = defineStore('authStore', () => {
       const accessToken = response.data.access
       const refreshToken = response.data.refresh
 
+      sessionVersion++
       state.user = null
       setAccessToken(accessToken)
       setRefreshToken(refreshToken)
@@ -77,6 +83,7 @@ export const useAuthStore = defineStore('authStore', () => {
   }
 
   async function register({ name, email, password }) {
+    if (state.loading) return false
     const toastId = toast.loading('Registrando sua conta...')
     state.loading = true
 
@@ -95,6 +102,7 @@ export const useAuthStore = defineStore('authStore', () => {
         password,
       })
 
+      sessionVersion++
       state.user = null
       setAccessToken(response.data.access)
       setRefreshToken(response.data.refresh)
@@ -105,6 +113,7 @@ export const useAuthStore = defineStore('authStore', () => {
         isLoading: false,
         autoClose: 3000,
       })
+      return true
     } catch (error) {
       const data = error?.response?.data
       const fieldMessage = ['name', 'email', 'password', 'non_field_errors']
@@ -119,6 +128,57 @@ export const useAuthStore = defineStore('authStore', () => {
       })
 
       throw error
+    } finally {
+      state.loading = false
+    }
+  }
+
+  // Compartilha o bloqueio com os formulários convencionais e com o vínculo.
+  async function loginGoogle(credential) {
+    if (state.loading) return false
+    state.loading = true
+    const version = sessionVersion
+    try {
+      const { data } = await authApi.loginGoogle(credential)
+      if (version !== sessionVersion) return false
+      if (
+        typeof data?.access !== 'string' ||
+        !data.access ||
+        typeof data?.refresh !== 'string' ||
+        !data.refresh
+      ) {
+        throw new Error('Resposta de autenticação inválida')
+      }
+      sessionVersion++
+      state.user = null
+      userRequest = null
+      setAccessToken(data.access)
+      setRefreshToken(data.refresh)
+      await fetchUser({ force: true })
+      toast.success('Bem-vindo!')
+      return true
+    } finally {
+      state.loading = false
+    }
+  }
+
+  async function linkGoogle(credential) {
+    if (state.loading) return false
+    if (!getAccessToken()) throw { response: { status: 401 } }
+    state.loading = true
+    try {
+      const { data } = await authApi.linkGoogle(credential)
+      // O backend também importa a foto Google no vínculo; atualiza todos os avatares.
+      if (data?.linked) {
+        try {
+          await fetchUser({ force: true })
+        } catch {
+          toast.info(
+            'Conta Google vinculada. Recarregue o Perfil para atualizar a foto e os dados.',
+          )
+        }
+      }
+      return data
     } finally {
       state.loading = false
     }
@@ -178,6 +238,8 @@ export const useAuthStore = defineStore('authStore', () => {
 
   // Encerra a sessão neste navegador: apaga os tokens e o usuário em memória.
   function logout() {
+    sessionVersion++
+    window.google?.accounts?.id?.disableAutoSelect?.()
     clearSession()
     state.user = null
     userRequest = null
@@ -188,6 +250,8 @@ export const useAuthStore = defineStore('authStore', () => {
     saving,
     user,
     login,
+    loginGoogle,
+    linkGoogle,
     register,
     logout,
     fetchUser,

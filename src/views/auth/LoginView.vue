@@ -12,7 +12,7 @@ const route = useRoute()
 
 async function onSubmit(credentials) {
   try {
-    await authStore.login(credentials)
+    if ((await authStore.login(credentials)) === false) return
     router.push(authDestination(route.query.redirect))
   } catch {
     // Store já mostra toast de erro.
@@ -24,7 +24,10 @@ async function onSubmit(credentials) {
   <AuthCard title="Bem-vindo ao Fluxo" subtitle="Entre na sua conta para continuar de onde parou.">
     <div class="auth-actions">
       <LoginForm :loading="authStore.loading" @submit="onSubmit" />
-      <GoogleSignIn :disabled="authStore.loading" />
+      <GoogleSignIn
+        :disabled="authStore.loading"
+        @success="router.push(authDestination(route.query.redirect))"
+      />
     </div>
 
     <template #footer>
