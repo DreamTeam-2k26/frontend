@@ -118,8 +118,9 @@ async function run(callback, success, download = false, highlight = false) {
     choosing.value = false
     message.value = success
     if (!download) await refresh()
-    if (highlight && active && current === context && result?.data?.id != null) {
-      highlightId.value = result.data.id
+    // fileClient.upload devolve o próprio arquivo criado (não a resposta do axios).
+    if (highlight && active && current === context && result?.id != null) {
+      highlightId.value = result.id
       clearTimeout(highlightTimer)
       highlightTimer = setTimeout(() => (highlightId.value = null), 2400)
     }
