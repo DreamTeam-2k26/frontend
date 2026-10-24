@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Pencil, ArrowUpRight, UsersRound } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectMemberAvatar from './ProjectMemberAvatar.vue'
 
@@ -8,6 +9,8 @@ const props = defineProps({
   project: { type: Object, required: true },
   compact: { type: Boolean, default: false },
   preview: { type: Boolean, default: false },
+  // Chamada em andamento no projeto (objeto da API) ou null.
+  liveCall: { type: Object, default: null },
 })
 defineEmits(['edit'])
 const progress = computed(() =>
@@ -35,6 +38,19 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
         <h2>{{ project.name }}</h2>
         <span class="project-card__role">{{ roles[project.role] || 'Participante' }}</span>
       </div>
+      <RouterLink
+        v-if="liveCall"
+        class="project-card__live"
+        :to="{ name: 'call', params: { id: project.id, callId: liveCall.id } }"
+        :aria-label="`Entrar na reunião em andamento de ${project.name}`"
+      >
+        <span class="project-card__live-dot" aria-hidden="true" />
+        Reunião em andamento
+        <small v-if="liveCall.participants_count"
+          >· {{ liveCall.participants_count }}
+          {{ liveCall.participants_count === 1 ? 'pessoa' : 'pessoas' }}</small
+        >
+      </RouterLink>
       <p class="project-card__description">{{ project.description || 'Sem descrição.' }}</p>
       <div class="project-card__metrics">
         <div v-if="!compact || progress !== null" class="project-card__progress-label">
@@ -83,7 +99,9 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
         <BaseButton
           :to="preview ? undefined : { name: 'project-detail', params: { id: project.id } }"
           :disabled="preview"
-          :aria-label="preview ? `Projeto fictício: ${project.name}` : `Acessar projeto ${project.name}`"
+          :aria-label="
+            preview ? `Projeto fictício: ${project.name}` : `Acessar projeto ${project.name}`
+          "
           :title="preview ? 'Projeto de demonstração: não existe no backend.' : undefined"
         >
           {{ preview ? 'Projeto de exemplo' : 'Acessar projeto' }}
@@ -250,6 +268,42 @@ progress::-moz-progress-bar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+/* Faixa de reunião em andamento: chama atenção sem mudar o resto do cartão. */
+.project-card__live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-full);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+}
+.project-card__live small {
+  color: inherit;
+}
+.project-card__live-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-success);
+  animation: project-live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes project-live-pulse {
+  50% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-card__live-dot {
+    animation: none;
+  }
 }
 
 small {
