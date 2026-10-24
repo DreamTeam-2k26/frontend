@@ -8,6 +8,7 @@ import CallChatPanel from './CallChatPanel.vue'
 import CallControls from './CallControls.vue'
 import CallTile from './CallTile.vue'
 import DeviceSelect from './DeviceSelect.vue'
+import TranscriptPanel from './TranscriptPanel.vue'
 
 // A chamada em andamento: quadros, controles e painel lateral (pessoas / conversa).
 const props = defineProps({
@@ -15,6 +16,7 @@ const props = defineProps({
   room: { type: Object, required: true }, // retorno de useCallRoom
   view: { type: Object, required: true }, // espelho de useLocalMedia
   me: { type: Object, required: true }, // { name, avatar }
+  transcription: { type: Object, required: true }, // retorno (reativo) de useTranscription
   canEnd: Boolean,
 })
 const emit = defineEmits(['leave', 'end', 'select'])
@@ -33,6 +35,8 @@ onMounted(() => {
   timer = setInterval(tick, 1000)
 })
 onBeforeUnmount(() => clearInterval(timer))
+
+const PANELS = { people: 'Participantes', chat: 'Conversa do projeto', transcript: 'Transcrição' }
 
 const peers = computed(() => props.room.peers)
 const reconnecting = computed(() => props.room.connection !== 'open')
@@ -84,6 +88,9 @@ function openSettings() {
       </div>
       <span v-if="reconnecting" class="room__badge room__badge--warn" role="status">
         <WifiOff :size="14" aria-hidden="true" /> Reconectando…
+      </span>
+      <span v-if="transcription.enabled" class="room__badge room__badge--rec" role="status">
+        <span class="room__rec" aria-hidden="true" /> Transcrevendo
       </span>
       <span class="room__badge" aria-label="Tempo de chamada">{{ formatElapsed(elapsed) }}</span>
       <span class="room__badge">{{ total }} {{ total === 1 ? 'pessoa' : 'pessoas' }}</span>
@@ -147,18 +154,22 @@ function openSettings() {
         </div>
       </div>
 
-      <aside
-        v-if="panel"
-        class="side"
-        :aria-label="panel === 'chat' ? 'Conversa do projeto' : 'Participantes'"
-      >
+      <aside v-if="panel" class="side" :aria-label="PANELS[panel]">
         <header class="side__header">
-          <strong>{{ panel === 'chat' ? 'Conversa do projeto' : 'Participantes' }}</strong>
+          <strong>{{ PANELS[panel] }}</strong>
           <button type="button" class="side__close" aria-label="Fechar painel" @click="panel = ''">
             <X :size="18" aria-hidden="true" />
           </button>
         </header>
         <CallChatPanel v-if="panel === 'chat'" :project-id="call.project" />
+        <TranscriptPanel
+          v-else-if="panel === 'transcript'"
+          :call="call"
+          :transcription="transcription"
+          :segments="room.segments"
+          :mic-on="view.micOn"
+          :can-manage="canEnd"
+        />
         <ul v-else class="people">
           <li>
             <ChatAvatar :name="me.name" :src="me.avatar" :size="32" />
@@ -186,6 +197,7 @@ function openSettings() {
       :hand="room.hand"
       :can-share="screenSupported()"
       :panel="panel"
+      :transcribing="transcription.enabled"
       :can-end="canEnd"
       @mic="room.toggleMic()"
       @camera="room.toggleCamera()"
@@ -264,6 +276,18 @@ function openSettings() {
 .room__badge--warn {
   color: var(--color-warning);
   background: var(--color-warning-soft);
+}
+
+.room__badge--rec {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.room__rec {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--color-danger);
 }
 
 .room__main {

@@ -1,13 +1,15 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { CalendarPlus, Pencil, Play, Trash2, Video } from 'lucide-vue-next'
+import { CalendarPlus, FileText, Pencil, Play, Trash2, Video } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { apiMessage, canInvite } from '@/components/projects/memberRules'
 import { formatWhen, isDue, participantsText } from '../lib/callRules'
+import { transcriptBadge } from '../lib/transcript'
 import { createCall, listCalls, removeCall, startCall, updateCall } from '../services/callsApi'
 import { useCallNotifier } from '../stores/callNotifier'
 import ScheduleCallDialog from './ScheduleCallDialog.vue'
+import TranscriptDialog from './TranscriptDialog.vue'
 
 // Aba "Reuniões" do projeto: chamada em andamento, agendadas e histórico.
 const props = defineProps({ project: { type: Object, required: true } })
@@ -27,6 +29,7 @@ const message = ref('')
 const problem = ref('')
 const busyId = ref(null)
 const confirmId = ref(null)
+const transcriptOf = ref(null) // reunião encerrada cuja transcrição está aberta
 let tick = null
 let active = true
 
@@ -215,11 +218,27 @@ async function cancel(call) {
         <li v-for="call in history" :key="call.id">
           <div class="list__text">
             <strong>{{ call.title }}</strong>
-            <span>{{ formatWhen(call.started_at) }}</span>
+            <span
+              >{{ formatWhen(call.started_at) }}
+              <template v-if="transcriptBadge(call)"> · {{ transcriptBadge(call) }}</template></span
+            >
+          </div>
+          <div v-if="call.segments_count" class="list__actions">
+            <BaseButton variant="secondary" @click="transcriptOf = call"
+              ><FileText :size="16" aria-hidden="true" /> Transcrição</BaseButton
+            >
           </div>
         </li>
       </ul>
     </template>
+
+    <TranscriptDialog
+      v-if="transcriptOf"
+      :call="transcriptOf"
+      :can-manage="manager"
+      @summarized="loadHistory"
+      @close="transcriptOf = null"
+    />
 
     <ScheduleCallDialog
       v-if="dialog"
