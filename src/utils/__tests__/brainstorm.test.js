@@ -11,6 +11,7 @@ import {
   preview,
   statusLabel,
   topicFlags,
+  wasEdited,
 } from '../brainstorm.js'
 
 const topic = (extra = {}) => ({
@@ -219,5 +220,20 @@ describe('formatação', () => {
   test('data curta em pt-BR e vazio para inválida', () => {
     assert.match(formatWhen('2026-10-20T15:30:00-03:00'), /20\/10\/2026/)
     assert.equal(formatWhen('x'), '')
+  })
+})
+
+describe('wasEdited', () => {
+  test('só marca editada quando a alteração veio depois da criação (não por milissegundos)', () => {
+    const created = '2026-10-24T03:35:10.100000-03:00'
+    assert.equal(
+      wasEdited({ created_at: created, updated_at: '2026-10-24T03:35:10.180000-03:00' }),
+      false,
+    )
+    assert.equal(
+      wasEdited({ created_at: created, updated_at: '2026-10-24T03:36:00.000000-03:00' }),
+      true,
+    )
+    assert.equal(wasEdited({ created_at: created }), false)
   })
 })

@@ -6,7 +6,7 @@ import UserAvatar from '@/components/user/UserAvatar.vue'
 import BrainstormReplyComposer from './BrainstormReplyComposer.vue'
 import BrainstormVoteControl from './BrainstormVoteControl.vue'
 import { useBrainstormTopicStore } from '@/stores/brainstormTopic'
-import { formatWhen } from '@/utils/brainstorm'
+import { formatWhen, wasEdited } from '@/utils/brainstorm'
 
 // Uma resposta e seus filhos (recursivo). Ações vão direto para a store da discussão aberta.
 const {
@@ -31,9 +31,7 @@ const canEdit = computed(() => flags.isOpen && isAuthor.value)
 const canDelete = computed(
   () => flags.isOpen && !node.children.length && (isAuthor.value || flags.isManager),
 )
-const edited = computed(
-  () => reply.value.updated_at && reply.value.updated_at !== reply.value.created_at,
-)
+const edited = computed(() => wasEdited(reply.value))
 
 const mode = shallowRef(null) // null | 'reply' | 'edit'
 const confirming = shallowRef(false)

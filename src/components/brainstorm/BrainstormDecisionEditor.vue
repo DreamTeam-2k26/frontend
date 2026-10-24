@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, ref, shallowRef, useId, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, shallowRef, useId, useTemplateRef, watch } from 'vue'
 import { Plus } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
@@ -21,6 +21,9 @@ const cardErrors = ref({})
 const generalError = shallowRef('')
 const confirming = shallowRef(false)
 let manualKey = 0
+
+// Tarefas e participantes reais do projeto (vincular existente e responsável).
+onMounted(() => store.loadDecisionData())
 
 const { values, errors, validateField, handleSubmit } = useForm(
   { text: '', justification: '' },

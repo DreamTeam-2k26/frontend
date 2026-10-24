@@ -158,3 +158,11 @@ export function formatWhen(value) {
   if (Number.isNaN(date.getTime())) return ''
   return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }
+
+// O backend grava created_at e updated_at com milissegundos de diferença na criação: só conta como
+// editada a alteração feita depois de alguns segundos.
+export function wasEdited(item, toleranceMs = 2000) {
+  const created = Date.parse(item?.created_at)
+  const updated = Date.parse(item?.updated_at)
+  return Number.isFinite(created) && Number.isFinite(updated) && updated - created > toleranceMs
+}
