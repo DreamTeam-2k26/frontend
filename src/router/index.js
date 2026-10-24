@@ -31,7 +31,7 @@ const router = createRouter({
           path: 'projects',
           name: 'projects',
           component: () => import('@/views/ProjectsView.vue'),
-          meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2, group: 'projects' } },
+          meta: { nav: { label: 'Meus Projetos', icon: FolderOpen, order: 2, group: 'personal' } },
         },
         {
           path: 'projects/:id/folders/:folderId?',
@@ -78,7 +78,7 @@ const router = createRouter({
               icon: MessagesSquare,
               order: 3,
               exact: false,
-              group: 'projects',
+              group: 'personal',
             },
           },
         },
