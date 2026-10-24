@@ -98,8 +98,9 @@ onBeforeUnmount(() => chat.stop())
   min-width: 0;
 }
 
-/* Páginas de altura total (conversa do projeto): sem rodapé, a tela não rola. */
-.layout:has(.project-detail--fill) .layout__footer {
+/* Páginas de altura total (salas de conversa e conversa do projeto, marcadas com .page-fill):
+   sem rodapé, a tela não rola. */
+.layout:has(.page-fill) .layout__footer {
   display: none;
 }
 

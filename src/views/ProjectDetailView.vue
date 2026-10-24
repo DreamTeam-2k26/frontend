@@ -129,7 +129,7 @@ onBeforeUnmount(() => {
 <template>
   <section
     class="project-detail"
-    :class="{ 'project-detail--fill': project && tab === 'conversa' }"
+    :class="{ 'project-detail--fill page-fill': project && tab === 'conversa' }"
     :aria-busy="loading"
     :aria-labelledby="project ? 'project-title' : 'project-state-title'"
   >
@@ -151,9 +151,14 @@ onBeforeUnmount(() => {
       >
     </div>
     <template v-else-if="project">
-      <ProjectHeader :project="project" :show-actions="tab === 'geral'" />
+      <ProjectHeader
+        :project="project"
+        :show-actions="tab === 'geral'"
+        :compact="tab === 'conversa'"
+      />
       <!-- A sidebar é exclusiva do desktop; no celular as configurações precisam de acesso próprio. -->
       <RouterLink
+        v-if="tab !== 'conversa'"
         class="project-detail__mobile-settings"
         :to="{ name: 'project-settings', params: { id: project.id } }"
         aria-label="Abrir configurações deste projeto"
@@ -322,8 +327,9 @@ onBeforeUnmount(() => {
 /* Conversa: a seção ocupa exatamente a tela abaixo do header e o chat preenche o resto; só a lista
    de mensagens rola (o rodapé do app some nessa aba, ver DefaultLayout). */
 .project-detail--fill {
+  gap: var(--space-3);
   height: calc(100dvh - var(--header-height));
-  min-height: 30rem;
+  padding-block: var(--space-4);
 }
 .project-detail--fill > [role='tabpanel'] {
   display: flex;
@@ -341,6 +347,14 @@ onBeforeUnmount(() => {
 @media (max-width: 700px) {
   .project-detail {
     padding: var(--space-5) var(--space-4);
+  }
+  .project-detail--fill {
+    padding-block: var(--space-3);
+  }
+  /* No celular a conversa fica só com as abas: o cabeçalho do chat já mostra o projeto. */
+  .project-detail--fill .project-detail__back,
+  .project-detail--fill .project-header {
+    display: none;
   }
 }
 
