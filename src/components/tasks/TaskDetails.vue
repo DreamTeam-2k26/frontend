@@ -1,21 +1,12 @@
 <script setup>
 import { computed, nextTick, reactive, ref, useId, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  CalendarDays,
-  Copy,
-  ExternalLink,
-  Hash,
-  Link,
-  LoaderCircle,
-  Trash2,
-  UserRound,
-  X,
-} from 'lucide-vue-next'
+import { Copy, ExternalLink, Hash, Link, LoaderCircle, Trash2, UserRound, X } from 'lucide-vue-next'
 import ActionMenu from '@/components/ui/ActionMenu.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseDrawer from '@/components/ui/BaseDrawer.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import BaseDatePicker from '@/components/ui/BaseDatePicker.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import TaskChecklist from '@/components/tasks/TaskChecklist.vue'
 import TaskComments from '@/components/tasks/TaskComments.vue'
@@ -47,7 +38,6 @@ const ids = { title: useId(), field: useId() }
 const drawer = useTemplateRef('drawer')
 const titleInput = ref(null)
 const descriptionInput = ref(null)
-const dateInput = ref(null)
 const editingTitle = ref(false)
 const editingDescription = ref(false)
 const confirmDelete = reactive({ open: false, busy: false })
@@ -62,14 +52,6 @@ const task = computed(() => detail.task)
 const column = computed(() => kanban.columnsById.get(task.value?.column))
 const done = computed(() => column.value?.category === 'done')
 const due = computed(() => dueInfo(task.value?.due_date, today, done.value))
-const dueLong = computed(() =>
-  task.value?.due_date
-    ? new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(
-        new Date(`${task.value.due_date}T12:00:00`),
-      )
-    : '',
-)
-
 const columnOptions = computed(() =>
   kanban.columns.map((option) => ({ value: option.id, label: option.name, dot: option.category })),
 )
@@ -224,18 +206,9 @@ async function changeColumn(columnId) {
   }
 }
 
-// Prazo: o texto abre o seletor nativo de data (input escondido).
-function openDatePicker() {
-  const input = dateInput.value
-  if (!input) return
-  if (typeof input.showPicker === 'function') input.showPicker()
-  else input.focus()
-}
-
-function changeDueDate(event) {
-  const value = event.target.value || null
-  if (value === (task.value.due_date ?? null)) return
-  saveField('due_date', value)
+function changeDueDate(value) {
+  if ((value || null) === (task.value.due_date ?? null)) return
+  saveField('due_date', value || null)
 }
 
 // Menu ⋯
@@ -445,19 +418,16 @@ const statusText = (field) => ({ saving: 'Salvando…', saved: 'Salvo' })[fieldS
           <div class="details__prop">
             <dt><label :for="`${ids.field}-due`">Prazo</label></dt>
             <dd class="details__due">
-              <button type="button" class="details__due-button" @click="openDatePicker">
-                <CalendarDays :size="16" aria-hidden="true" />
-                <span v-if="task.due_date">{{ dueLong }}</span>
-                <span v-else class="details__muted">Definir prazo</span>
-              </button>
-              <input
+              <BaseDatePicker
                 :id="`${ids.field}-due`"
-                ref="dateInput"
-                class="details__date-input"
-                type="date"
-                :value="task.due_date ?? ''"
+                :model-value="task.due_date ?? ''"
+                label="Prazo"
+                hide-label
                 :min="today"
-                tabindex="-1"
+                :disabled="fieldState.due_date === 'saving'"
+                :error="fieldError.due_date || ''"
+                :calendar-title="task.title"
+                :calendar-description="task.description || ''"
                 @change="changeDueDate"
               />
               <span
@@ -671,34 +641,6 @@ const statusText = (field) => ({ saving: 'Salvando…', saved: 'Salvo' })[fieldS
 }
 .details__due {
   position: relative;
-}
-.details__due-button {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 2.25rem;
-  margin-left: calc(-1 * var(--space-2));
-  padding: var(--space-1) var(--space-2);
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-  border-radius: var(--radius-md);
-}
-.details__due-button:hover {
-  background: var(--color-bg-hover);
-}
-.details__due-button svg {
-  color: var(--color-text-secondary);
-}
-/* Input nativo só para o seletor de data do sistema; fica sob o botão, invisível. */
-.details__date-input {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  opacity: 0;
-  pointer-events: none;
 }
 .details__relative {
   color: var(--color-text-secondary);

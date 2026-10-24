@@ -3,6 +3,7 @@ import { computed, nextTick, useId, useTemplateRef } from 'vue'
 import { UserRound } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
+import BaseDatePicker from '@/components/ui/BaseDatePicker.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
 import { useForm } from '@/composables/useForm'
@@ -160,11 +161,12 @@ const fieldError = (name) => errors[name] || fieldErrors[name] || ''
             fieldErrors.assignee
           }}</small>
         </div>
-        <BaseInput
+        <BaseDatePicker
           v-model="values.due_date"
           label="Prazo"
           name="due_date"
-          type="date"
+          :calendar-title="values.title || 'Prazo da tarefa'"
+          :calendar-description="values.description"
           :min="today"
           :disabled="saving"
           :error="fieldError('due_date')"

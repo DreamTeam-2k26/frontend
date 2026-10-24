@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test:calendar": "node --test --test-isolation=none tests/calendar/*.test.js",
     "test:dashboard": "node --test --test-isolation=none tests/dashboard/*.test.js",
     "test:folders": "node --test --test-isolation=none tests/folders/*.test.js",
     "test:projects": "node --test --test-isolation=none tests/projects/*.test.js",
