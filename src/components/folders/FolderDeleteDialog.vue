@@ -54,8 +54,8 @@ onBeforeUnmount(() => {
         >?
       </p>
       <p class="delete-warning">
-        Essa ação remove permanentemente a pasta e todas as subpastas descendentes. Não há lixeira
-        ou opção de desfazer.
+        Essa ação remove permanentemente a pasta, todas as subpastas descendentes e seus arquivos,
+        inclusive do armazenamento. Não há lixeira ou opção de desfazer.
       </p>
       <p v-if="detail.children_count" class="delete-warning">
         <strong

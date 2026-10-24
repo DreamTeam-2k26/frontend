@@ -1,6 +1,6 @@
 <script setup>
 import BaseButton from '@/components/ui/BaseButton.vue'
-import { Plus } from 'lucide-vue-next'
+import { KanbanSquare, Plus } from 'lucide-vue-next'
 
 defineProps({ project: { type: Object, required: true } })
 </script>
@@ -13,9 +13,14 @@ defineProps({ project: { type: Object, required: true } })
       </div>
       <p>{{ project.description || 'Este projeto ainda não tem descrição.' }}</p>
     </div>
-    <BaseButton disabled title="A criação de tarefas estará disponível com o Kanban.">
-      <Plus :size="16" aria-hidden="true" /> Nova tarefa
-    </BaseButton>
+    <div class="project-header__actions">
+      <BaseButton variant="secondary" :to="{ name: 'project-kanban', params: { id: project.id } }">
+        <KanbanSquare :size="16" aria-hidden="true" /> Abrir Kanban
+      </BaseButton>
+      <BaseButton :to="{ name: 'project-kanban', params: { id: project.id }, query: { new: '1' } }">
+        <Plus :size="16" aria-hidden="true" /> Nova tarefa
+      </BaseButton>
+    </div>
   </header>
 </template>
 
@@ -25,6 +30,11 @@ defineProps({ project: { type: Object, required: true } })
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-6);
+}
+.project-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
 }
 .project-header__content {
   min-width: 0;
