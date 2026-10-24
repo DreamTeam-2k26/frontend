@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { deadlineDates, deadlinesIcs, googleCalendarUrl } from '../../src/utils/googleCalendar.js'
+import {
+  deadlineDates,
+  deadlinesIcs,
+  googleCalendarUrl,
+  meetingCalendarUrl,
+} from '../../src/utils/googleCalendar.js'
 
 test('prazo é evento de dia inteiro com fim exclusivo, inclusive ano e fevereiro', () => {
   assert.deepEqual(deadlineDates('2026-12-31'), { start: '20261231', end: '20270101' })
@@ -41,4 +46,24 @@ test('ICS omite tarefas sem prazo, escapa conteúdo e conserva UTF-8/CRLF e UIDs
   assert.ok(ics.split('\r\n').every((line) => new TextEncoder().encode(line).length <= 75))
   assert.ok(ics.endsWith('END:VCALENDAR\r\n'))
   assert.match(ics.replace(/\r\n /g, ''), new RegExp('Á'.repeat(100)))
+})
+
+test('reunião conserva instante e fuso e sugere 1h sem alterar o agendamento', () => {
+  const call = {
+    id: 8,
+    title: 'Alinhamento',
+    status: 'scheduled',
+    scheduled_for: '2030-12-31T23:30:00-03:00',
+  }
+  const original = JSON.stringify(call)
+  const url = new URL(
+    meetingCalendarUrl(call, 'https://fluxo.example/projects/7/calls/8', 'Projeto'),
+  )
+  assert.equal(url.searchParams.get('dates'), '20310101T023000Z/20310101T033000Z')
+  assert.equal(url.searchParams.get('text'), 'Alinhamento')
+  assert.match(url.searchParams.get('details'), /Duração sugerida: 1 hora/)
+  assert.equal(JSON.stringify(call), original)
+  assert.equal(meetingCalendarUrl({ ...call, status: 'live' }), '')
+  assert.equal(meetingCalendarUrl({ ...call, status: 'ended' }), '')
+  assert.equal(meetingCalendarUrl({ ...call, scheduled_for: 'inválido' }), '')
 })

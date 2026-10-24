@@ -80,3 +80,31 @@ export function deadlinesIcs(
   lines.push('END:VCALENDAR')
   return lines.map(fold).join('\r\n') + '\r\n'
 }
+
+// Reuniões têm horário real; usa UTC no link para conservar o instante em qualquer fuso.
+export function meetingCalendarUrl(call, callUrl = '', projectName = '') {
+  if (call.status !== 'scheduled' || !call.scheduled_for) return ''
+  const start = new Date(call.scheduled_for)
+  if (Number.isNaN(start.getTime())) return ''
+  // A API não fornece duração. A pessoa pode ajustar a sugestão no Google antes de salvar.
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+  const format = (date) =>
+    date
+      .toISOString()
+      .replace(/[-:]/g, '')
+      .replace(/\.\d{3}/, '')
+  const url = new URL('https://calendar.google.com/calendar/r/eventedit')
+  url.search = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: call.title || 'Reunião do projeto',
+    dates: `${format(start)}/${format(end)}`,
+    details: [
+      projectName && `Projeto: ${projectName}`,
+      'Reunião no Fluxo. Duração sugerida: 1 hora; revise antes de salvar. Confira alterações de horário no Fluxo.',
+      callUrl,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  }).toString()
+  return url.toString()
+}

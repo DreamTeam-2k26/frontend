@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createRouter, createMemoryHistory } from 'vue-router'
-let server, transport, useProjectCalendar, CalendarMonth, BaseDatePicker
+let server, transport, useProjectCalendar, CalendarMonth, BaseDatePicker, ScheduleCallDialog
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -29,6 +29,9 @@ before(async () => {
   ;({ useProjectCalendar } = await server.ssrLoadModule('/src/composables/useProjectCalendar.js'))
   CalendarMonth = (await server.ssrLoadModule('/src/components/calendar/CalendarMonth.vue')).default
   BaseDatePicker = (await server.ssrLoadModule('/src/components/ui/BaseDatePicker.vue')).default
+  ScheduleCallDialog = (
+    await server.ssrLoadModule('/src/features/calls/components/ScheduleCallDialog.vue')
+  ).default
 })
 after(async () => {
   await server?.close()
@@ -193,4 +196,31 @@ test('seletor Fluxo exibe data brasileira, label, erro e estado bloqueado sem pi
   assert.match(html, /disabled/)
   assert.match(html, /Confira o prazo/)
   assert.doesNotMatch(html, /type="date"/)
+})
+
+test('agendar/editar reunião usa seletor Fluxo e horário separado; iniciar agora dispensa data', async () => {
+  for (const mode of ['schedule', 'edit']) {
+    const html = await renderToString(
+      createSSRApp({
+        render: () =>
+          h(ScheduleCallDialog, {
+            mode,
+            call:
+              mode === 'edit'
+                ? { title: 'Reunião', scheduled_for: '2030-12-31T23:30:00-03:00' }
+                : null,
+          }),
+      }),
+    )
+    assert.match(html, /Data da reunião/)
+    assert.match(html, /class="date-field__trigger/)
+    assert.match(html, /type="time"/)
+    assert.match(html, /Horário local/)
+    assert.doesNotMatch(html, /type="datetime-local"/)
+  }
+  const html = await renderToString(
+    createSSRApp({ render: () => h(ScheduleCallDialog, { mode: 'now' }) }),
+  )
+  assert.match(html, /Iniciar reunião agora/)
+  assert.doesNotMatch(html, /date-field__trigger|type="time"/)
 })

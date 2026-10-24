@@ -49,3 +49,11 @@ Referências oficiais:
 - [Autorização necessária para sincronização via API](https://developers.google.com/workspace/calendar/api/auth)
 
 O roteiro de navegador inclui o modal Nova tarefa, posicionamento do seletor, Escape, escolha de Hoje, links externos e capturas do seletor nos dois temas. A execução visual segue pendente pelo bloqueio de Vite/Chrome registrado acima.
+
+## Reuniões no projeto
+
+O formulário **Agendar reunião / Editar reunião** também reutiliza `BaseDatePicker`, com campo de horário separado e indicação do fuso local. Mantém `scheduled_for` em ISO UTC enviado à API e as regras existentes de agendamento; **Iniciar agora** segue sem data obrigatória.
+
+Reuniões agendadas oferecem **Adicionar ao Google Calendar** na aba Reuniões e no cartão Próxima reunião da Visão geral. O link leva título, horário e acesso à chamada. Como o backend não fornece duração, sugere uma hora e avisa para revisar no Google. A adição é manual, sem criar Google Meet nem sincronizar edições/cancelamentos automaticamente. Chamadas em andamento/encerradas não são exportadas como novas reuniões agendadas.
+
+Os testes cobrem a renderização dos três modos do formulário e a conversão de uma reunião no fuso -03:00 durante a virada de ano para o mesmo instante no Google Calendar. Validar visualmente o seletor dentro do modal e salvar um evento de teste no Google antes de retirar o rascunho da PR.
