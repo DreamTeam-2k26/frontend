@@ -100,9 +100,18 @@ function remove() {
     'Pasta, subpastas e seus arquivos foram excluídos permanentemente.',
   )
 }
+// Direção da navegação entre pastas: abrir entra pela direita; voltar a um ancestral, pela esquerda.
+const direction = ref('')
+function navigationDirection(projectId, folderId) {
+  if (!project.value || String(project.value.id) !== String(projectId)) return ''
+  const target = folderId == null ? null : String(folderId)
+  const ancestors = path.value.map((item) => String(item.id))
+  return target === null || ancestors.includes(target) ? 'back' : 'forward'
+}
 watch(
   () => [route.params.id, route.query.pasta],
-  () => {
+  ([projectId, folderId]) => {
+    direction.value = navigationDirection(projectId, folderId)
     actionVersion++
     busy.value = false
     operation.value = null
@@ -121,7 +130,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="folders-page" aria-labelledby="folders-title" :aria-busy="loading">
+  <section
+    class="folders-page"
+    :class="direction && `folders-page--${direction}`"
+    aria-labelledby="folders-title"
+    :aria-busy="loading"
+  >
     <header class="folders-header">
       <div>
         <h2 id="folders-title">Arquivos</h2>
@@ -252,6 +266,25 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Conteúdo da pasta (remontado após carregar) entra na direção da navegação; o cabeçalho fica. */
+.folders-page--forward > :not(.folders-header) {
+  animation: folder-forward var(--motion-base) var(--ease-flow) both;
+}
+.folders-page--back > :not(.folders-header) {
+  animation: folder-back var(--motion-base) var(--ease-flow) both;
+}
+@keyframes folder-forward {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@keyframes folder-back {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
 .folders-page {
   display: flex;
   flex-direction: column;
