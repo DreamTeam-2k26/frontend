@@ -7,6 +7,7 @@ import SideBar from '@/components/layout/SideBar.vue'
 import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
+import CallNotifier from '@/features/calls/components/CallNotifier.vue'
 import { useChatStore } from '@/features/chat/stores/chat'
 
 // O chat fica ligado em todas as páginas logadas para avisar de mensagens novas.
@@ -44,6 +45,7 @@ onBeforeUnmount(() => chat.stop())
     </main>
     <AppFooter class="layout__footer" />
     <MobileNavBar class="layout__mobile-nav" />
+    <CallNotifier />
   </div>
 </template>
 

@@ -10,14 +10,18 @@ import ProjectOverview from '@/components/projects/ProjectOverview.vue'
 import ProjectMembers from '@/components/projects/ProjectMembers.vue'
 import ProjectChat from '@/components/projects/ProjectChat.vue'
 import ProjectFolders from '@/views/ProjectFoldersView.vue'
+import ProjectCalls from '@/features/calls/components/ProjectCalls.vue'
+import { useCallNotifier } from '@/features/calls/stores/callNotifier'
 
 const route = useRoute()
+const callNotifier = useCallNotifier()
 const router = useRouter()
 const TABS = [
   { key: 'geral', label: 'Visão geral' },
   { key: 'membros', label: 'Membros' },
   { key: 'conversa', label: 'Conversa' },
   { key: 'pastas', label: 'Pastas do Projeto' },
+  { key: 'reunioes', label: 'Reuniões' },
 ]
 const tab = computed(() => {
   const key = String(route.query.aba ?? '')
@@ -136,6 +140,12 @@ onBeforeUnmount(() => {
           @click="selectTab(item.key)"
         >
           {{ item.label }}
+          <span
+            v-if="item.key === 'reunioes' && callNotifier.liveFor(project.id)"
+            class="project-detail__live"
+            role="img"
+            aria-label="Chamada em andamento"
+          />
         </button>
       </div>
       <div :id="`panel-${tab}`" role="tabpanel" :aria-labelledby="`tab-${tab}`">
@@ -152,6 +162,7 @@ onBeforeUnmount(() => {
         />
         <ProjectChat v-else-if="tab === 'conversa'" :project-id="project.id" />
         <ProjectFolders v-else-if="tab === 'pastas'" />
+        <ProjectCalls v-else :project="project" />
       </div>
     </template>
   </section>
@@ -193,6 +204,14 @@ onBeforeUnmount(() => {
 }
 .project-detail__tabs button:hover {
   color: var(--color-text);
+}
+.project-detail__live {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-left: var(--space-1);
+  border-radius: 50%;
+  background: var(--color-success);
 }
 .project-detail__tabs button.is-active {
   color: var(--color-primary-hover);
