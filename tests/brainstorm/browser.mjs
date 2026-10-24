@@ -358,7 +358,11 @@ await step('síntese da IA (real, modelo gratuito)', async () => {
   await ana.click('Síntese da IA', '[role=tab]')
   await ana.waitFor(`document.body.innerText.includes('Gerar síntese com IA')`, 'botão gerar')
   await ana.click('Gerar síntese com IA')
-  await ana.waitFor(`document.body.innerText.includes('Gerando a síntese')`, 'estado gerando', 5000)
+  await ana.waitFor(
+    `document.body.innerText.includes('A IA está pensando')`,
+    'estado gerando',
+    5000,
+  )
   await ana.shot('05-sintese-gerando')
   await ana.waitFor(
     `document.body.innerText.includes('Proposta principal') || document.querySelector('.analysis__state--error')`,
@@ -386,6 +390,17 @@ await step('decisão: marcar 1 card, revisar e aprovar', async () => {
   await ana.click('Decisão', '[role=tab]')
   await ana.waitFor(`document.body.innerText.includes('Revisar e aprovar a decisão')`, 'editor')
   const cards = await ana.evaluate(`document.querySelectorAll('.task-card').length`)
+  if (cards) {
+    // Selecionar todas / Desmarcar todas: só marca e desmarca, sem criar nada.
+    const checked = () =>
+      ana.evaluate(
+        `[...document.querySelectorAll('.task-card__check')].filter((c) => c.checked).length`,
+      )
+    await ana.click('Selecionar todas')
+    assert.equal(await checked(), cards)
+    await ana.click('Desmarcar todas')
+    assert.equal(await checked(), 0)
+  }
   if (cards) {
     await ana.evaluate(
       `(() => { const c = document.querySelector('.task-card__check'); c.click(); return true })()`,

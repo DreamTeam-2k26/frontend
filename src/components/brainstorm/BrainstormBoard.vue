@@ -201,11 +201,15 @@ onBeforeUnmount(() => {
       </template>
     </div>
     <template v-else>
-      <ul class="brainstorm__list">
-        <li v-for="topic in list.topics" :key="topic.id">
+      <TransitionGroup tag="ul" name="topic-list" appear class="brainstorm__list">
+        <li
+          v-for="(topic, index) in list.topics"
+          :key="topic.id"
+          :style="{ '--stagger': index % 20 }"
+        >
           <BrainstormTopicCard :topic="topic" :project-id="project.id" />
         </li>
-      </ul>
+      </TransitionGroup>
       <BaseButton
         v-if="list.hasMore"
         class="brainstorm__more"
@@ -330,6 +334,37 @@ onBeforeUnmount(() => {
 @media (max-width: 600px) {
   .brainstorm__summary {
     margin-left: 0;
+  }
+}
+/* Cards entram em cascata (inclusive os do "Carregar mais", reiniciando a cada página). */
+.topic-list-enter-active {
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+  transition-delay: calc(min(var(--stagger), 8) * 45ms);
+}
+.topic-list-enter-from {
+  opacity: 0;
+  transform: translateY(0.75rem);
+}
+.topic-list-move {
+  transition: transform 0.3s ease;
+}
+.brainstorm__state {
+  animation: brainstorm-fade 0.3s ease both;
+}
+@keyframes brainstorm-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topic-list-enter-active,
+  .topic-list-move {
+    transition: none;
+  }
+  .brainstorm__state {
+    animation: none;
   }
 }
 </style>

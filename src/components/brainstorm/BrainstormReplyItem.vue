@@ -134,7 +134,13 @@ async function remove() {
       />
     </article>
 
-    <ul v-if="node.children.length" class="reply__children">
+    <TransitionGroup
+      v-if="node.children.length"
+      tag="ul"
+      name="reply-list"
+      appear
+      class="reply__children"
+    >
       <BrainstormReplyItem
         v-for="child in node.children"
         :key="child.reply.id"
@@ -144,7 +150,7 @@ async function remove() {
         :user-id="userId"
         :highlighted="highlighted"
       />
-    </ul>
+    </TransitionGroup>
 
     <ConfirmDialog
       v-if="confirming"
@@ -243,6 +249,57 @@ async function remove() {
   .reply__children {
     margin-left: var(--space-2);
     padding-left: var(--space-2);
+  }
+}
+.reply__card {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+/* Resposta citada pela IA: pulso suave ao chegar nela. */
+.reply--highlight > .reply__card {
+  animation: reply-pulse 1.2s ease 2;
+}
+@keyframes reply-pulse {
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--color-primary) 8%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reply__card {
+    transition: none;
+  }
+  .reply--highlight > .reply__card {
+    animation: none;
+  }
+}
+/* Resposta nova entra deslizando; as outras se acomodam. */
+.reply-list-enter-active {
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+.reply-list-enter-from {
+  opacity: 0;
+  transform: translateY(0.625rem);
+}
+.reply-list-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.reply-list-leave-to {
+  opacity: 0;
+  transform: translateX(-0.5rem);
+}
+.reply-list-move {
+  transition: transform 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reply-list-enter-active,
+  .reply-list-leave-active,
+  .reply-list-move {
+    transition: none;
   }
 }
 </style>

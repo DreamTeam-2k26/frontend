@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 import {
+  allSelected,
   approvalPayload,
   buildThread,
   cardsFromAnalysis,
@@ -9,6 +10,7 @@ import {
   listQueryToRoute,
   normalizeListQuery,
   preview,
+  setAllSelected,
   statusLabel,
   topicFlags,
   wasEdited,
@@ -235,5 +237,24 @@ describe('wasEdited', () => {
       true,
     )
     assert.equal(wasEdited({ created_at: created }), false)
+  })
+})
+
+describe('selecionar todas as tarefas', () => {
+  test('marca todas, desmarca todas e informa o estado atual', () => {
+    const cards = [{ selected: false }, { selected: true }]
+    assert.equal(allSelected(cards), false)
+    setAllSelected(cards, true)
+    assert.deepEqual(
+      cards.map((card) => card.selected),
+      [true, true],
+    )
+    assert.equal(allSelected(cards), true)
+    setAllSelected(cards, false)
+    assert.deepEqual(
+      cards.map((card) => card.selected),
+      [false, false],
+    )
+    assert.equal(allSelected([]), false)
   })
 })

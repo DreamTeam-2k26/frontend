@@ -1,15 +1,8 @@
 <script setup>
 import { computed, onMounted } from 'vue'
-import {
-  Bot,
-  History,
-  LoaderCircle,
-  Lock,
-  RotateCw,
-  Sparkles,
-  TriangleAlert,
-} from 'lucide-vue-next'
+import { Bot, History, Lock, RotateCw, Sparkles, TriangleAlert } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BrainstormAiThinking from './BrainstormAiThinking.vue'
 import { useBrainstormTopicStore } from '@/stores/brainstormTopic'
 import { formatWhen, priorityLabel } from '@/utils/brainstorm'
 
@@ -72,87 +65,57 @@ function run() {
       </BaseButton>
     </header>
 
-    <p v-if="status === 'loading'" class="analysis__state" role="status">Carregando a síntese…</p>
+    <Transition name="analysis-swap" mode="out-in">
+      <p v-if="status === 'loading'" class="analysis__state" role="status">Carregando a síntese…</p>
 
-    <div
-      v-else-if="status === 'running'"
-      class="analysis__state analysis__state--running"
-      role="status"
-    >
-      <LoaderCircle class="analysis__spinner" :size="20" aria-hidden="true" />
-      <p>Gerando a síntese… a IA lê a discussão inteira e pode levar até 2 minutos.</p>
-    </div>
+      <BrainstormAiThinking v-else-if="status === 'running'" />
 
-    <div
-      v-else-if="status === 'failed'"
-      class="analysis__state analysis__state--error"
-      role="alert"
-    >
-      <TriangleAlert :size="18" aria-hidden="true" />
-      <p>{{ failure }}</p>
-      <p v-if="notConfigured" class="analysis__note">
-        Peça a quem cuida do servidor para configurar a IA.
-      </p>
-    </div>
-
-    <div v-else-if="status === 'error'" class="analysis__state" role="alert">
-      <p>Não foi possível carregar a síntese.</p>
-      <BaseButton variant="secondary" @click="store.reloadHistory()">Tentar novamente</BaseButton>
-    </div>
-
-    <div v-else-if="status === 'none'" class="analysis__state">
-      <Lock v-if="flags.isOpen" :size="18" aria-hidden="true" />
-      <p v-if="flags.isOpen">
-        A síntese fica disponível depois que o dono ou um administrador encerrar o debate.
-      </p>
-      <p v-else-if="flags.canAnalyze">
-        O debate está encerrado. Gere a síntese para preparar a decisão.
-      </p>
-      <p v-else>Aguardando o dono ou um administrador pedir a síntese.</p>
-    </div>
-
-    <article v-else-if="status === 'ready' && result" class="analysis__result">
-      <p class="analysis__meta">
-        Gerada em
-        <time :datetime="store.analysis.finished_at">{{
-          formatWhen(store.analysis.finished_at)
-        }}</time>
-        <template v-if="store.analysis.requested_by_name">
-          a pedido de {{ store.analysis.requested_by_name }}</template
-        >
-      </p>
-
-      <section class="analysis__block">
-        <h3>Proposta principal</h3>
-        <p class="analysis__text">{{ result.main_solution }}</p>
-        <p v-if="sources(result.sources).length" class="analysis__sources">
-          Baseada em:
-          <button
-            v-for="id in sources(result.sources)"
-            :key="id"
-            type="button"
-            class="analysis__source"
-            :aria-label="`Ir para a resposta R${id}`"
-            @click="emit('source', id)"
-          >
-            #R{{ id }}
-          </button>
+      <div
+        v-else-if="status === 'failed'"
+        class="analysis__state analysis__state--error"
+        role="alert"
+      >
+        <TriangleAlert :size="18" aria-hidden="true" />
+        <p>{{ failure }}</p>
+        <p v-if="notConfigured" class="analysis__note">
+          Peça a quem cuida do servidor para configurar a IA.
         </p>
-      </section>
+      </div>
 
-      <section v-if="result.reasoning" class="analysis__block">
-        <h3>Justificativa</h3>
-        <p class="analysis__text">{{ result.reasoning }}</p>
-      </section>
+      <div v-else-if="status === 'error'" class="analysis__state" role="alert">
+        <p>Não foi possível carregar a síntese.</p>
+        <BaseButton variant="secondary" @click="store.reloadHistory()">Tentar novamente</BaseButton>
+      </div>
 
-      <section class="analysis__block">
-        <h3>Alternativas</h3>
-        <ul v-if="result.alternatives.length" class="analysis__list">
-          <li v-for="(alternative, index) in result.alternatives" :key="index">
-            <strong>{{ alternative.title || 'Alternativa' }}</strong>
-            <span v-if="alternative.description"> — {{ alternative.description }}</span>
+      <div v-else-if="status === 'none'" class="analysis__state">
+        <Lock v-if="flags.isOpen" :size="18" aria-hidden="true" />
+        <p v-if="flags.isOpen">
+          A síntese fica disponível depois que o dono ou um administrador encerrar o debate.
+        </p>
+        <p v-else-if="flags.canAnalyze">
+          O debate está encerrado. Gere a síntese para preparar a decisão.
+        </p>
+        <p v-else>Aguardando o dono ou um administrador pedir a síntese.</p>
+      </div>
+
+      <article v-else-if="status === 'ready' && result" class="analysis__result">
+        <p class="analysis__meta">
+          Gerada em
+          <time :datetime="store.analysis.finished_at">{{
+            formatWhen(store.analysis.finished_at)
+          }}</time>
+          <template v-if="store.analysis.requested_by_name">
+            a pedido de {{ store.analysis.requested_by_name }}</template
+          >
+        </p>
+
+        <section class="analysis__block">
+          <h3>Proposta principal</h3>
+          <p class="analysis__text">{{ result.main_solution }}</p>
+          <p v-if="sources(result.sources).length" class="analysis__sources">
+            Baseada em:
             <button
-              v-for="id in sources(alternative.sources)"
+              v-for="id in sources(result.sources)"
               :key="id"
               type="button"
               class="analysis__source"
@@ -161,45 +124,72 @@ function run() {
             >
               #R{{ id }}
             </button>
-          </li>
-        </ul>
-        <p v-else class="analysis__empty">A IA não apontou alternativas.</p>
-      </section>
+          </p>
+        </section>
 
-      <section v-if="result.ai_additions.length" class="analysis__block analysis__block--ai">
-        <h3><Bot :size="16" aria-hidden="true" /> Sugestões da IA</h3>
-        <p class="analysis__note">Ideias novas da IA, que não vieram dos participantes.</p>
-        <ul class="analysis__list">
-          <li v-for="(addition, index) in result.ai_additions" :key="index">
-            <span class="analysis__tag">Sugestão da IA</span> {{ addition }}
-          </li>
-        </ul>
-      </section>
+        <section v-if="result.reasoning" class="analysis__block">
+          <h3>Justificativa</h3>
+          <p class="analysis__text">{{ result.reasoning }}</p>
+        </section>
 
-      <section class="analysis__block">
-        <h3>Próximos passos sugeridos</h3>
-        <ul v-if="result.task_suggestions.length" class="analysis__list">
-          <li v-for="(suggestion, index) in result.task_suggestions" :key="index">
-            <strong>{{ suggestion.title }}</strong>
-            <span class="analysis__priority"
-              >· prioridade {{ priorityLabel(suggestion.priority).toLowerCase() }}</span
-            >
-            <p v-if="suggestion.description" class="analysis__text">{{ suggestion.description }}</p>
-            <p v-if="suggestion.existing_task_id" class="analysis__duplicate">
-              <TriangleAlert :size="14" aria-hidden="true" />
-              Já existe no Kanban: “{{
-                taskTitles.get(suggestion.existing_task_id) ||
-                `tarefa #${suggestion.existing_task_id}`
-              }}”. Na decisão, prefira vincular a ela.
-            </p>
-          </li>
-        </ul>
-        <p v-else class="analysis__empty">A IA não sugeriu tarefas.</p>
-        <p class="analysis__note">
-          Nenhuma tarefa é criada pela síntese: o dono ou um administrador escolhe na decisão.
-        </p>
-      </section>
-    </article>
+        <section class="analysis__block">
+          <h3>Alternativas</h3>
+          <ul v-if="result.alternatives.length" class="analysis__list">
+            <li v-for="(alternative, index) in result.alternatives" :key="index">
+              <strong>{{ alternative.title || 'Alternativa' }}</strong>
+              <span v-if="alternative.description"> — {{ alternative.description }}</span>
+              <button
+                v-for="id in sources(alternative.sources)"
+                :key="id"
+                type="button"
+                class="analysis__source"
+                :aria-label="`Ir para a resposta R${id}`"
+                @click="emit('source', id)"
+              >
+                #R{{ id }}
+              </button>
+            </li>
+          </ul>
+          <p v-else class="analysis__empty">A IA não apontou alternativas.</p>
+        </section>
+
+        <section v-if="result.ai_additions.length" class="analysis__block analysis__block--ai">
+          <h3><Bot :size="16" aria-hidden="true" /> Sugestões da IA</h3>
+          <p class="analysis__note">Ideias novas da IA, que não vieram dos participantes.</p>
+          <ul class="analysis__list">
+            <li v-for="(addition, index) in result.ai_additions" :key="index">
+              <span class="analysis__tag">Sugestão da IA</span> {{ addition }}
+            </li>
+          </ul>
+        </section>
+
+        <section class="analysis__block">
+          <h3>Próximos passos sugeridos</h3>
+          <ul v-if="result.task_suggestions.length" class="analysis__list">
+            <li v-for="(suggestion, index) in result.task_suggestions" :key="index">
+              <strong>{{ suggestion.title }}</strong>
+              <span class="analysis__priority"
+                >· prioridade {{ priorityLabel(suggestion.priority).toLowerCase() }}</span
+              >
+              <p v-if="suggestion.description" class="analysis__text">
+                {{ suggestion.description }}
+              </p>
+              <p v-if="suggestion.existing_task_id" class="analysis__duplicate">
+                <TriangleAlert :size="14" aria-hidden="true" />
+                Já existe no Kanban: “{{
+                  taskTitles.get(suggestion.existing_task_id) ||
+                  `tarefa #${suggestion.existing_task_id}`
+                }}”. Na decisão, prefira vincular a ela.
+              </p>
+            </li>
+          </ul>
+          <p v-else class="analysis__empty">A IA não sugeriu tarefas.</p>
+          <p class="analysis__note">
+            Nenhuma tarefa é criada pela síntese: o dono ou um administrador escolhe na decisão.
+          </p>
+        </section>
+      </article>
+    </Transition>
 
     <section v-if="versions.length" class="analysis__history" aria-labelledby="history-title">
       <h3 id="history-title"><History :size="16" aria-hidden="true" /> Histórico de versões</h3>
@@ -265,28 +255,11 @@ function run() {
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
 }
-.analysis__state--running {
-  color: var(--color-text);
-}
 .analysis__state--error {
   color: var(--color-danger);
   border-style: solid;
   border-color: var(--color-danger);
   background: var(--color-danger-soft);
-}
-.analysis__spinner {
-  color: var(--color-primary);
-  animation: analysis-spin 1s linear infinite;
-}
-@keyframes analysis-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .analysis__spinner {
-    animation: none;
-  }
 }
 .analysis__result {
   display: flex;
@@ -400,5 +373,83 @@ function run() {
 .analysis__version .analysis__text {
   flex-basis: 100%;
   color: var(--color-text-secondary);
+}
+
+/* Troca de estado (gerando → pronta/falha) e blocos da síntese entrando em sequência. */
+.analysis-swap-enter-active,
+.analysis-swap-leave-active {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+.analysis-swap-enter-from {
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
+.analysis-swap-leave-to {
+  opacity: 0;
+  transform: scale(0.98);
+}
+.analysis__result > * {
+  animation: analysis-rise 0.45s ease both;
+}
+.analysis__result > :nth-child(2) {
+  animation-delay: 0.08s;
+}
+.analysis__result > :nth-child(3) {
+  animation-delay: 0.16s;
+}
+.analysis__result > :nth-child(4) {
+  animation-delay: 0.24s;
+}
+.analysis__result > :nth-child(5) {
+  animation-delay: 0.32s;
+}
+.analysis__result > :nth-child(n + 6) {
+  animation-delay: 0.4s;
+}
+.analysis__block--ai {
+  animation-name: analysis-rise-ai;
+}
+.analysis__source {
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+.analysis__source:hover {
+  transform: translateY(-1px);
+}
+@keyframes analysis-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+/* Sugestões da IA chegam com um leve brilho na borda, para se distinguir das ideias da equipe. */
+@keyframes analysis-rise-ai {
+  0% {
+    opacity: 0;
+    transform: translateY(0.75rem);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-info) 35%, transparent);
+  }
+  70% {
+    opacity: 1;
+    transform: none;
+    box-shadow: 0 0 0 0.375rem color-mix(in srgb, var(--color-info) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .analysis-swap-enter-active,
+  .analysis-swap-leave-active {
+    transition: none;
+  }
+  .analysis__result > *,
+  .analysis__block--ai {
+    animation: none;
+  }
+  .analysis__source:hover {
+    transform: none;
+  }
 }
 </style>

@@ -34,7 +34,7 @@ async function publish(content) {
       Respostas <span class="thread__count">({{ total }})</span>
     </h2>
 
-    <ul v-if="tree.length" class="thread__list">
+    <TransitionGroup v-if="tree.length" tag="ul" name="reply-list" appear class="thread__list">
       <BrainstormReplyItem
         v-for="node in tree"
         :key="node.reply.id"
@@ -43,7 +43,7 @@ async function publish(content) {
         :user-id="userId"
         :highlighted="highlighted"
       />
-    </ul>
+    </TransitionGroup>
     <p v-else class="thread__empty">
       {{
         flags.canReply
@@ -100,5 +100,48 @@ async function publish(content) {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
+}
+.thread__closed {
+  animation: thread-fade 0.3s ease both;
+}
+@keyframes thread-fade {
+  from {
+    opacity: 0;
+    transform: translateY(0.25rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .thread__closed {
+    animation: none;
+  }
+}
+/* Resposta nova entra deslizando; as outras se acomodam. */
+.reply-list-enter-active {
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+.reply-list-enter-from {
+  opacity: 0;
+  transform: translateY(0.625rem);
+}
+.reply-list-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.reply-list-leave-to {
+  opacity: 0;
+  transform: translateX(-0.5rem);
+}
+.reply-list-move {
+  transition: transform 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reply-list-enter-active,
+  .reply-list-leave-active,
+  .reply-list-move {
+    transition: none;
+  }
 }
 </style>

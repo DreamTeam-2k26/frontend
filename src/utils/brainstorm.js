@@ -166,3 +166,12 @@ export function wasEdited(item, toleranceMs = 2000) {
   const updated = Date.parse(item?.updated_at)
   return Number.isFinite(created) && Number.isFinite(updated) && updated - created > toleranceMs
 }
+
+// "Selecionar todas" da decisão: só marca/desmarca; o que é criado continua decidido card a card.
+export function allSelected(cards) {
+  return cards.length > 0 && cards.every((card) => card.selected)
+}
+
+export function setAllSelected(cards, selected) {
+  for (const card of cards) card.selected = selected
+}

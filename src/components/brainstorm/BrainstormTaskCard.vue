@@ -67,85 +67,87 @@ const missingTask = computed(
       Considere vincular.
     </p>
 
-    <fieldset v-if="card.selected" class="task-card__fields" :disabled="disabled">
-      <legend class="visually-hidden">Como aplicar “{{ card.title }}”</legend>
-      <div class="task-card__modes" role="radiogroup" aria-label="Criar ou vincular">
-        <button
-          type="button"
-          role="radio"
-          class="task-card__mode"
-          :class="{ 'task-card__mode--active': card.mode === 'new' }"
-          :aria-checked="card.mode === 'new'"
-          @click="emit('update', { mode: 'new' })"
-        >
-          <ListPlus :size="15" aria-hidden="true" /> Criar tarefa nova
-        </button>
-        <button
-          type="button"
-          role="radio"
-          class="task-card__mode"
-          :class="{ 'task-card__mode--active': card.mode === 'existing' }"
-          :aria-checked="card.mode === 'existing'"
-          :disabled="!tasks.length"
-          @click="emit('update', { mode: 'existing' })"
-        >
-          <Link2 :size="15" aria-hidden="true" /> Vincular existente
-        </button>
-      </div>
-
-      <template v-if="card.mode === 'new'">
-        <BaseInput
-          :model-value="card.title"
-          label="Título"
-          :maxlength="TASK_TITLE_MAX"
-          :error="missingTitle ? 'Informe o título.' : ''"
-          @update:model-value="emit('update', { title: $event })"
-        />
-        <div class="task-card__field">
-          <label :for="ids.description" class="task-card__field-label">Descrição</label>
-          <textarea
-            :id="ids.description"
-            class="task-card__textarea"
-            rows="2"
-            :value="card.description"
-            @input="emit('update', { description: $event.target.value })"
-          />
+    <Transition name="task-fields">
+      <fieldset v-if="card.selected" class="task-card__fields" :disabled="disabled">
+        <legend class="visually-hidden">Como aplicar “{{ card.title }}”</legend>
+        <div class="task-card__modes" role="radiogroup" aria-label="Criar ou vincular">
+          <button
+            type="button"
+            role="radio"
+            class="task-card__mode"
+            :class="{ 'task-card__mode--active': card.mode === 'new' }"
+            :aria-checked="card.mode === 'new'"
+            @click="emit('update', { mode: 'new' })"
+          >
+            <ListPlus :size="15" aria-hidden="true" /> Criar tarefa nova
+          </button>
+          <button
+            type="button"
+            role="radio"
+            class="task-card__mode"
+            :class="{ 'task-card__mode--active': card.mode === 'existing' }"
+            :aria-checked="card.mode === 'existing'"
+            :disabled="!tasks.length"
+            @click="emit('update', { mode: 'existing' })"
+          >
+            <Link2 :size="15" aria-hidden="true" /> Vincular existente
+          </button>
         </div>
-        <div class="task-card__grid">
-          <BaseSelect
-            :model-value="card.priority"
-            label="Prioridade"
-            :options="PRIORITY_OPTIONS"
-            @change="emit('update', { priority: $event })"
-          />
-          <BaseSelect
-            :model-value="card.assignee"
-            label="Responsável"
-            :options="memberOptions"
-            @change="emit('update', { assignee: $event })"
+
+        <template v-if="card.mode === 'new'">
+          <BaseInput
+            :model-value="card.title"
+            label="Título"
+            :maxlength="TASK_TITLE_MAX"
+            :error="missingTitle ? 'Informe o título.' : ''"
+            @update:model-value="emit('update', { title: $event })"
           />
           <div class="task-card__field">
-            <label :for="ids.due" class="task-card__field-label">Prazo</label>
-            <input
-              :id="ids.due"
-              type="date"
-              class="task-card__date"
-              :value="card.dueDate"
-              @input="emit('update', { dueDate: $event.target.value })"
+            <label :for="ids.description" class="task-card__field-label">Descrição</label>
+            <textarea
+              :id="ids.description"
+              class="task-card__textarea"
+              rows="2"
+              :value="card.description"
+              @input="emit('update', { description: $event.target.value })"
             />
           </div>
-        </div>
-      </template>
-      <BaseSelect
-        v-else
-        :model-value="card.existingTaskId"
-        label="Tarefa do Kanban"
-        placeholder="Escolha a tarefa"
-        :options="taskOptions"
-        :invalid="missingTask"
-        @change="emit('update', { existingTaskId: $event })"
-      />
-    </fieldset>
+          <div class="task-card__grid">
+            <BaseSelect
+              :model-value="card.priority"
+              label="Prioridade"
+              :options="PRIORITY_OPTIONS"
+              @change="emit('update', { priority: $event })"
+            />
+            <BaseSelect
+              :model-value="card.assignee"
+              label="Responsável"
+              :options="memberOptions"
+              @change="emit('update', { assignee: $event })"
+            />
+            <div class="task-card__field">
+              <label :for="ids.due" class="task-card__field-label">Prazo</label>
+              <input
+                :id="ids.due"
+                type="date"
+                class="task-card__date"
+                :value="card.dueDate"
+                @input="emit('update', { dueDate: $event.target.value })"
+              />
+            </div>
+          </div>
+        </template>
+        <BaseSelect
+          v-else
+          :model-value="card.existingTaskId"
+          label="Tarefa do Kanban"
+          placeholder="Escolha a tarefa"
+          :options="taskOptions"
+          :invalid="missingTask"
+          @change="emit('update', { existingTaskId: $event })"
+        />
+      </fieldset>
+    </Transition>
     <p v-if="error" class="task-card__error" role="alert">{{ error }}</p>
   </li>
 </template>
@@ -162,6 +164,7 @@ const missingTask = computed(
 }
 .task-card--selected {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
 }
 .task-card--error {
   border-color: var(--color-danger);
@@ -264,6 +267,48 @@ const missingTask = computed(
 @media (max-width: 700px) {
   .task-card__grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+.task-card {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.task-card__check:checked {
+  animation: task-check-pop 0.25s ease;
+}
+.task-card__mode {
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+/* Campos aparecem ao marcar o card e somem ao desmarcar. */
+.task-fields-enter-active,
+.task-fields-leave-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.task-fields-enter-from,
+.task-fields-leave-to {
+  opacity: 0;
+  transform: translateY(-0.375rem);
+}
+@keyframes task-check-pop {
+  50% {
+    transform: scale(1.25);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-card,
+  .task-card__mode,
+  .task-fields-enter-active,
+  .task-fields-leave-active {
+    transition: none;
+  }
+  .task-card__check:checked {
+    animation: none;
   }
 }
 </style>

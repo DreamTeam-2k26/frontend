@@ -39,7 +39,8 @@ function press(value) {
       <ThumbsUp :size="15" aria-hidden="true" />
     </button>
     <span class="vote__score" aria-live="polite">
-      <span class="visually-hidden">Saldo de votos:</span>{{ score > 0 ? `+${score}` : score }}
+      <span class="visually-hidden">Saldo de votos:</span
+      ><span :key="score" class="vote__number">{{ score > 0 ? `+${score}` : score }}</span>
     </span>
     <button
       type="button"
@@ -101,5 +102,44 @@ function press(value) {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   text-align: center;
+}
+.vote__button {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+.vote__button:active:not(:disabled) {
+  transform: scale(0.9);
+}
+/* Voto dado: o ícone "salta"; o saldo novo entra de baixo. */
+.vote__button--active svg {
+  animation: vote-pop 0.35s ease;
+}
+.vote__number {
+  display: inline-block;
+  animation: vote-bump 0.3s ease;
+}
+@keyframes vote-pop {
+  40% {
+    transform: scale(1.35) rotate(-8deg);
+  }
+}
+@keyframes vote-bump {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vote__button,
+  .vote__button:active:not(:disabled) {
+    transition: none;
+    transform: none;
+  }
+  .vote__button--active svg,
+  .vote__number {
+    animation: none;
+  }
 }
 </style>

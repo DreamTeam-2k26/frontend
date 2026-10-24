@@ -1,12 +1,18 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, shallowRef, useId, useTemplateRef, watch } from 'vue'
-import { Plus } from 'lucide-vue-next'
+import { CheckCheck, Plus, SquareMinus } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BrainstormTaskCard from './BrainstormTaskCard.vue'
 import { useForm } from '@/composables/useForm'
 import { useBrainstormTopicStore } from '@/stores/brainstormTopic'
-import { approvalPayload, cardsFromAnalysis, priorityLabel } from '@/utils/brainstorm'
+import {
+  allSelected,
+  approvalPayload,
+  cardsFromAnalysis,
+  priorityLabel,
+  setAllSelected,
+} from '@/utils/brainstorm'
 import { required } from '@/utils/validators'
 
 // Revisão humana (dono/admin): texto final, justificativa e escolha card a card. Um único POST approve/.
@@ -44,6 +50,12 @@ watch(
 )
 
 const selected = computed(() => cards.value.filter((card) => card.selected))
+const everySelected = computed(() => allSelected(cards.value))
+
+// Marca (ou desmarca) todos os cards de uma vez; o modo e os campos de cada um continuam como estão.
+function toggleAll() {
+  setAllSelected(cards.value, !everySelected.value)
+}
 const incomplete = computed(() =>
   selected.value.some((card) => (card.mode === 'new' ? !card.title.trim() : !card.existingTaskId)),
 )
@@ -166,15 +178,30 @@ const describe = (card) =>
       </div>
 
       <div class="editor__cards-head">
-        <h4>Tarefas ({{ selected.length }} de {{ cards.length }} selecionadas)</h4>
-        <BaseButton variant="secondary" :disabled="busy" @click="addManual">
-          <Plus :size="15" aria-hidden="true" /> Adicionar tarefa
-        </BaseButton>
+        <h4 aria-live="polite">
+          Tarefas ({{ selected.length }} de {{ cards.length }} selecionadas)
+        </h4>
+        <div class="editor__cards-actions">
+          <BaseButton
+            v-if="cards.length"
+            variant="ghost"
+            :disabled="busy"
+            :aria-pressed="everySelected"
+            @click="toggleAll"
+          >
+            <SquareMinus v-if="everySelected" :size="15" aria-hidden="true" />
+            <CheckCheck v-else :size="15" aria-hidden="true" />
+            {{ everySelected ? 'Desmarcar todas' : 'Selecionar todas' }}
+          </BaseButton>
+          <BaseButton variant="secondary" :disabled="busy" @click="addManual">
+            <Plus :size="15" aria-hidden="true" /> Adicionar tarefa
+          </BaseButton>
+        </div>
       </div>
       <p v-if="store.decisionData === 'loading'" class="editor__hint" role="status">
         Carregando tarefas e participantes do projeto…
       </p>
-      <ul v-if="cards.length" class="editor__cards">
+      <TransitionGroup v-if="cards.length" tag="ul" name="editor-card" class="editor__cards">
         <BrainstormTaskCard
           v-for="card in cards"
           :key="card.key"
@@ -185,7 +212,7 @@ const describe = (card) =>
           :error="cardErrors[card.key] || ''"
           @update="update(card, $event)"
         />
-      </ul>
+      </TransitionGroup>
       <p v-else class="editor__hint">
         A IA não sugeriu tarefas. Você pode aprovar só o texto ou adicionar uma.
       </p>
@@ -305,5 +332,29 @@ const describe = (card) =>
   padding-left: var(--space-4);
   font-size: var(--font-size-sm);
   list-style: disc;
+}
+.editor__cards-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+/* Card novo entra deslizando; os outros se acomodam. */
+.editor-card-enter-active {
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+}
+.editor-card-enter-from {
+  opacity: 0;
+  transform: translateY(-0.5rem) scale(0.98);
+}
+.editor-card-move {
+  transition: transform 0.3s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .editor-card-enter-active,
+  .editor-card-move {
+    transition: none;
+  }
 }
 </style>

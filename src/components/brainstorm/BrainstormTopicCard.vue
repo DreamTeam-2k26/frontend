@@ -71,10 +71,20 @@ const excerpt = computed(() => preview(topic.context, 180))
   background: var(--color-bg-card);
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 .topic-card:hover {
   border-color: var(--color-secondary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-text) 8%, transparent);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .topic-card,
+  .topic-card:hover {
+    transform: none;
+    transition: none;
+  }
 }
 .topic-card:focus-within {
   border-color: var(--color-primary);

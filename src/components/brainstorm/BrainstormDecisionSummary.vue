@@ -125,4 +125,33 @@ const tasks = computed(() => decision.tasks ?? [])
 .decision__task-removed {
   color: var(--color-text-secondary);
 }
+/* Decisão aprovada chega com um selo que "carimba". */
+.decision {
+  animation: decision-in 0.4s ease both;
+}
+.decision__title svg {
+  animation: decision-stamp 0.5s 0.2s ease both;
+}
+@keyframes decision-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+@keyframes decision-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.8) rotate(-20deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(0.9);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .decision,
+  .decision__title svg {
+    animation: none;
+  }
+}
 </style>

@@ -474,4 +474,26 @@ function approved() {
     align-items: flex-start;
   }
 }
+/* Troca de etapa: o conteúdo novo entra suave (sem esperar a saída do anterior). */
+.topic-view__panel > * {
+  animation: topic-step-in 0.3s ease both;
+}
+.topic-view__panel > :nth-child(2) {
+  animation-delay: 0.06s;
+}
+.topic-view__header {
+  animation: topic-step-in 0.35s ease both;
+}
+@keyframes topic-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topic-view__panel > *,
+  .topic-view__header {
+    animation: none;
+  }
+}
 </style>
