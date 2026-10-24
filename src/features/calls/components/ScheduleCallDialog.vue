@@ -39,6 +39,7 @@ function defaultWhen() {
 }
 
 function save() {
+  if (props.saving) return
   problem.value = ''
 
   if (title.value.trim().length > 150) {
