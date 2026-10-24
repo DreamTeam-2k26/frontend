@@ -154,8 +154,12 @@ onBeforeUnmount(() => {
           />
         </button>
       </div>
-      <div :id="`panel-${tab}`" role="tabpanel" :aria-labelledby="`tab-${tab}`"
-        :aria-label="TABS.find((item) => item.key === tab)?.label">
+      <div
+        :id="`panel-${tab}`"
+        role="tabpanel"
+        :aria-labelledby="`tab-${tab}`"
+        :aria-label="TABS.find((item) => item.key === tab)?.label"
+      >
         <ProjectOverview
           v-if="tab === 'geral'"
           :project="project"

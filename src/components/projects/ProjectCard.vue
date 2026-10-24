@@ -128,6 +128,9 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .project-card__cover {
   position: relative;
