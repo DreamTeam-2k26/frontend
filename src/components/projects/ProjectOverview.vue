@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ArrowRight, CalendarDays, RotateCw } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import UserAvatar from '@/components/user/UserAvatar.vue'
 import ProjectNextCall from '@/features/calls/components/ProjectNextCall.vue'
 import { useTweenedNumber } from '@/composables/useTweenedNumber'
 import BrainstormShortcut from '@/components/brainstorm/BrainstormShortcut.vue'
@@ -65,15 +66,6 @@ function dueDate(value) {
     : new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' })
         .format(date)
         .replace('.', '')
-}
-function initials(member) {
-  return (member.user_name || 'Participante')
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toLocaleUpperCase('pt-BR')
 }
 
 // Indicadores deslizam do valor anterior ao atualizar (refresh), nunca a partir do zero.
@@ -205,7 +197,12 @@ const shownProgress = useTweenedNumber(() => stats.value?.progress ?? null)
               :title="member.user_name || 'Participante'"
               :aria-label="member.user_name || 'Participante'"
             >
-              {{ initials(member) }}
+              <UserAvatar
+                class="avatars__photo"
+                :name="member.user_name || 'Participante'"
+                :src="member.user_profile_picture || ''"
+                size="sm"
+              />
             </li>
             <li
               v-if="members.data.length > 5"
@@ -427,6 +424,12 @@ time {
   background: var(--color-secondary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  overflow: hidden;
+}
+/* Foto ou iniciais ocupam o círculo inteiro (a borda branca separa os avatares sobrepostos). */
+.avatars__photo {
+  width: 100%;
+  height: 100%;
 }
 .project-info {
   color: var(--color-text-secondary);

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ClipboardList, FileText, Users, History, ArrowUpRight, RefreshCw } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import UserAvatar from '@/components/user/UserAvatar.vue'
 import activities from '@/api/activities'
 import { useAuthStore } from '@/stores/auth'
 import { useConnection } from '@/composables/useConnection'
@@ -191,7 +192,12 @@ onBeforeUnmount(() => {
               /></span>
               <article>
                 <div class="activity-meta">
-                  <strong>{{ actorName(activity) }}</strong
+                  <UserAvatar
+                    class="activity-meta__avatar"
+                    :name="actorName(activity)"
+                    :src="activity.actor?.picture || ''"
+                    size="sm"
+                  /><strong>{{ actorName(activity) }}</strong
                   ><span class="activity-type">{{ categoryLabel(activity) }}</span
                   ><time :datetime="activity.created_at">{{
                     activityTime(activity.created_at)
@@ -329,6 +335,11 @@ p {
   flex-wrap: wrap;
   gap: var(--space-2);
   font-size: var(--font-size-sm);
+}
+.activity-meta__avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.625rem;
 }
 .activity-meta time {
   color: var(--color-text-secondary);

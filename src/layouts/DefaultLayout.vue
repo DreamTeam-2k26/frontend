@@ -98,6 +98,12 @@ onBeforeUnmount(() => chat.stop())
   min-width: 0;
 }
 
+/* Páginas de altura total (salas de conversa e conversa do projeto, marcadas com .page-fill):
+   sem rodapé, a tela não rola. */
+.layout:has(.page-fill) .layout__footer {
+  display: none;
+}
+
 /* Só entrada: a página anterior sai na hora, sem atrasar a navegação. */
 .page-leave-active {
   display: none;

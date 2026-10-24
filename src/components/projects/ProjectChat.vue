@@ -53,12 +53,16 @@ onBeforeUnmount(() => chat.closeRoom())
 <style scoped>
 .project-chat {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--space-2);
+  min-height: 0;
 }
+/* Ocupa a altura que a aba reserva (ProjectDetailView); quem rola é a lista de mensagens. */
 .project-chat__pane,
 .project-chat__state {
-  height: clamp(28rem, 72dvh, 48rem);
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;

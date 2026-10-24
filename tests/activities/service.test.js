@@ -151,3 +151,24 @@ test('link revalida existência e projeto antes da navegação', async () => {
   entity = { ...file, project: 99 }
   assert.equal(await client.target(3, record), null)
 })
+test('o autor de cada registro traz a foto de perfil (ou null) para o avatar', async () => {
+  const withPictures = api({
+    get: async (path) => {
+      if (path === '/projects/3/') return { data: { id: 3 } }
+      if (path === '/tasks/') return { data: [{ id: 1, project: 3 }] }
+      if (path === '/tasks/1/')
+        return { data: { ...task, created_by_profile_picture: '/media/clara.jpg' } }
+      if (path === '/files/') return { data: [{ ...file, uploaded_by_profile_picture: null }] }
+      if (path === '/memberships/')
+        return { data: [{ ...member, user_profile_picture: '/media/joao.jpg' }] }
+      throw new Error(`Inesperado: ${path}`)
+    },
+  })
+  const { items } = await createActivityClient(withPictures).list(3)
+  const pictures = Object.fromEntries(items.map((item) => [item.id, item.actor.picture]))
+  assert.deepEqual(pictures, {
+    'task:1': '/media/clara.jpg',
+    'file:1': null,
+    'membership:1': '/media/joao.jpg',
+  })
+})

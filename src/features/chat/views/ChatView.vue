@@ -60,7 +60,7 @@ function selectRoom(id) {
 </script>
 
 <template>
-  <div class="chat" :class="{ 'chat--room': routeRoomId !== null }">
+  <div class="chat page-fill" :class="{ 'chat--room': routeRoomId !== null }">
     <p v-if="banner === 'offline'" class="chat__banner" role="status">
       <WifiOff :size="16" aria-hidden="true" />
       Reconectando...

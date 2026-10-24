@@ -1,6 +1,6 @@
 <script setup>
 import { personName } from '@/components/projects/memberRules'
-import { getInitials } from '@/utils/user'
+import UserAvatar from '@/components/user/UserAvatar.vue'
 import MemberActions from './MemberActions.vue'
 import { roles } from './teamState'
 defineProps({
@@ -34,10 +34,11 @@ defineEmits(['action'])
       >
         <td>
           <span class="person"
-            ><span class="avatar" aria-hidden="true">{{
-              getInitials(personName(member.user_name, member.user_email)) || '?'
-            }}</span
-            >{{ personName(member.user_name, member.user_email) }}</span
+            ><UserAvatar
+              :name="personName(member.user_name, member.user_email)"
+              :src="member.user_profile_picture || ''"
+              size="sm"
+            />{{ personName(member.user_name, member.user_email) }}</span
           >
         </td>
         <td class="email">{{ member.user_email }}</td>
@@ -97,16 +98,6 @@ td {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-}
-.avatar {
-  display: inline-grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--color-secondary);
-  font-size: var(--font-size-xs);
 }
 .badge {
   padding: var(--space-1) var(--space-2);

@@ -87,6 +87,7 @@ const dueOf = (task) => dueInfo(task.due_date, today, isDone(task))
                   <template v-if="task.assignee">
                     <UserAvatar
                       :name="task.assignee_name || ''"
+                      :src="task.assignee_profile_picture || ''"
                       size="sm"
                       class="task-list__avatar"
                     />
