@@ -50,11 +50,7 @@
 
   /* Botão principal */
   --color-button-primary-bg: #526b5d;
-  --color-button-primary-hover: color-mix(
-    in srgb,
-    var(--color-button-primary-bg) 85%,
-    var(--color-text)
-  );
+  --color-button-primary-hover: color-mix(in srgb, var(--color-button-primary-bg) 85%, var(--color-text));
   --color-on-primary: #ffffff;
 
   /* Logo monocromática */
@@ -79,9 +75,7 @@
   --color-status-late: #ae4e50;
 
   /* Compatibilidade: nomes usados pelos componentes atuais */
-  --color-background: var(
-    --color-bg-card
-  ); /* superfícies elevadas: header, sidebar, cards, inputs */
+  --color-background: var(--color-bg-card); /* superfícies elevadas: header, sidebar, cards, inputs */
   --color-surface: var(--color-bg-page); /* fundo da página e hover discreto */
   --color-error: var(--color-danger);
 
@@ -124,38 +118,38 @@
   --z-popover: 15;
 }
 
-/* Tema escuro em teste: preto e cinza com verde nos destaques e nas ações. */
+/* Tema escuro: superfícies grafite-esverdeadas, nunca preto absoluto. */
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-bg-page: #000000;
-  --color-bg-card: #080808;
-  --color-bg-subtle: #0d0d0d;
-  --color-bg-hover: #102319;
-  --color-input-bg: #050505;
+  --color-bg-page: #141c17;
+  --color-bg-card: #1d2921;
+  --color-bg-subtle: #25342a;
+  --color-bg-hover: #304337;
+  --color-input-bg: #243128;
 
-  --color-primary: #85c99e;
-  --color-primary-hover: #abe0bc;
-  --color-secondary: #525252;
-  --color-accent: #b5b5b5;
+  --color-primary: #a8c7b2;
+  --color-primary-hover: #bed7c5;
+  --color-secondary: #829d8b;
+  --color-accent: #d4b697;
 
-  --color-text: #f5f5f5;
-  --color-text-secondary: #b3b3b3;
-  --color-border: #262626;
-  --color-disabled: #454545;
+  --color-text: #edf3ed;
+  --color-text-secondary: #a9b9ac;
+  --color-border: #35483b;
+  --color-disabled: #56675a;
 
-  --color-button-primary-bg: #85c99e;
-  --color-button-primary-hover: #abe0bc;
-  --color-on-primary: #101010;
+  --color-button-primary-bg: #a8c7b2;
+  --color-button-primary-hover: #bed7c5;
+  --color-on-primary: #141c17;
 
-  --color-success: #85c99e;
+  --color-success: #79b998;
   --color-warning: #e5c18d;
   --color-danger: #f09d9a;
   --color-info: #9dbcdd;
 
-  --color-status-todo: #b3b3b3;
-  --color-status-doing: #85c99e;
-  --color-status-done: #85c99e;
+  --color-status-todo: #a9b9ac;
+  --color-status-doing: #a8c7b2;
+  --color-status-done: #79b998;
   --color-status-late: #f09d9a;
 
   /* Sombras quase imperceptíveis no escuro; a borda faz a separação. */
@@ -380,26 +374,4 @@ body.is-dragging {
   h2 {
     font-size: 1.375rem;
   }
-}
-
-/* Realces verdes do tema escuro: hover apenas para dispositivos com mouse. */
-@media (hover: hover) {
-  :root[data-theme='dark'] :is(.nav-item, .sidebar__section-link):hover {
-    color: var(--color-primary-hover);
-    background-color: var(--color-bg-hover);
-  }
-
-  :root[data-theme='dark'] .button--secondary:hover:not(.button--disabled) {
-    color: var(--color-primary-hover);
-    border-color: var(--color-primary);
-  }
-
-  :root[data-theme='dark'] .project-card:hover {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, transparent);
-  }
-}
-
-:root[data-theme='dark'] .project-card:focus-within {
-  border-color: var(--color-primary);
 }
