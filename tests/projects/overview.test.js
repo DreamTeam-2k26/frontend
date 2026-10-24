@@ -54,7 +54,7 @@ beforeEach(() => {
   pinia.setActivePinia(pinia.createPinia())
   calls = { dashboard: 0, upcoming: 0, members: 0 }
   globalThis.fakeProjectsApi = {
-    getProjectDashboard: (id) => {
+    getProjectDashboard: (_id) => {
       calls.dashboard++
       return Promise.resolve(
         dashboard(12, 8, { overdue_tasks: 1, in_progress_tasks: 1, todo_tasks: 3 }),
