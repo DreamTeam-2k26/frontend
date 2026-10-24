@@ -129,6 +129,7 @@ onBeforeUnmount(() => {
 <template>
   <section
     class="project-detail"
+    :class="{ 'project-detail--fill': project && tab === 'conversa' }"
     :aria-busy="loading"
     :aria-labelledby="project ? 'project-title' : 'project-state-title'"
   >
@@ -150,7 +151,7 @@ onBeforeUnmount(() => {
       >
     </div>
     <template v-else-if="project">
-      <ProjectHeader :project="project" />
+      <ProjectHeader :project="project" :show-actions="tab === 'geral'" />
       <!-- A sidebar é exclusiva do desktop; no celular as configurações precisam de acesso próprio. -->
       <RouterLink
         class="project-detail__mobile-settings"
@@ -317,6 +318,25 @@ onBeforeUnmount(() => {
 }
 .project-detail__state p {
   color: var(--color-text-secondary);
+}
+/* Conversa: a seção ocupa exatamente a tela abaixo do header e o chat preenche o resto; só a lista
+   de mensagens rola (o rodapé do app some nessa aba, ver DefaultLayout). */
+.project-detail--fill {
+  height: calc(100dvh - var(--header-height));
+  min-height: 30rem;
+}
+.project-detail--fill > [role='tabpanel'] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+@media (max-width: 767px) {
+  .project-detail--fill {
+    height: calc(
+      100dvh - var(--header-height) - var(--mobile-nav-height) - env(safe-area-inset-bottom)
+    );
+  }
 }
 @media (max-width: 700px) {
   .project-detail {

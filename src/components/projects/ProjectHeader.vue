@@ -2,7 +2,11 @@
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { KanbanSquare, Plus } from 'lucide-vue-next'
 
-defineProps({ project: { type: Object, required: true } })
+const { showActions = true } = defineProps({
+  project: { type: Object, required: true },
+  // Atalhos de tarefa (Abrir Kanban, Nova tarefa): só fazem sentido na Visão geral.
+  showActions: { type: Boolean, default: true },
+})
 </script>
 
 <template>
@@ -13,7 +17,7 @@ defineProps({ project: { type: Object, required: true } })
       </div>
       <p>{{ project.description || 'Este projeto ainda não tem descrição.' }}</p>
     </div>
-    <div class="project-header__actions">
+    <div v-if="showActions" class="project-header__actions">
       <BaseButton variant="secondary" :to="{ name: 'project-kanban', params: { id: project.id } }">
         <KanbanSquare :size="16" aria-hidden="true" /> Abrir Kanban
       </BaseButton>
