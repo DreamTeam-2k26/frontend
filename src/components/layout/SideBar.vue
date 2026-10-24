@@ -39,7 +39,6 @@ const isExpanded = (id) => expandedProjectId.value === String(id)
 
 let request = 0
 let controller
-let mounted = false
 
 function loadOpenedProject(id) {
   const current = ++request
@@ -85,7 +84,6 @@ function toggleProject(id) {
   // Escolher um projeto antigo também troca o projeto ativo, em vez de expandir
   // links de um projeto enquanto o conteúdo do outro continua na tela.
   if (currentProjectId.value !== key) {
-    expandedProjectId.value = key
     router.push(projectSectionLocation(key, 'geral'))
     return
   }
@@ -112,14 +110,12 @@ watch(() => authStore.user?.id, (next, previous) => {
 })
 
 onMounted(() => {
-  mounted = true
-  window.addEventListener('projects:changed', onProjectsChanged)
+  window.addEventListener('sidebar:project-updated', onProjectsChanged)
 })
 onBeforeUnmount(() => {
-  mounted = false
   request++
   controller?.abort()
-  window.removeEventListener('projects:changed', onProjectsChanged)
+  window.removeEventListener('sidebar:project-updated', onProjectsChanged)
 })
 
 const userName = computed(() =>
