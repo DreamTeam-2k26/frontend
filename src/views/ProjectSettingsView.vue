@@ -22,6 +22,9 @@ const busy = ref(false)
 const confirmation = ref(null)
 const canEdit = computed(() => ['owner', 'admin'].includes(project.value?.role))
 const canLeave = computed(() => ['admin', 'member'].includes(project.value?.role))
+// Backend #46 ainda não está disponível: não mostrar ação que sempre falhará.
+// Ativar somente após o endpoint POST /projects/:id/leave/ estar implantado e validado.
+const leaveAvailable = import.meta.env.VITE_PROJECT_LEAVE_ENABLED === 'true'
 const roleLabel = computed(
   () =>
     ({ owner: 'Dono', admin: 'Administrador', member: 'Membro' })[project.value?.role] ??
@@ -122,7 +125,7 @@ async function closeConfirmation() {
 async function confirm() {
   const action = confirmation.value
   if (busy.value || !action) return
-  if (action === 'delete' ? project.value?.role !== 'owner' : !canLeave.value) return
+  if (action === 'delete' ? project.value?.role !== 'owner' : !canLeave.value || !leaveAvailable) return
   const token = version
   const id = String(route.params.id)
   busy.value = true
@@ -238,9 +241,15 @@ onBeforeUnmount(() => {
           <p>
             Ao sair, você perderá acesso ao projeto. Será necessário um novo convite para voltar.
           </p>
-          <BaseButton variant="secondary" :disabled="busy" @click="openConfirmation('leave')"
-            >Sair do projeto</BaseButton
-          >
+          <BaseButton
+            v-if="leaveAvailable"
+            variant="secondary"
+            :disabled="busy"
+            @click="openConfirmation('leave')"
+          >Sair do projeto</BaseButton>
+          <p v-else role="status">
+            A opção de sair do projeto estará disponível após a liberação desta funcionalidade.
+          </p>
         </template>
       </section>
     </template>
