@@ -3,6 +3,9 @@ import { computed, onMounted, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { LogOut } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import GoogleSignIn from '@/components/auth/GoogleSignIn.vue'
+import { getGoogleLink } from '@/api/auth'
+import { googleAuthError } from '@/utils/googleAuthError'
 import ProfileForm from '@/components/user/ProfileForm.vue'
 import { useAuthStore } from '@/stores/auth'
 
@@ -10,6 +13,24 @@ const authStore = useAuthStore()
 const router = useRouter()
 const status = shallowRef('loading') // loading | ready | error
 const loadError = shallowRef('')
+const googleLinked = shallowRef(null)
+const googleLinkError = shallowRef('')
+const checkingGoogle = shallowRef(false)
+async function loadGoogleLink() {
+  checkingGoogle.value = true
+  googleLinkError.value = ''
+  try {
+    const { data } = await getGoogleLink()
+    googleLinked.value = data.linked
+  } catch (error) {
+    googleLinkError.value = googleAuthError(error, true)
+  } finally {
+    checkingGoogle.value = false
+  }
+}
+function onGoogleLinked(result) {
+  googleLinked.value = result.linked === true
+}
 
 // Remonta o formulário com os dados salvos (zera foto pendente e alterações).
 const formKey = computed(() =>
@@ -44,7 +65,10 @@ async function onLogout() {
   authStore.logout()
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  loadGoogleLink()
+})
 </script>
 
 <template>
@@ -74,6 +98,20 @@ onMounted(load)
       :saving="authStore.saving"
       @submit="onSubmit"
     />
+
+    <section v-if="status === 'ready'" class="profile-page__google" aria-labelledby="google-title">
+      <h2 id="google-title" class="profile-page__error-title">Vincular Conta Google</h2>
+      <p v-if="checkingGoogle" role="status">Conferindo vínculo…</p>
+      <template v-else-if="googleLinkError">
+        <p role="alert">{{ googleLinkError }}</p>
+        <BaseButton variant="secondary" @click="loadGoogleLink">Tentar novamente</BaseButton>
+      </template>
+      <p v-else-if="googleLinked" role="status">Conta Google vinculada</p>
+      <template v-else-if="googleLinked === false">
+        <p class="profile-page__subtitle">Vincule sua conta para também entrar com Google.</p>
+        <GoogleSignIn mode="link" :disabled="authStore.saving" @success="onGoogleLinked" />
+      </template>
+    </section>
 
     <section class="profile-page__session" aria-labelledby="session-title">
       <div>
@@ -129,6 +167,16 @@ onMounted(load)
 .profile-page__error-title {
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-semibold);
+}
+
+.profile-page__google {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .profile-page__session {
