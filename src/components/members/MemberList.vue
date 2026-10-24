@@ -1,4 +1,5 @@
 <script setup>
+import { personName } from '@/components/projects/memberRules'
 import { getInitials } from '@/utils/user'
 import MemberActions from './MemberActions.vue'
 import { roles } from './teamState'
@@ -27,9 +28,9 @@ defineEmits(['action'])
         <td>
           <span class="person"
             ><span class="avatar" aria-hidden="true">{{
-              getInitials(member.user_name) || '?'
+              getInitials(personName(member.user_name, member.user_email)) || '?'
             }}</span
-            >{{ member.user_name || 'Participante' }}</span
+            >{{ personName(member.user_name, member.user_email) }}</span
           >
         </td>
         <td class="email">{{ member.user_email }}</td>

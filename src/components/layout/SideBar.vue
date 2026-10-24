@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import NavItem from './NavItem.vue'
 import AppBrand from './AppBrand.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
+import { personName } from '@/components/projects/memberRules'
 import { useNavigation } from '@/composables/useNavigation'
 import { useSidebar } from '@/composables/useSidebar'
 import { useAuthStore } from '@/stores/auth'
@@ -16,7 +17,10 @@ const groups = computed(() =>
     { label: 'Projetos', items: items.filter((item) => item.group === 'projects') },
   ].filter((group) => group.items.length),
 )
-const userName = computed(() => authStore.user?.name || 'Minha conta')
+// Contas antigas têm o nome padrão "Usuário": mostra a parte do e-mail em vez dele.
+const userName = computed(() =>
+  authStore.user ? personName(authStore.user.name, authStore.user.email) : 'Minha conta',
+)
 </script>
 
 <template>
@@ -45,11 +49,7 @@ const userName = computed(() => authStore.user?.name || 'Minha conta')
       active-class="sidebar__account--active"
       :title="collapsed ? userName : undefined"
     >
-      <UserAvatar
-        :name="authStore.user?.name"
-        :src="authStore.user?.profile_picture?.url"
-        size="sm"
-      />
+      <UserAvatar :name="userName" :src="authStore.user?.profile_picture?.url" size="sm" />
       <div v-if="!collapsed" class="sidebar__identity">
         <span class="sidebar__name">{{ userName }}</span>
         <span class="sidebar__caption">Ver perfil</span>
