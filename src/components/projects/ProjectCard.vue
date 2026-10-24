@@ -105,7 +105,7 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
           :title="preview ? 'Projeto de demonstração: não existe no backend.' : undefined"
         >
           {{ preview ? 'Projeto de exemplo' : 'Acessar projeto' }}
-          <ArrowUpRight v-if="!preview" :size="16" aria-hidden="true" />
+          <ArrowUpRight v-if="!preview" class="project-card__arrow" :size="16" aria-hidden="true" />
         </BaseButton>
         <BaseButton
           v-if="!compact && ['owner', 'admin'].includes(project.role)"
@@ -130,7 +130,25 @@ const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
   background: var(--color-bg-card);
   transition:
     border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow var(--motion-quick) var(--ease-flow),
+    transform var(--motion-quick) var(--ease-flow);
+}
+/* Elevação discreta (até 3 px) em hover/foco e resposta curta ao clique. */
+.project-card:hover,
+.project-card:focus-within {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+.project-card:active {
+  transform: translateY(-1px);
+  transition-duration: var(--motion-fast);
+}
+.project-card__arrow {
+  transition: transform var(--motion-quick) var(--ease-flow);
+}
+.project-card:hover .project-card__arrow,
+.project-card:focus-within .project-card__arrow {
+  transform: translate(2px, -2px);
 }
 .project-card__cover {
   position: relative;

@@ -1,4 +1,6 @@
 <script setup>
+import { AnimatePresence, motion } from 'motion-v'
+import { listItemMotion } from '@/utils/motion'
 import ProjectCard from './ProjectCard.vue'
 defineProps({
   projects: { type: Array, required: true },
@@ -10,18 +12,27 @@ defineEmits(['edit'])
 
 <template>
   <ul class="project-list" aria-label="Projetos">
-    <li v-for="project in projects" :key="project.id">
-      <ProjectCard
-        :project="project"
-        :live-call="liveCalls.find((call) => call.project === project.id) ?? null"
-        @edit="$emit('edit', $event)"
-      />
-    </li>
+    <!-- Busca e atualizações: cada card entra, sai e se reposiciona pelo id, sem remontar a lista. -->
+    <AnimatePresence mode="popLayout">
+      <motion.li
+        v-for="(project, index) in projects"
+        :key="project.id"
+        layout
+        v-bind="listItemMotion(index)"
+      >
+        <ProjectCard
+          :project="project"
+          :live-call="liveCalls.find((call) => call.project === project.id) ?? null"
+          @edit="$emit('edit', $event)"
+        />
+      </motion.li>
+    </AnimatePresence>
   </ul>
 </template>
 
 <style scoped>
 .project-list {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
