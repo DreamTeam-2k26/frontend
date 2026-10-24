@@ -19,6 +19,7 @@ const props = defineProps({
   max: { type: String, default: '' },
   calendarTitle: { type: String, default: 'Compromisso no Fluxo' },
   calendarDescription: { type: String, default: '' },
+  showGoogleCalendar: { type: Boolean, default: false },
 })
 const emit = defineEmits(['change', 'blur'])
 const uid = useId()
@@ -178,6 +179,7 @@ onBeforeUnmount(() => {
       error
     }}</small>
     <GoogleCalendarLink
+      v-if="showGoogleCalendar && !datetime"
       :start="model"
       :title="calendarTitle"
       :description="calendarDescription"
