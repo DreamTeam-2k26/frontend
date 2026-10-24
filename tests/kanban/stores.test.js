@@ -29,7 +29,10 @@ before(async () => {
     configFile: false,
     resolve: {
       alias: [
-        ...API_MODULES.map((name) => ({ find: `@/api/${name}`, replacement: here('./fakeApi.js') })),
+        ...API_MODULES.map((name) => ({
+          find: `@/api/${name}`,
+          replacement: here('./fakeApi.js'),
+        })),
         { find: 'vue3-toastify', replacement: here('./fakeToast.js') },
         { find: '@', replacement: here('../../src') },
       ],
@@ -215,4 +218,71 @@ test('resposta tardia de criação não entra no quadro de outro projeto', async
     kanban.tasks.map((item) => item.id),
     [2],
   )
+})
+
+const columnIds = (kanban) => kanban.columns.map((column) => column.id)
+
+test('coluna criada no projeto A não aparece no quadro de B se a resposta chegar depois', async () => {
+  const kanban = useKanbanStore()
+  await kanban.load(1)
+  const slowCreate = deferred()
+  globalThis.fakeApi.createColumn = () => slowCreate.promise
+
+  const creating = kanban.createColumn({ name: 'Revisão', category: 'in_progress' })
+  await tick()
+  await kanban.load(2)
+  slowCreate.resolve({
+    data: { id: 11, project: 1, name: 'Revisão', category: 'in_progress', position: 1 },
+  })
+  await creating.catch(() => {})
+
+  assert.deepEqual(columnIds(kanban), [20])
+})
+
+test('reordenação antiga não troca as colunas do quadro atual', async () => {
+  const kanban = useKanbanStore()
+  globalThis.fakeApi.listAllColumns = (id) =>
+    Promise.resolve([
+      { id: Number(id) * 10, name: 'A fazer', category: 'todo', position: 0 },
+      { id: Number(id) * 10 + 1, name: 'Feito', category: 'done', position: 1 },
+    ])
+  await kanban.load(1)
+  const slowReorder = deferred()
+  globalThis.fakeApi.reorderColumns = () => slowReorder.promise
+
+  const moving = kanban.moveColumn(10, 1)
+  await tick()
+  await kanban.load(2)
+  slowReorder.resolve({
+    data: [
+      { id: 11, position: 0 },
+      { id: 10, position: 1 },
+    ],
+  })
+  await moving.catch(() => {})
+
+  assert.deepEqual(columnIds(kanban), [20, 21])
+})
+
+test('falha antiga de reordenação não desfaz o quadro atual', async () => {
+  const kanban = useKanbanStore()
+  globalThis.fakeApi.listAllColumns = (id) =>
+    Promise.resolve([
+      { id: Number(id) * 10, name: 'A fazer', category: 'todo', position: 0 },
+      { id: Number(id) * 10 + 1, name: 'Feito', category: 'done', position: 1 },
+    ])
+  await kanban.load(1)
+  const slowReorder = deferred()
+  globalThis.fakeApi.reorderColumns = () => slowReorder.promise.then(offline)
+
+  const moving = kanban.moveColumn(10, 1)
+  await tick()
+  await kanban.load(2)
+  // A recarga das colunas fica pendente: o teste vê o estado logo depois da falha antiga.
+  globalThis.fakeApi.listAllColumns = () => new Promise(() => {})
+  slowReorder.resolve()
+  moving.catch(() => {})
+  await tick(5)
+
+  assert.deepEqual(columnIds(kanban), [20, 21])
 })

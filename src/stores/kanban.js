@@ -133,10 +133,16 @@ export const useKanbanStore = defineStore('kanbanStore', () => {
 
   // Colunas (dono/administrador; o servidor valida de novo)
 
+  // Respostas de operações iniciadas em outro quadro (troca de projeto no meio) são ignoradas:
+  // a requisição foi para o projeto certo, mas o resultado não pode mexer no quadro atual.
+  const sameBoard = (current) => current === version
+
   async function createColumn({ name, category }) {
+    const current = version
     try {
       const { data } = await columnApi.createColumn({ project: state.project.id, name, category })
-      state.columns.push(data)
+      if (!sameBoard(current)) return data
+      state.columns = [...state.columns, data]
       toast.success('Coluna criada.')
       return data
     } catch (cause) {
@@ -145,8 +151,10 @@ export const useKanbanStore = defineStore('kanbanStore', () => {
   }
 
   async function renameColumn(id, name) {
+    const current = version
     try {
       const { data } = await columnApi.updateColumn(id, { name })
+      if (!sameBoard(current)) return data
       state.columns = state.columns.map((column) =>
         column.id === id ? { ...column, ...data } : column,
       )
@@ -157,8 +165,10 @@ export const useKanbanStore = defineStore('kanbanStore', () => {
   }
 
   async function deleteColumn(id) {
+    const current = version
     try {
       await columnApi.deleteColumn(id)
+      if (!sameBoard(current)) return
       state.columns = state.columns.filter((column) => column.id !== id)
       toast.success('Coluna excluída.')
     } catch (cause) {
@@ -174,6 +184,7 @@ export const useKanbanStore = defineStore('kanbanStore', () => {
     if (from < 0 || to < 0 || to >= ids.length) return
     ids.splice(to, 0, ids.splice(from, 1)[0])
 
+    const current = version
     const previous = state.columns
     state.columns = ids.map((columnId, position) => ({
       ...columnsById.value.get(columnId),
@@ -181,10 +192,12 @@ export const useKanbanStore = defineStore('kanbanStore', () => {
     }))
     try {
       const { data } = await columnApi.reorderColumns(state.project.id, ids)
-      state.columns = data
+      if (sameBoard(current)) state.columns = data
     } catch (cause) {
-      state.columns = previous
-      await refreshColumns()
+      if (sameBoard(current)) {
+        state.columns = previous
+        await refreshColumns()
+      }
       return fail(cause, 'Não foi possível reordenar as colunas.')
     }
   }
@@ -264,8 +277,10 @@ export const useKanbanStore = defineStore('kanbanStore', () => {
   }
 
   async function deleteTask(id) {
+    const current = version
     try {
       await taskApi.deleteTask(id)
+      if (!sameBoard(current)) return
       state.tasks = state.tasks.filter((task) => task.id !== id)
       toast.success('Tarefa excluída.')
     } catch (cause) {
