@@ -6,6 +6,7 @@ import { getProject } from '@/api/projects'
 import { projectError } from '@/components/projects/projectState'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectHeader from '@/components/projects/ProjectHeader.vue'
+import { projectTabs } from '@/config/projectNavigation'
 import ProjectOverview from '@/components/projects/ProjectOverview.vue'
 import ProjectMembers from '@/components/projects/ProjectMembers.vue'
 import ProjectChat from '@/components/projects/ProjectChat.vue'
@@ -20,15 +21,7 @@ const route = useRoute()
 const callNotifier = useCallNotifier()
 const overview = useProjectOverviewStore()
 const router = useRouter()
-const TABS = [
-  { key: 'geral', label: 'Visão geral' },
-  { key: 'membros', label: 'Membros' },
-  { key: 'conversa', label: 'Conversa' },
-  { key: 'pastas', label: 'Pastas do Projeto' },
-  { key: 'links', label: 'Links de apoio' },
-  { key: 'reunioes', label: 'Reuniões' },
-  { key: 'atividades', label: 'Registros recentes' },
-]
+const TABS = projectTabs
 const tab = computed(() => {
   const key = String(route.query.aba ?? '')
   return TABS.some((item) => item.key === key) ? key : 'geral'
@@ -161,7 +154,8 @@ onBeforeUnmount(() => {
           />
         </button>
       </div>
-      <div :id="`panel-${tab}`" role="tabpanel" :aria-labelledby="`tab-${tab}`">
+      <div :id="`panel-${tab}`" role="tabpanel" :aria-labelledby="`tab-${tab}`"
+        :aria-label="TABS.find((item) => item.key === tab)?.label">
         <ProjectOverview
           v-if="tab === 'geral'"
           :project="project"
@@ -256,6 +250,13 @@ onBeforeUnmount(() => {
 @media (max-width: 700px) {
   .project-detail {
     padding: var(--space-5) var(--space-4);
+  }
+}
+
+/* No desktop a navegação principal do projeto fica na sidebar; no mobile, as abas permanecem. */
+@media (min-width: 768px) {
+  .project-detail__tabs {
+    display: none;
   }
 }
 </style>
