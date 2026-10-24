@@ -1,4 +1,7 @@
 import api from './api'
+import { createFileClient } from './fileClient'
+
+export default createFileClient(api)
 
 // Envio de arquivo ao projeto (multipart). O backend valida tamanho e tipo pelo conteúdo.
 export function uploadFile({ project, file }, { onProgress, signal } = {}) {
