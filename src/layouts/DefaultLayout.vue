@@ -4,6 +4,7 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import MobileNavBar from '@/components/layout/MobileNavBar.vue'
 import SideBar from '@/components/layout/SideBar.vue'
+import { personName } from '@/components/projects/memberRules'
 import { useAuthStore } from '@/stores/auth'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
@@ -33,9 +34,13 @@ onBeforeUnmount(() => chat.stop())
         <RouterLink
           :to="{ name: 'profile' }"
           class="layout__profile-link"
-          :aria-label="`Perfil de ${auth.user?.name || 'usuário'}`"
+          :aria-label="`Perfil de ${auth.user ? personName(auth.user.name, auth.user.email) : 'usuário'}`"
         >
-          <UserAvatar :name="auth.user?.name" :src="auth.user?.profile_picture?.url" size="md" />
+          <UserAvatar
+            :name="auth.user ? personName(auth.user.name, auth.user.email) : ''"
+            :src="auth.user?.profile_picture?.url"
+            size="md"
+          />
         </RouterLink>
       </template>
     </AppHeader>
