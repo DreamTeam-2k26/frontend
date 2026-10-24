@@ -97,7 +97,14 @@ const stages = [
   align-self: flex-start;
 }
 
-/* Logo maior aqui: no painel ela divide espaço só com o título. */
+/* Logo maior aqui: no painel ela divide espaço só com o título. A caixa do AppBrand (8rem × 2rem,
+   com overflow hidden por causa do recolhimento da sidebar) cresce junto, senão a logo é cortada. */
+.auth-layout__panel .auth-layout__brand,
+.auth-layout__brand :deep(.brand__full) {
+  width: 10rem;
+  height: 2.75rem;
+}
+
 .auth-layout__brand :deep(.brand__logo) {
   max-width: 10rem;
   height: 2.75rem;
