@@ -24,6 +24,16 @@ const filter = ref('all'),
   navigating = ref(null),
   destinationError = ref('')
 const { items, warnings, loading, error, load, dispose } = useProjectActivities(activities)
+// Registros que não existiam na consulta anterior (após "Atualizar"): só eles ganham destaque.
+// A primeira carga e o "Mostrar mais" não animam itens já conhecidos.
+const seenIds = new Set()
+const freshIds = ref(new Set())
+watch(items, (list) => {
+  const fresh = new Set()
+  if (seenIds.size) list.forEach((activity) => !seenIds.has(activity.id) && fresh.add(activity.id))
+  list.forEach((activity) => seenIds.add(activity.id))
+  freshIds.value = fresh
+})
 const visibleCount = ref(20)
 const filtered = computed(() => filterActivities(items.value, filter.value))
 const hasMore = computed(() => filtered.value.length > visibleCount.value)
@@ -161,41 +171,50 @@ onBeforeUnmount(() => {
           >Limpar filtro</BaseButton
         >
       </div>
-      <section
-        v-for="group in groups"
-        :key="group.day"
-        class="activity-group"
-        :aria-label="group.day"
-      >
-        <h3>{{ group.day }}</h3>
-        <ol class="timeline">
-          <li v-for="activity in group.items" :key="activity.id">
-            <span class="activity-icon" :class="`activity-icon--${activityCategory(activity)}`"
-              ><component :is="icons[activityCategory(activity)]" :size="18" aria-hidden="true"
-            /></span>
-            <article>
-              <div class="activity-meta">
-                <strong>{{ actorName(activity) }}</strong
-                ><span class="activity-type">{{ categoryLabel(activity) }}</span
-                ><time :datetime="activity.created_at">{{
-                  activityTime(activity.created_at)
-                }}</time>
-              </div>
-              <p class="summary">{{ activity.summary || 'Registro do projeto.' }}</p>
-              <a
-                v-if="activity.destination"
-                :href="router.resolve(activity.destination).href"
-                :aria-disabled="offline || navigating !== null || undefined"
-                :aria-busy="navigating === activity.id"
-                @click="openTarget($event, activity)"
-                >{{
-                  activityCategory(activity) === 'files' ? 'Ver pasta do arquivo' : 'Abrir tarefa'
-                }}<ArrowUpRight :size="14" aria-hidden="true"
-              /></a>
-            </article>
-          </li>
-        </ol>
-      </section>
+      <!-- Troca de filtro: a lista entra com um fade curto, sem reiniciar a página. -->
+      <div :key="filter" class="activity-groups">
+        <section
+          v-for="group in groups"
+          :key="group.day"
+          class="activity-group"
+          :aria-label="group.day"
+        >
+          <h3>{{ group.day }}</h3>
+          <ol class="timeline">
+            <li
+              v-for="activity in group.items"
+              :key="activity.id"
+              :class="{ 'timeline__item--new': freshIds.has(activity.id) }"
+            >
+              <span class="activity-icon" :class="`activity-icon--${activityCategory(activity)}`"
+                ><component :is="icons[activityCategory(activity)]" :size="18" aria-hidden="true"
+              /></span>
+              <article>
+                <div class="activity-meta">
+                  <strong>{{ actorName(activity) }}</strong
+                  ><span class="activity-type">{{ categoryLabel(activity) }}</span
+                  ><time :datetime="activity.created_at">{{
+                    activityTime(activity.created_at)
+                  }}</time>
+                </div>
+                <p class="summary">{{ activity.summary || 'Registro do projeto.' }}</p>
+                <a
+                  v-if="activity.destination"
+                  :href="router.resolve(activity.destination).href"
+                  :aria-disabled="offline || navigating !== null || undefined"
+                  :aria-busy="navigating === activity.id"
+                  @click="openTarget($event, activity)"
+                  >{{
+                    activityCategory(activity) === 'files'
+                      ? 'Ver pasta do arquivo'
+                      : 'Abrir tarefa'
+                  }}<ArrowUpRight :size="14" aria-hidden="true"
+                /></a>
+              </article>
+            </li>
+          </ol>
+        </section>
+      </div>
       <div v-if="hasMore" class="pagination">
         <BaseButton variant="secondary" @click="visibleCount += 20"
           >Mostrar mais registros</BaseButton
@@ -246,6 +265,32 @@ p {
 .timeline {
   display: grid;
   gap: var(--space-5);
+}
+.activity-groups {
+  display: contents;
+}
+.activity-groups > .activity-group {
+  animation: activity-fade var(--motion-base) var(--ease-flow) both;
+}
+.timeline__item--new > article {
+  animation: activity-new 1.6s var(--ease-flow) both;
+}
+@keyframes activity-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes activity-new {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+    background-color: var(--color-success-soft);
+  }
+  20% {
+    opacity: 1;
+    transform: none;
+    background-color: var(--color-success-soft);
+  }
 }
 .timeline li {
   position: relative;
