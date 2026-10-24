@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ChevronDown, Folder, RefreshCw } from 'lucide-vue-next'
 import NavItem from './NavItem.vue'
 import AppBrand from './AppBrand.vue'
@@ -9,7 +9,8 @@ import { personName } from '@/components/projects/memberRules'
 import { useNavigation } from '@/composables/useNavigation'
 import { useSidebar } from '@/composables/useSidebar'
 import { useAuthStore } from '@/stores/auth'
-import { listProjects } from '@/api/projects'
+import { getProject } from '@/api/projects'
+import { rememberOpenedProject } from '@/utils/openedProjects'
 import {
   isProjectSectionActive,
   projectIdFromRoute,
@@ -21,75 +22,106 @@ const { items } = useNavigation()
 const { collapsed, toggle: toggleSidebar } = useSidebar()
 const authStore = useAuthStore()
 const route = useRoute()
+const router = useRouter()
 
 const personalItems = items.filter((item) => item.group !== 'projects')
 const projectNavItems = items.filter((item) => item.group === 'projects')
-const projects = ref([])
-const loadingProjects = ref(false)
-const projectsError = ref('')
+
+// "Meus Projetos" é o catálogo. Só aparecem aqui projetos abertos pelo usuário,
+// nunca todos os projetos da conta. O mais recente se expande; os anteriores recolhem.
+const openedProjects = ref([])
 const expandedProjectId = ref(null)
+const loadingProjectId = ref(null)
+const projectLoadError = ref('')
 const currentProjectId = computed(() => projectIdFromRoute(route))
 const isCurrentProject = (id) => currentProjectId.value === String(id)
 const isExpanded = (id) => expandedProjectId.value === String(id)
 
-// Abrir automaticamente o projeto visitado, inclusive em links diretos e ao voltar pelo navegador.
-watch(currentProjectId, (id) => {
-  if (id) expandedProjectId.value = id
-}, { immediate: true })
-
 let request = 0
+let controller
 let mounted = false
-async function refreshProjects() {
+
+function loadOpenedProject(id) {
   const current = ++request
-  loadingProjects.value = true
-  projectsError.value = ''
-  try {
-    const data = await listProjects()
-    if (current !== request) return
-    projects.value = data
-      .filter((project) => Number.isInteger(Number(project.id)) && project.name)
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
-  } catch {
-    if (current === request) {
-      projects.value = []
-      projectsError.value = 'Não foi possível carregar seus projetos.'
-    }
-  } finally {
-    if (current === request) loadingProjects.value = false
-  }
+  controller?.abort()
+  controller = new AbortController()
+  loadingProjectId.value = id
+  projectLoadError.value = ''
+  getProject(id, { signal: controller.signal })
+    .then((project) => {
+      if (current !== request || currentProjectId.value !== id) return
+      openedProjects.value = rememberOpenedProject(openedProjects.value, project)
+    })
+    .catch(() => {
+      if (current === request && !controller.signal.aborted)
+        projectLoadError.value = 'Não foi possível carregar o projeto aberto.'
+    })
+    .finally(() => {
+      if (current === request) loadingProjectId.value = null
+    })
 }
 
-// O botão do projeto expande/recolhe; o acesso à visão geral fica na primeira subopção.
+function syncCurrentProject(id) {
+  request++
+  controller?.abort()
+  loadingProjectId.value = null
+  projectLoadError.value = ''
+  if (!id) return
+
+  // Navegação entre projetos e links diretos: só o projeto recém-aberto fica expandido.
+  expandedProjectId.value = id
+  const known = openedProjects.value.find((project) => String(project.id) === id)
+  if (known) openedProjects.value = rememberOpenedProject(openedProjects.value, known)
+  else loadOpenedProject(id)
+}
+
+watch(currentProjectId, syncCurrentProject, { immediate: true })
+
 function toggleProject(id) {
   const key = String(id)
-  if (collapsed.value) {
-    toggleSidebar()
+  const wasCollapsed = collapsed.value
+  if (wasCollapsed) toggleSidebar()
+
+  // Escolher um projeto antigo também troca o projeto ativo, em vez de expandir
+  // links de um projeto enquanto o conteúdo do outro continua na tela.
+  if (currentProjectId.value !== key) {
     expandedProjectId.value = key
+    router.push(projectSectionLocation(key, 'geral'))
     return
   }
-  expandedProjectId.value = isExpanded(key) ? null : key
+  expandedProjectId.value = !wasCollapsed && isExpanded(key) ? null : key
+}
+
+function onProjectsChanged(event) {
+  const updated = event?.detail?.project
+  if (!updated?.id || !updated?.name) return
+  openedProjects.value = openedProjects.value.map((project) =>
+    String(project.id) === String(updated.id)
+      ? { ...project, name: updated.name }
+      : project,
+  )
 }
 
 watch(() => authStore.user?.id, (next, previous) => {
-  if (mounted && previous != null && next !== previous) {
-    projects.value = []
-    expandedProjectId.value = currentProjectId.value
-    refreshProjects()
+  if (previous != null && next != null && String(next) !== String(previous)) {
+    // Não reutilizar a lista de um usuário em uma sessão de outro usuário.
+    openedProjects.value = []
+    expandedProjectId.value = null
+    syncCurrentProject(currentProjectId.value)
   }
 })
 
 onMounted(() => {
   mounted = true
-  refreshProjects()
-  window.addEventListener('projects:changed', refreshProjects)
+  window.addEventListener('projects:changed', onProjectsChanged)
 })
 onBeforeUnmount(() => {
   mounted = false
   request++
-  window.removeEventListener('projects:changed', refreshProjects)
+  controller?.abort()
+  window.removeEventListener('projects:changed', onProjectsChanged)
 })
 
-// Contas antigas têm o nome padrão "Usuário": mostra a parte do e-mail em vez dele.
 const userName = computed(() =>
   authStore.user ? personName(authStore.user.name, authStore.user.email) : 'Minha conta',
 )
@@ -117,25 +149,31 @@ const userName = computed(() =>
             <NavItem :item="item" :collapsed="collapsed" />
           </li>
 
-          <li v-if="loadingProjects && !projects.length && !collapsed" class="sidebar__state" role="status">
-            Carregando projetos…
+          <li
+            v-if="loadingProjectId && !collapsed"
+            class="sidebar__state"
+            role="status"
+          >
+            Abrindo projeto…
           </li>
-          <li v-if="projectsError && !collapsed" class="sidebar__state" role="alert">
-            <span>{{ projectsError }}</span>
-            <button type="button" class="sidebar__retry" @click="refreshProjects">
+          <li v-if="projectLoadError && !collapsed" class="sidebar__state" role="alert">
+            <span>{{ projectLoadError }}</span>
+            <button
+              v-if="currentProjectId"
+              type="button"
+              class="sidebar__retry"
+              @click="loadOpenedProject(currentProjectId)"
+            >
               <RefreshCw :size="14" aria-hidden="true" /> Tentar novamente
             </button>
           </li>
-          <li
-            v-for="project in projects"
-            :key="project.id"
-            class="sidebar__project"
-          >
+
+          <li v-for="project in openedProjects" :key="project.id" class="sidebar__project">
             <button
               type="button"
               class="sidebar__project-toggle"
               :class="{ 'sidebar__project-toggle--active': isCurrentProject(project.id) }"
-              :aria-label="(isExpanded(project.id) && !collapsed ? 'Recolher' : 'Expandir') + ' seções do projeto ' + project.name"
+              :aria-label="(isExpanded(project.id) && !collapsed ? 'Recolher' : 'Abrir') + ' seções do projeto ' + project.name"
               :aria-expanded="!collapsed && isExpanded(project.id)"
               :aria-controls="'sidebar-project-' + project.id"
               :title="collapsed ? project.name : undefined"
@@ -151,7 +189,6 @@ const userName = computed(() =>
                 aria-hidden="true"
               />
             </button>
-
             <ul
               :id="'sidebar-project-' + project.id"
               v-show="!collapsed && isExpanded(project.id)"
@@ -171,8 +208,11 @@ const userName = computed(() =>
               </li>
             </ul>
           </li>
-          <li v-if="!loadingProjects && !projectsError && !projects.length && !collapsed" class="sidebar__state">
-            Nenhum projeto ainda.
+          <li
+            v-if="!loadingProjectId && !projectLoadError && !openedProjects.length && !collapsed"
+            class="sidebar__state"
+          >
+            Abra um projeto em Meus Projetos para ver suas seções aqui.
           </li>
         </ul>
       </section>
