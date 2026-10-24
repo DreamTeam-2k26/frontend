@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue'
 import { Hand, WifiOff, X } from 'lucide-vue-next'
 import ChatAvatar from '../../chat/components/ChatAvatar.vue'
 import { formatElapsed } from '../lib/callRules'
+import { useTileLayout } from '../composables/useTileLayout'
 import { screenSupported } from '../lib/mediaErrors'
 import CallChatPanel from './CallChatPanel.vue'
 import CallControls from './CallControls.vue'
@@ -64,6 +65,24 @@ const screens = computed(() => {
 
 const total = computed(() => peers.value.length + 1)
 const spotlight = computed(() => screens.value.length > 0)
+// Desktop: quadros dimensionados para caber na área visível (sem rolagem), como no Meet.
+const stageEl = useTemplateRef('stage')
+const { layout: tileLayout } = useTileLayout(
+  stageEl,
+  computed(() => total.value + screens.value.length),
+)
+const stageStyle = computed(() =>
+  spotlight.value
+    ? null
+    : {
+        '--cols': gridColumns.value,
+        '--cols-sm': gridColumnsSmall.value,
+        '--fit-cols': tileLayout.value.cols,
+        '--tile-w': `${tileLayout.value.width}px`,
+        '--tile-h': `${tileLayout.value.height}px`,
+      },
+)
+
 const gridColumns = computed(() => {
   const count = total.value + screens.value.length
 
@@ -100,9 +119,10 @@ function openSettings() {
 
     <div class="room__main">
       <div
+        ref="stage"
         class="stage"
-        :class="{ 'stage--spotlight': spotlight }"
-        :style="spotlight ? null : { '--cols': gridColumns, '--cols-sm': gridColumnsSmall }"
+        :class="{ 'stage--spotlight': spotlight, 'stage--fit': !spotlight && tileLayout.width > 0 }"
+        :style="stageStyle"
       >
         <div v-if="spotlight" class="stage__focus">
           <CallTile
@@ -222,11 +242,7 @@ function openSettings() {
     <dialog ref="settings" class="room__dialog dialog-motion" aria-labelledby="room-settings-title">
       <form method="dialog">
         <h2 id="room-settings-title">Dispositivos</h2>
-        <DeviceSelect
-          :view="view"
-          id-prefix="room"
-          @select="(kind, id) => emit('select', kind, id)"
-        />
+        <DeviceSelect :view="view" @select="(kind, id) => emit('select', kind, id)" />
         <button class="room__dialog-close" value="close">Fechar</button>
       </form>
     </dialog>
@@ -442,6 +458,31 @@ function openSettings() {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
+}
+
+/* Desktop: grade ajustada à área (useTileLayout), centralizada e sem rolagem; a última linha
+   incompleta fica centralizada, como no Meet. */
+@media (min-width: 601px) {
+  .stage--fit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .stage--fit .stage__people {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    width: calc(var(--fit-cols) * var(--tile-w) + (var(--fit-cols) - 1) * var(--space-3));
+  }
+
+  .stage--fit .stage__people > :deep(.tile) {
+    flex: none;
+    width: var(--tile-w);
+    height: var(--tile-h);
+  }
 }
 
 @media (max-width: 600px) {
