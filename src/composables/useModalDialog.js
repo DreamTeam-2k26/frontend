@@ -16,15 +16,23 @@ function copyFieldValues(from, to) {
 }
 
 // Saída "fantasma": a Transition do Vue não anima um elemento que sai junto com o componente
-// (v-if no consumidor). Um clone só visual, inerte e sem ids, faz a saída no lugar do diálogo.
-function playExit(dialog, done) {
-  const ghost = dialog.cloneNode(true)
+// (v-if no consumidor). Um clone só visual faz a saída no lugar do diálogo. Ele é um popover
+// (camada do topo, com fundo), não um modal: não torna a página inerte nem prende o foco, então o
+// foco volta na hora e um diálogo reaberto logo em seguida grava o foco certo.
+function playExit(dialog) {
+  if (typeof HTMLElement.prototype.showPopover !== 'function') return
+  const ghost = document.createElement('div')
+  for (const { name, value } of dialog.attributes) {
+    if (name !== 'id') ghost.setAttribute(name, value)
+  }
+  // Mantém os seletores do componente que dependem de [open] (ex.: .modal:not([open])).
+  ghost.setAttribute('open', '')
+  ghost.append(...dialog.cloneNode(true).childNodes)
   copyFieldValues(dialog, ghost)
-  ghost.removeAttribute('open')
-  ghost.removeAttribute('id')
   ghost.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'))
   ghost.setAttribute('aria-hidden', 'true')
   ghost.inert = true
+  ghost.popover = 'manual'
   ghost.classList.add('dialog-motion--leaving')
 
   let finished = false
@@ -32,7 +40,6 @@ function playExit(dialog, done) {
     if (finished) return
     finished = true
     ghost.remove()
-    done()
   }
   ghost.addEventListener('animationend', (event) => {
     if (event.target === ghost) finish()
@@ -40,7 +47,7 @@ function playExit(dialog, done) {
   setTimeout(finish, EXIT_FALLBACK)
 
   document.body.append(ghost)
-  ghost.showModal()
+  ghost.showPopover()
 }
 
 // <dialog> modal montado com v-if: abre ao montar, sai animado ao desmontar e devolve o foco para
@@ -62,7 +69,7 @@ export function useModalDialog(dialog, { fallbackFocus } = {}) {
     const element = dialog.value
     const animate = element?.open && !prefersReducedMotion()
     element?.close()
-    if (animate) playExit(element, restoreFocus)
-    else restoreFocus()
+    if (animate) playExit(element)
+    restoreFocus()
   })
 }
