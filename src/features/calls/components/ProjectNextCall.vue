@@ -1,6 +1,7 @@
 <script setup>
 import { computed, getCurrentInstance } from 'vue'
 import { ArrowRight, Video } from 'lucide-vue-next'
+import MeetingGoogleCalendar from './MeetingGoogleCalendar.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { canInvite } from '@/components/projects/memberRules'
 import { formatWhen, isLive, participantsText } from '../lib/callRules'
@@ -40,6 +41,7 @@ const tab = computed(() => ({
       <BaseButton v-else variant="secondary" :to="tab"
         ><ArrowRight :size="16" aria-hidden="true" /> Ver reuniões</BaseButton
       >
+      <MeetingGoogleCalendar v-if="!live" :call="next" :project="project" />
     </template>
     <template v-else>
       <p class="next__when">Nenhuma reunião disponível.</p>

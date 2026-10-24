@@ -8,6 +8,7 @@ import { formatWhen, isDue, participantsText } from '../lib/callRules'
 import { transcriptBadge } from '../lib/transcript'
 import { createCall, listCalls, removeCall, startCall, updateCall } from '../services/callsApi'
 import { useCallNotifier } from '../stores/callNotifier'
+import MeetingGoogleCalendar from './MeetingGoogleCalendar.vue'
 import ScheduleCallDialog from './ScheduleCallDialog.vue'
 import TranscriptDialog from './TranscriptDialog.vue'
 
@@ -180,6 +181,7 @@ async function cancel(call) {
             <em v-if="isDue(call, now)" class="list__due">Chegou a hora</em>
           </span>
           <p v-if="call.description">{{ call.description }}</p>
+          <MeetingGoogleCalendar :call="call" :project="project" />
         </div>
         <div v-if="manager" class="list__actions">
           <BaseButton

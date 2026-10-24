@@ -2,6 +2,7 @@
 import { computed, nextTick, useId, useTemplateRef } from 'vue'
 import { UserRound } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseDatePicker from '@/components/ui/BaseDatePicker.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
@@ -160,16 +161,19 @@ const fieldError = (name) => errors[name] || fieldErrors[name] || ''
             fieldErrors.assignee
           }}</small>
         </div>
-        <BaseInput
+        <BaseDatePicker
           v-model="values.due_date"
           label="Prazo"
           name="due_date"
-          type="date"
           :min="today"
           :disabled="saving"
           :error="fieldError('due_date')"
           @blur="validateField('due_date')"
         />
+        <p v-if="values.due_date" class="task-form__calendar-hint">
+          Após criar a tarefa, use “Adicionar ao Google Calendar” no detalhe para levar o prazo à
+          sua agenda.
+        </p>
       </div>
     </form>
     <template #footer>
@@ -218,6 +222,11 @@ const fieldError = (name) => errors[name] || fieldErrors[name] || ''
   gap: var(--space-4);
   padding-top: var(--space-5);
   border-top: 1px solid var(--color-border);
+}
+.task-form__calendar-hint {
+  grid-column: 1 / -1;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
 }
 .task-form__error {
   display: block;

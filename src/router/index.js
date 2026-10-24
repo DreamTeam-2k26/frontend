@@ -50,6 +50,12 @@ const router = createRouter({
           meta: { title: 'Detalhes do projeto' },
         },
         {
+          path: 'projects/:id/calendar',
+          name: 'project-calendar',
+          component: () => import('@/views/ProjectCalendarView.vue'),
+          meta: { title: 'Calendário de tarefas' },
+        },
+        {
           path: 'projects/:id/kanban',
           name: 'project-kanban',
           component: () => import('@/views/ProjectKanbanView.vue'),

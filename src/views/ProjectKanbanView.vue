@@ -355,6 +355,16 @@ onBeforeUnmount(() => kanban.reset())
         </BaseButton>
       </header>
 
+      <RouterLink
+        class="kanban-page__back"
+        :to="{
+          name: 'project-calendar',
+          params: { id: route.params.id },
+          query: { assignee: filters.assignee || undefined, column: filters.column || undefined },
+        }"
+        >Calendário de tarefas →</RouterLink
+      >
+
       <div class="kanban-page__tabs" role="tablist" aria-label="Visualização">
         <button
           v-for="option in VIEWS"

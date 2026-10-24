@@ -133,6 +133,11 @@ function initials(member) {
           <h2>Próximas entregas</h2>
           <RouterLink
             class="kanban-link"
+            :to="{ name: 'project-calendar', params: { id: project.id } }"
+            >Calendário de tarefas <span aria-hidden="true">→</span></RouterLink
+          >
+          <RouterLink
+            class="kanban-link"
             :to="{ name: 'project-kanban', params: { id: project.id } }"
           >
             Abrir Kanban <span aria-hidden="true">→</span>
