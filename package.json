@@ -18,7 +18,7 @@
     "lint:eslint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
     "test:members": "node --test --test-isolation=none tests/members/*.test.js",
-    "test:google": "node --test --test-isolation=none tests/google/*.test.js"
+    "test:google": "node --test --test-isolation=none tests/google/*.test.js",
     "test:files": "node --test --test-isolation=none tests/files/*.test.js"
   },
   "dependencies": {
