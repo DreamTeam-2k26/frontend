@@ -53,6 +53,14 @@ export async function createProject({ name, description }) {
 }
 
 export async function updateProject(id, { name, description }) {
-  const { data } = await api.patch(`/projects/${id}/`, { name, description })
+  const { data } = await api.patch(`/projects/${encodeURIComponent(id)}/`, { name, description })
   return data
+}
+
+export async function deleteProject(id) {
+  await api.delete(`/projects/${encodeURIComponent(id)}/`)
+}
+
+export async function leaveProject(id) {
+  await api.post(`/projects/${encodeURIComponent(id)}/leave/`)
 }

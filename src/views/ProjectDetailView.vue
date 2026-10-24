@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from 'lucide-vue-next'
+import { ArrowLeft, Settings } from 'lucide-vue-next'
 import { getProject } from '@/api/projects'
 import { projectError } from '@/components/projects/projectState'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -150,6 +150,15 @@ onBeforeUnmount(() => {
     </div>
     <template v-else-if="project">
       <ProjectHeader :project="project" />
+      <!-- A sidebar é exclusiva do desktop; no celular as configurações precisam de acesso próprio. -->
+      <RouterLink
+        class="project-detail__mobile-settings"
+        :to="{ name: 'project-settings', params: { id: project.id } }"
+        aria-label="Abrir configurações deste projeto"
+      >
+        <Settings :size="18" aria-hidden="true" />
+        Configurações
+      </RouterLink>
       <div class="project-detail__tabs" role="tablist" aria-label="Seções do projeto">
         <button
           v-for="(item, index) in TABS"
@@ -173,8 +182,12 @@ onBeforeUnmount(() => {
           />
         </button>
       </div>
-      <div :id="`panel-${tab}`" role="tabpanel" :aria-labelledby="`tab-${tab}`"
-        :aria-label="TABS.find((item) => item.key === tab)?.label">
+      <div
+        :id="`panel-${tab}`"
+        role="tabpanel"
+        :aria-labelledby="`tab-${tab}`"
+        :aria-label="TABS.find((item) => item.key === tab)?.label"
+      >
         <ProjectOverview
           v-if="tab === 'geral'"
           :project="project"
@@ -278,6 +291,30 @@ onBeforeUnmount(() => {
 @media (min-width: 768px) {
   .project-detail__tabs {
     display: none;
+  }
+}
+
+.project-detail__mobile-settings {
+  display: none;
+}
+@media (max-width: 767px) {
+  .project-detail__mobile-settings {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--space-2);
+    min-height: 2.75rem;
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+  }
+  .project-detail__mobile-settings:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
   }
 }
 </style>
