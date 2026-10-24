@@ -11,14 +11,15 @@ import {
 
 test('navegação do projeto segue o layout e só contém páginas já existentes', () => {
   assert.deepEqual(projectSections.map((item) => item.key), [
-    'geral', 'kanban', 'pastas', 'conversa', 'reunioes', 'membros', 'links', 'atividades',
+    'geral', 'kanban', 'pastas', 'conversa', 'reunioes', 'brainstorm', 'membros', 'links',
+    'atividades',
   ])
   assert.deepEqual(projectSections.map((item) => item.label), [
-    'Visão geral', 'Kanban', 'Arquivos', 'Conversas', 'Reuniões',
+    'Visão geral', 'Kanban', 'Arquivos', 'Conversas', 'Reuniões', 'Brainstorm',
     'Participantes', 'Links de apoio', 'Registros recentes',
   ])
   assert.equal(projectTabs.some((item) => item.key === 'kanban'), false)
-  assert.ok(projectTabs.every((item) => item.key !== 'brainstorm'))
+  assert.ok(projectTabs.some((item) => item.key === 'brainstorm'))
 })
 
 test('todas as seções usam o id do projeto atual sem destinos inventados', () => {
@@ -66,4 +67,14 @@ test('páginas pessoais não substituem o contexto do último projeto aberto', (
     assert.equal(projectSectionFromRoute({ name, params: {} }), null)
   }
   assert.equal(projectIdFromRoute({ name: 'project-detail', params: { id: 'oops' } }), null)
+})
+
+test('discussão do Brainstorm destaca a seção Brainstorm do projeto', () => {
+  const route = { name: 'project-brainstorm-topic', params: { id: '42', topicId: '7' }, query: {} }
+  assert.equal(projectIdFromRoute(route), '42')
+  assert.equal(projectSectionFromRoute(route), 'brainstorm')
+  assert.equal(isProjectSectionActive(route, 42, 'brainstorm'), true)
+  assert.deepEqual(projectSectionLocation(42, 'brainstorm'), {
+    name: 'project-detail', params: { id: '42' }, query: { aba: 'brainstorm' },
+  })
 })

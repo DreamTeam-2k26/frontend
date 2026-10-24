@@ -85,8 +85,7 @@ export function buildThread(replies) {
   return roots
 }
 
-const allowed = (options, value) =>
-  options.some((option) => option.value === value) ? value : ''
+const allowed = (options, value) => (options.some((option) => option.value === value) ? value : '')
 
 // Query da URL (busca, categoria, status, ordem) ↔ filtros da API.
 export function normalizeListQuery(query = {}) {
@@ -141,4 +140,21 @@ export function approvalPayload({ analysisId, text, justification, cards }) {
       }
     })
   return { analysis: analysisId, text: text.trim(), justification: justification.trim(), tasks }
+}
+
+// Prévia do contexto no card da lista: corta na última palavra inteira.
+export function preview(text, max = 160) {
+  const value = String(text ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+  if (value.length <= max) return value
+  const cut = value.slice(0, max + 1)
+  const space = cut.lastIndexOf(' ')
+  return `${(space > 0 ? cut.slice(0, space) : value.slice(0, max)).trimEnd()}…`
+}
+
+export function formatWhen(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 }

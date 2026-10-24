@@ -5,8 +5,10 @@ import {
   buildThread,
   cardsFromAnalysis,
   categoryLabel,
+  formatWhen,
   listQueryToRoute,
   normalizeListQuery,
+  preview,
   statusLabel,
   topicFlags,
 } from '../brainstorm.js'
@@ -40,7 +42,10 @@ describe('topicFlags', () => {
     assert.equal(flags.canDelete, true)
     assert.equal(flags.canClose, false)
     assert.equal(flags.readOnly, false)
-    assert.equal(topicFlags(topic({ replies_count: 1 }), { role: 'member', userId: 7 }).canDelete, false)
+    assert.equal(
+      topicFlags(topic({ replies_count: 1 }), { role: 'member', userId: 7 }).canDelete,
+      false,
+    )
     assert.equal(topicFlags(topic({ upvotes: 1 }), { role: 'member', userId: 7 }).canDelete, false)
     assert.equal(topicFlags(topic({ cycle: 2 }), { role: 'owner', userId: 1 }).canDelete, false)
   })
@@ -52,25 +57,44 @@ describe('topicFlags', () => {
 
   test('dono/admin gerenciam conforme o status', () => {
     const open = topicFlags(topic(), { role: 'admin', userId: 1 })
-    assert.deepEqual([open.canClose, open.canReopen, open.canAnalyze, open.canArchive], [true, false, false, true])
+    assert.deepEqual(
+      [open.canClose, open.canReopen, open.canAnalyze, open.canArchive],
+      [true, false, false, true],
+    )
     const closed = topicFlags(topic({ status: 'closed' }), { role: 'owner', userId: 1 })
-    assert.deepEqual([closed.canClose, closed.canReopen, closed.canAnalyze, closed.canApprove], [false, true, true, true])
+    assert.deepEqual(
+      [closed.canClose, closed.canReopen, closed.canAnalyze, closed.canApprove],
+      [false, true, true, true],
+    )
     assert.equal(closed.readOnly, true)
     const decided = topicFlags(topic({ status: 'decided' }), { role: 'owner', userId: 1 })
-    assert.deepEqual([decided.canReopen, decided.canAnalyze, decided.canApprove], [true, false, false])
+    assert.deepEqual(
+      [decided.canReopen, decided.canAnalyze, decided.canApprove],
+      [true, false, false],
+    )
   })
 
   test('arquivada é só leitura para todos', () => {
     const flags = topicFlags(topic({ status: 'archived', author: 1 }), { role: 'owner', userId: 1 })
     assert.equal(flags.readOnly, true)
     assert.deepEqual(
-      [flags.canEdit, flags.canDelete, flags.canClose, flags.canReopen, flags.canArchive, flags.canVote],
+      [
+        flags.canEdit,
+        flags.canDelete,
+        flags.canClose,
+        flags.canReopen,
+        flags.canArchive,
+        flags.canVote,
+      ],
       [false, false, false, false, false, false],
     )
   })
 
   test('em revisão vem do backend', () => {
-    assert.equal(topicFlags(topic({ in_review: true }), { role: 'member', userId: 1 }).inReview, true)
+    assert.equal(
+      topicFlags(topic({ in_review: true }), { role: 'member', userId: 1 }).inReview,
+      true,
+    )
   })
 })
 
@@ -95,22 +119,33 @@ describe('buildThread', () => {
 
 describe('lista na URL', () => {
   test('normaliza a query e ignora valores inválidos', () => {
-    assert.deepEqual(normalizeListQuery({ busca: ' feira ', categoria: 'ideas', status: 'x', ordem: '-score' }), {
-      search: 'feira',
-      category: 'ideas',
+    assert.deepEqual(
+      normalizeListQuery({ busca: ' feira ', categoria: 'ideas', status: 'x', ordem: '-score' }),
+      {
+        search: 'feira',
+        category: 'ideas',
+        status: '',
+        ordering: '-score',
+      },
+    )
+    assert.deepEqual(normalizeListQuery({}), {
+      search: '',
+      category: '',
       status: '',
-      ordering: '-score',
+      ordering: '-created_at',
     })
-    assert.deepEqual(normalizeListQuery({}), { search: '', category: '', status: '', ordering: '-created_at' })
   })
 
   test('volta para a query sem campos padrão', () => {
-    assert.deepEqual(listQueryToRoute({ search: 'a', category: '', status: 'archived', ordering: '-created_at' }), {
-      busca: 'a',
-      categoria: undefined,
-      status: 'archived',
-      ordem: undefined,
-    })
+    assert.deepEqual(
+      listQueryToRoute({ search: 'a', category: '', status: 'archived', ordering: '-created_at' }),
+      {
+        busca: 'a',
+        categoria: undefined,
+        status: 'archived',
+        ordem: undefined,
+      },
+    )
   })
 })
 
@@ -126,7 +161,10 @@ describe('decisão', () => {
     const cards = cardsFromAnalysis(result)
     assert.equal(cards.length, 2)
     assert.ok(cards.every((card) => card.selected === false))
-    assert.deepEqual([cards[0].mode, cards[1].mode, cards[1].existingTaskId], ['new', 'existing', 42])
+    assert.deepEqual(
+      [cards[0].mode, cards[1].mode, cards[1].existingTaskId],
+      ['new', 'existing', 42],
+    )
     assert.equal(cards[0].suggestionIndex, 0)
     assert.equal(cardsFromAnalysis(null).length, 0)
   })
@@ -158,7 +196,28 @@ describe('decisão', () => {
   })
 
   test('nenhum card marcado aprova só o texto', () => {
-    const body = approvalPayload({ analysisId: 7, text: 'a', justification: 'b', cards: cardsFromAnalysis(result) })
+    const body = approvalPayload({
+      analysisId: 7,
+      text: 'a',
+      justification: 'b',
+      cards: cardsFromAnalysis(result),
+    })
     assert.deepEqual(body.tasks, [])
+  })
+})
+
+describe('formatação', () => {
+  test('prévia corta no limite sem quebrar palavra e tolera vazio', () => {
+    assert.equal(
+      preview('Precisamos escolher o tema da feira até sexta', 20),
+      'Precisamos escolher…',
+    )
+    assert.equal(preview('curto', 20), 'curto')
+    assert.equal(preview(null, 20), '')
+  })
+
+  test('data curta em pt-BR e vazio para inválida', () => {
+    assert.match(formatWhen('2026-10-20T15:30:00-03:00'), /20\/10\/2026/)
+    assert.equal(formatWhen('x'), '')
   })
 })

@@ -56,6 +56,12 @@ const router = createRouter({
           meta: { title: 'Quadro de tarefas' },
         },
         {
+          path: 'projects/:id(\\d+)/brainstorm/:topicId(\\d+)',
+          name: 'project-brainstorm-topic',
+          component: () => import('@/views/BrainstormTopicView.vue'),
+          meta: { title: 'Discussão do Brainstorm' },
+        },
+        {
           path: 'projects/:id/members',
           name: 'project-members',
           component: () => import('@/views/ProjectMembersView.vue'),
