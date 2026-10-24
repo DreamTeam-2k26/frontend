@@ -6,7 +6,7 @@ import vue from '@vitejs/plugin-vue'
 import { createSSRApp, h } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 import { createRouter, createMemoryHistory } from 'vue-router'
-let server, transport, useProjectCalendar, CalendarMonth
+let server, transport, useProjectCalendar, CalendarMonth, BaseDatePicker
 before(async () => {
   server = await createServer({
     configFile: false,
@@ -28,6 +28,7 @@ before(async () => {
   ;({ transport } = await server.ssrLoadModule('/tests/calendar/fakeTransport.js'))
   ;({ useProjectCalendar } = await server.ssrLoadModule('/src/composables/useProjectCalendar.js'))
   CalendarMonth = (await server.ssrLoadModule('/src/components/calendar/CalendarMonth.vue')).default
+  BaseDatePicker = (await server.ssrLoadModule('/src/components/ui/BaseDatePicker.vue')).default
 })
 after(async () => {
   await server?.close()
@@ -170,4 +171,26 @@ test('projeto inválido não faz requisição; 401/403/404 não exibem tarefas a
     assert.equal(calendar.state.project, null)
   }
   calendar.reset()
+})
+
+test('seletor Fluxo exibe data brasileira, label, erro e estado bloqueado sem picker nativo', async () => {
+  const html = await renderToString(
+    createSSRApp({
+      render: () =>
+        h(BaseDatePicker, {
+          modelValue: '2026-10-24',
+          label: 'Prazo final',
+          name: 'due_date',
+          error: 'Confira o prazo',
+          disabled: true,
+        }),
+    }),
+  )
+  assert.match(html, /24 \/ 10 \/ 2026/)
+  assert.match(html, /Prazo final/)
+  assert.match(html, /aria-haspopup="dialog"/)
+  assert.match(html, /aria-invalid="true"/)
+  assert.match(html, /disabled/)
+  assert.match(html, /Confira o prazo/)
+  assert.doesNotMatch(html, /type="date"/)
 })

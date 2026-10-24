@@ -221,6 +221,12 @@ try {
       'Array.from(document.links).some(link => link.getAttribute("href") === "/projects/1/kanban?task=1")',
     ),
   )
+  const google = await evaluate('document.querySelector(".day-agenda .google-calendar-link")?.href')
+  assert.equal(new URL(google).searchParams.get('dates'), '20261024/20261025')
+  assert.equal(
+    await evaluate('document.querySelector(".google-calendar-panel__badge")?.textContent.trim()'),
+    'Adição manual',
+  )
   await screenshot('desktop-light')
   await evaluate('document.documentElement.dataset.theme="dark"')
   await screenshot('desktop-dark')
@@ -270,6 +276,33 @@ try {
     'Array.from(document.querySelectorAll("button")).find(b=>b.textContent.includes("Tentar novamente")).click()',
   )
   await until('!!document.querySelector(".month-table")')
+  await call('Page.navigate', { url: origin + '/projects/1/kanban' })
+  await until('!!document.querySelector(".kanban-page__tabs")')
+  await evaluate(
+    'Array.from(document.querySelectorAll("button")).find(b=>b.textContent.trim()==="Nova tarefa").click()',
+  )
+  await until('!!document.querySelector("dialog[open] .date-field__trigger")')
+  await evaluate('document.querySelector("dialog[open] .date-field__trigger").click()')
+  await until('!!document.querySelector(".date-picker")')
+  assert.ok(await evaluate('!!document.querySelector(".date-picker").closest("dialog[open]")'))
+  await screenshot('prazo-fluxo-light')
+  await evaluate('document.documentElement.dataset.theme="dark"')
+  await screenshot('prazo-fluxo-dark')
+  await call('Input.dispatchKeyEvent', {
+    type: 'keyDown',
+    key: 'Escape',
+    code: 'Escape',
+    windowsVirtualKeyCode: 27,
+  })
+  await until('!document.querySelector(".date-picker")')
+  assert.ok(await evaluate('!!document.querySelector("dialog[open] .task-form")'))
+  await evaluate('document.querySelector("dialog[open] .date-field__trigger").click()')
+  await until('!!document.querySelector(".date-picker")')
+  await evaluate(
+    'Array.from(document.querySelectorAll(".date-picker__footer button")).find(b=>b.textContent==="Hoje").click()',
+  )
+  await until('!document.querySelector(".date-picker")')
+  assert.ok(await evaluate('!!document.querySelector("input[name=due_date]").value'))
   assert.deepEqual(writes, [])
   assert.deepEqual(pageErrors, [])
   console.log(

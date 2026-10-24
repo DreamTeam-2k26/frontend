@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, ref, watch } from 'vue'
+import TaskGoogleCalendar from './TaskGoogleCalendar.vue'
 import CalendarTask from './CalendarTask.vue'
 import { dayLabel, localDate, monthDays, monthLabel, shiftDay } from '@/utils/calendar'
 const props = defineProps({
@@ -148,6 +149,7 @@ function onKeydown(event, day) {
             :columns="columnsById"
             :today="today"
           />
+          <TaskGoogleCalendar :task="task" :project-id="projectId" />
         </li>
       </ul>
       <p v-else>

@@ -4,6 +4,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ChevronLeft, ChevronRight, CalendarDays, SquareKanban } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseSelect from '@/components/ui/BaseSelect.vue'
+import GoogleCalendarPanel from '@/components/calendar/GoogleCalendarPanel.vue'
 import CalendarMonth from '@/components/calendar/CalendarMonth.vue'
 import { useProjectCalendar } from '@/composables/useProjectCalendar'
 import { todayISO } from '@/utils/kanban'
@@ -187,6 +188,7 @@ onBeforeUnmount(() => {
             : 'Nenhuma tarefa com prazo neste mês. Tarefas sem prazo continuam disponíveis no Kanban.'
         }}
       </p>
+      <GoogleCalendarPanel :tasks="filteredTasks" :project="state.project" :month="month" />
       <CalendarMonth
         :month="month"
         :selected="selected"

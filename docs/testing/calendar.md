@@ -34,3 +34,18 @@ Conferir também com backend real, em um projeto de teste:
 - [ ] Tela de 320/375px, desktop, nomes longos e ambos os temas sem rolagem horizontal.
 - [ ] Troca rápida de projeto, falha de rede/retry, revogação de acesso e sessão expirada.
 - [ ] Nenhum PATCH/POST/DELETE ao navegar ou filtrar; reuniões/chamadas preservadas.
+
+## Seletor de prazo Fluxo e Google Calendar
+
+O seletor de prazo nativo foi substituído por `BaseDatePicker` na criação e no detalhe da tarefa. Usa os tokens de cor, borda, foco e tipografia do Fluxo, tema Light/Dark e popover posicionado pelo `useFloating` no mesmo `<dialog>` do formulário. Permite navegar por mês, setas/Home/End/PageUp/PageDown, escolher Hoje, limpar prazo e fechar com Escape sem fechar o modal. Datas anteriores ao mínimo ficam desabilitadas.
+
+A agenda do dia e o prazo no detalhe da tarefa oferecem **Adicionar ao Google Calendar**, abrindo um evento de dia inteiro com link para a tarefa; o usuário revisa e salva no Google. O calendário do projeto também oferece exportação `.ics` dos prazos filtrados do mês e um link para importar no Google Calendar. O fim do evento é exclusivo (prazo em 24/10 → evento de 24/10 a 25/10, ocupando apenas o dia 24).
+
+O modo é identificado como **Adição manual**. Não representa conexão OAuth ou sincronização automática; alterações no Fluxo não atualizam os eventos copiados. Login Google não concede acesso à agenda. Importações repetidas podem duplicar eventos. Exportação usa UIDs estáveis, escapa texto e dobra linhas UTF-8 de acordo com o formato iCalendar. Não exporta JWTs nem credenciais Google.
+
+Referências oficiais:
+- [Link para criar evento no Google Calendar](https://developers.google.com/workspace/calendar/api/concepts/inviting-attendees-to-events)
+- [Importação de eventos .ics](https://support.google.com/calendar/answer/37118)
+- [Autorização necessária para sincronização via API](https://developers.google.com/workspace/calendar/api/auth)
+
+O roteiro de navegador inclui o modal Nova tarefa, posicionamento do seletor, Escape, escolha de Hoje, links externos e capturas do seletor nos dois temas. A execução visual segue pendente pelo bloqueio de Vite/Chrome registrado acima.
