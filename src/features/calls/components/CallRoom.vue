@@ -219,7 +219,7 @@ function openSettings() {
       {{ view.errors.screen || view.errors.camera || view.errors.mic }}
     </p>
 
-    <dialog ref="settings" class="room__dialog" aria-labelledby="room-settings-title">
+    <dialog ref="settings" class="room__dialog dialog-motion" aria-labelledby="room-settings-title">
       <form method="dialog">
         <h2 id="room-settings-title">Dispositivos</h2>
         <DeviceSelect
@@ -234,6 +234,25 @@ function openSettings() {
 </template>
 
 <style scoped>
+/* Painéis e avisos entram curtos; os tiles e seus <video> não são remontados nem animados. */
+.side {
+  animation: room-side-in var(--motion-base) var(--ease-flow) both;
+}
+.room__badge {
+  animation: room-badge-in var(--motion-quick) var(--ease-flow) both;
+}
+@keyframes room-side-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+}
+@keyframes room-badge-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
 .room {
   display: flex;
   flex-direction: column;
