@@ -10,6 +10,7 @@
     "test:dashboard": "node --test --test-isolation=none tests/dashboard/*.test.js",
     "test:projects": "node --test --test-isolation=none tests/projects/*.test.js",
     "test:chat": "node --test \"src/features/chat/__tests__/*.test.js\"",
+    "test:calls": "node --test \"src/features/calls/__tests__/*.test.js\"",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
