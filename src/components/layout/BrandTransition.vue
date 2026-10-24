@@ -67,22 +67,22 @@ async function intro(variant) {
     animate(
       strokeA.value,
       { strokeDashoffset: [1, 0] },
-      { duration: 0.46, delay: 0.16, ease: EASE.inOut },
+      { duration: 0.4, delay: 0.14, ease: EASE.inOut },
     ),
     animate(
       strokeB.value,
       { strokeDashoffset: [1, 0] },
-      { duration: 0.38, delay: 0.34, ease: EASE.inOut },
+      { duration: 0.32, delay: 0.3, ease: EASE.inOut },
     ),
-    animate(accents.value, { opacity: [0, 1] }, { duration: 0.3, delay: 0.4, ease: 'easeOut' }),
+    animate(accents.value, { opacity: [0, 1] }, { duration: 0.26, delay: 0.36, ease: 'easeOut' }),
     animate(
       arrow.value,
       { opacity: [0, 1], x: [-40, 0] },
-      { duration: 0.24, delay: 0.62, ease: EASE.flow },
+      { duration: 0.22, delay: 0.54, ease: EASE.flow },
     ),
   )
   // Respiro curto com o símbolo completo antes de abrir.
-  await track(animate(0, 1, { duration: 0.1 }))
+  await track(animate(0, 1, { duration: 0.06 }))
 }
 
 async function cover() {
@@ -97,7 +97,7 @@ async function cover() {
     animate(
       symbol.value,
       { opacity: [0, 1], scale: [0.9, 1] },
-      { duration: 0.2, delay: 0.04, ease: EASE.flow },
+      { duration: 0.18, delay: 0.02, ease: EASE.flow },
     ),
   )
 }
@@ -106,7 +106,7 @@ async function reveal() {
   stopAll()
   if (lastIntro === 'short') {
     lastIntro = 'full'
-    await track(animate(root.value, { opacity: [1, 0] }, { duration: 0.2, ease: 'easeOut' }))
+    await track(animate(root.value, { opacity: [1, 0] }, { duration: 0.15, ease: 'easeOut' }))
     root.value.style.opacity = ''
     return
   }
