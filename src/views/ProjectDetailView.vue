@@ -188,8 +188,11 @@ onBeforeUnmount(() => {
 .project-detail__tabs {
   display: flex;
   gap: var(--space-1);
-  border-bottom: 1px solid var(--color-border);
+  /* Linha de baixo como sombra interna: com overflow-x o navegador corta o que passa da caixa,
+     então o sublinhado da aba ativa precisa ficar dentro dela (sem margem negativa). */
+  box-shadow: inset 0 -1px 0 var(--color-border);
   overflow-x: auto;
+  overflow-y: hidden;
 }
 .project-detail__tabs button {
   padding: var(--space-3) var(--space-4);
@@ -198,7 +201,6 @@ onBeforeUnmount(() => {
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
   border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
 }
 .project-detail__tabs button:hover {
   color: var(--color-text);
