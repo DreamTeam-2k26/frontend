@@ -87,8 +87,8 @@ await check(
   'member sem edição/exclusão',
 )
 await check(
-  `[...document.querySelectorAll('button')].some(x=>x.textContent.trim()==='Sair do projeto')`,
-  'member pode sair',
+  `document.body.textContent.includes('A opção de sair do projeto estará disponível') && ![...document.querySelectorAll('button')].some(x=>x.textContent.trim()==='Sair do projeto')`,
+  'saída pendente está indisponível até a liberação de Backend #46',
 )
 await reset('admin')
 await check(
@@ -125,27 +125,7 @@ await reset('owner')
 await run(`settingsTest.status=401;document.querySelector('form').requestSubmit()`)
 await wait(`document.body.textContent.includes('Sua sessão expirou')`)
 await check(`!document.querySelector('form')`, '401 remove controles após revalidação')
-await reset('member')
-await click('Sair do projeto')
-await wait(`!!document.querySelector('dialog[open]')`)
-await run(`settingsTest.status=404`)
-await run(`document.querySelector('dialog .confirm__danger').click()`)
-await wait(`document.body.textContent.includes('Projeto indisponível')`)
-await check(
-  `settingsRouter.currentRoute.value.name==='project-settings'`,
-  'saída 404 não redireciona nem finge sucesso',
-)
-await reset('member')
-await click('Sair do projeto')
-await wait(`!!document.querySelector('dialog[open]')`)
-await run(
-  `document.querySelector('dialog .confirm__danger').click();document.querySelector('dialog .confirm__danger').click()`,
-)
-await wait(`settingsRouter.currentRoute.value.name==='projects'`)
-await check(
-  `!document.querySelector('#app-sidebar').textContent.includes('Projeto atualizado')`,
-  'saída 204 limpa sidebar',
-)
+// Os testes do endpoint de saída serão executados após a entrega e ativação da Backend #46.
 await reset('owner')
 await run(
   `settingsTest.delay=400;settingsTest.project.name='Resposta antiga';settingsRouter.push('/projects/8/settings')`,
