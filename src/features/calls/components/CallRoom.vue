@@ -173,12 +173,12 @@ function openSettings() {
         <ul v-else class="people">
           <li>
             <ChatAvatar :name="me.name" :src="me.avatar" :size="32" />
-            <span>{{ me.name }} (você)</span>
+            <span class="people__name">{{ me.name }} (você)</span>
             <Hand v-if="room.hand" :size="16" class="people__hand" aria-label="Mão levantada" />
           </li>
           <li v-for="peer in peers" :key="peer.user">
             <ChatAvatar :name="peer.name" :src="peer.avatar" :size="32" />
-            <span>{{ peer.name }}</span>
+            <span class="people__name">{{ peer.name }}</span>
             <Hand
               v-if="peer.state.hand"
               :size="16"
@@ -372,7 +372,7 @@ function openSettings() {
   font-size: var(--font-size-sm);
 }
 
-.people li span {
+.people__name {
   flex: 1;
   overflow-wrap: anywhere;
 }
