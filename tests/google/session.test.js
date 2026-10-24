@@ -253,3 +253,29 @@ test('vínculo concluído mantém sucesso se atualização da foto falhar e perm
   await auth.fetchUser({ force: true })
   assert.match(auth.user.profile_picture.url, /google\.jpg$/)
 })
+
+test('Google 200 com /users/me/ 503 mantém a sessão, conclui o login e recarrega só o perfil', async () => {
+  const auth = store()
+  const calls = []
+  api.defaults.adapter = (config) => {
+    calls.push(config.url)
+    if (config.url === '/auth/google/')
+      return reply(config, { access: 'fluxo-access', refresh: 'fluxo-refresh' })
+    return reply(config, { detail: 'indisponível' }, 503)
+  }
+  assert.equal(await auth.loginGoogle('google-id-token'), true)
+  assert.deepEqual(calls, ['/auth/google/', '/users/me/'])
+  assert.equal(tokens.getAccessToken(), 'fluxo-access')
+  assert.equal(tokens.getRefreshToken(), 'fluxo-refresh')
+  assert.equal(auth.user, null)
+  assert.equal(auth.loading, false)
+
+  // Nova tentativa (layout logado) busca só o perfil: o POST Google não se repete.
+  api.defaults.adapter = (config) => {
+    calls.push(config.url)
+    return reply(config, { id: 7, name: 'Perfil real' })
+  }
+  await auth.fetchUser()
+  assert.deepEqual(calls, ['/auth/google/', '/users/me/', '/users/me/'])
+  assert.equal(auth.user.name, 'Perfil real')
+})

@@ -154,8 +154,15 @@ export const useAuthStore = defineStore('authStore', () => {
       userRequest = null
       setAccessToken(data.access)
       setRefreshToken(data.refresh)
-      await fetchUser({ force: true })
-      toast.success('Bem-vindo!')
+      // Sessão já salva: falha só do perfil não é falha de login (o layout logado tenta de novo,
+      // sem repetir o POST Google). Sem token, a API encerrou a sessão (401): aí é falha.
+      try {
+        await fetchUser({ force: true })
+        toast.success('Bem-vindo!')
+      } catch (cause) {
+        if (!getAccessToken()) throw cause
+        toast.info('Login feito. Não foi possível carregar seu perfil agora; tentaremos de novo.')
+      }
       return true
     } finally {
       state.loading = false

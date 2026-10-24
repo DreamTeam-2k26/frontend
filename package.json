@@ -20,6 +20,7 @@
     "test:members": "node --test --test-isolation=none tests/members/*.test.js",
     "test:google": "node --test --test-isolation=none tests/google/*.test.js",
     "test:files": "node --test --test-isolation=none tests/files/*.test.js",
+    "test:links": "node --test --test-isolation=none tests/links/*.test.js"
     "test:activities": "node --test --test-isolation=none tests/activities/*.test.js"
   },
   "dependencies": {

@@ -286,3 +286,50 @@ test('falha antiga de reordenação não desfaz o quadro atual', async () => {
 
   assert.deepEqual(columnIds(kanban), [20, 21])
 })
+
+test('links da tarefa: pede pelo projeto, edita no lugar e desvincular tira da lista da tarefa', async () => {
+  await useKanbanStore().load(1)
+  let listed
+  const links = [
+    { id: 5, project: 1, task: 1, title: 'Figma', url: 'https://f.com', created_by_name: 'Ana' },
+    { id: 6, project: 1, task: 1, title: 'Repo', url: 'https://g.com', created_by_name: 'Ana' },
+  ]
+  Object.assign(globalThis.fakeApi, emptyLists, {
+    getTask: () => ok(task(1, 1)),
+    listAllSupportLinks: (taskId, options) => (
+      (listed = [taskId, options.project]),
+      Promise.resolve(links)
+    ),
+    updateSupportLink: (id, fields) => ok({ ...links.find((item) => item.id === id), ...fields }),
+  })
+
+  const detail = useTaskDetailStore()
+  await detail.open(1)
+  assert.deepEqual(listed, [1, 1])
+
+  await detail.updateLink(detail.links[0], { title: 'Protótipo' })
+  assert.equal(detail.links[0].title, 'Protótipo')
+  assert.equal(detail.links[0].created_by_name, 'Ana')
+
+  await detail.updateLink(detail.links[0], { task: null })
+  assert.deepEqual(
+    detail.links.map((item) => item.id),
+    [6],
+  )
+})
+
+test('falha ao editar link da tarefa avisa e não altera a lista', async () => {
+  await useKanbanStore().load(1)
+  const links = [{ id: 5, project: 1, task: 1, title: 'Figma', url: 'https://f.com' }]
+  Object.assign(globalThis.fakeApi, emptyLists, {
+    getTask: () => ok(task(1, 1)),
+    listAllSupportLinks: () => Promise.resolve(links),
+    updateSupportLink: offline,
+  })
+
+  const detail = useTaskDetailStore()
+  await detail.open(1)
+  await assert.rejects(detail.updateLink(detail.links[0], { title: 'x' }))
+  assert.equal(detail.links[0].title, 'Figma')
+  assert.ok(toasts.some((item) => item.type === 'error'))
+})
