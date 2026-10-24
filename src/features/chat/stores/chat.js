@@ -437,83 +437,6 @@ export const useChatStore = defineStore('chatStore', () => {
     socket?.send({ action: 'typing', room: roomId })
   }
 
-  // ---- gestão de salas e participantes ----
-
-  async function run(action, fallback) {
-    try {
-      return await action()
-    } catch (error) {
-      toast.error(apiErrorMessage(error, fallback))
-
-      return null
-    }
-  }
-
-  async function createRoom({ name, members, image = null }) {
-    return run(async () => {
-      const imageKey = image ? await chatApi.uploadImage(image) : null
-      const room = await chatApi.createRoom({ name, members, imageKey })
-
-      await loadRooms()
-
-      return room
-    }, 'Não foi possível criar a sala.')
-  }
-
-  async function updateRoom(roomId, { name, image }) {
-    return run(async () => {
-      const payload = {}
-
-      if (name !== undefined) payload.name = name
-      if (image) payload.image_attachment_key = await chatApi.uploadImage(image)
-
-      details[roomId] = await chatApi.updateRoom(roomId, payload)
-      state.rooms[roomId] = {
-        ...state.rooms[roomId],
-        name: details[roomId].name,
-        image: details[roomId].image,
-      }
-
-      return details[roomId]
-    }, 'Não foi possível atualizar a sala.')
-  }
-
-  async function addMembers(roomId, userIds) {
-    return run(async () => {
-      details[roomId] = await chatApi.addMembers(roomId, userIds)
-
-      return details[roomId]
-    }, 'Não foi possível adicionar participantes.')
-  }
-
-  async function removeMember(roomId, userId) {
-    return run(async () => {
-      details[roomId] = await chatApi.removeMember(roomId, userId)
-
-      return details[roomId]
-    }, 'Não foi possível remover o participante.')
-  }
-
-  async function setAdmin(roomId, userId, isAdmin) {
-    return run(async () => {
-      details[roomId] = await chatApi.setAdmin(roomId, userId, isAdmin)
-
-      return details[roomId]
-    }, 'Não foi possível alterar a permissão.')
-  }
-
-  async function leaveRoom(roomId) {
-    const result = await run(async () => {
-      await chatApi.leaveRoom(roomId)
-
-      return true
-    }, 'Não foi possível sair da sala.')
-
-    if (result) handleEvent({ type: 'room.removed', room: roomId })
-
-    return Boolean(result)
-  }
-
   return {
     // estado
     me,
@@ -549,11 +472,5 @@ export const useChatStore = defineStore('chatStore', () => {
     editMessage,
     deleteMessage,
     notifyTyping,
-    createRoom,
-    updateRoom,
-    addMembers,
-    removeMember,
-    setAdmin,
-    leaveRoom,
   }
 })

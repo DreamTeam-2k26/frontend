@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, reactive } from 'vue'
 import { toast } from 'vue3-toastify'
 import * as columnApi from '@/api/columns'
-import { listAllMembers } from '@/api/memberships'
+import { listMemberships } from '@/api/memberships'
 import { getProject } from '@/api/projects'
 import * as taskApi from '@/api/tasks'
 import { apiErrorMessage } from '@/utils/apiErrors'
@@ -79,7 +79,7 @@ export const useKanbanStore = defineStore('kanbanStore', () => {
       const [columnList, taskList, memberList] = await Promise.all([
         columnApi.listAllColumns(projectId, { signal }),
         taskApi.listAllTasks(projectId, { signal }),
-        listAllMembers(projectId, { signal }),
+        listMemberships(projectId, { signal }),
       ])
       if (current !== version) return
       Object.assign(state, {

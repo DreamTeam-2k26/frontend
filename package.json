@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test:dashboard": "node --test --test-isolation=none tests/dashboard/*.test.js",
     "test:projects": "node --test --test-isolation=none tests/projects/*.test.js",
     "test:chat": "node --test \"src/features/chat/__tests__/*.test.js\"",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/"
+    "format": "prettier --write --experimental-cli src/",
+    "test:members": "node --test --test-isolation=none tests/members/*.test.js"
   },
   "dependencies": {
     "axios": "^1.20.0",

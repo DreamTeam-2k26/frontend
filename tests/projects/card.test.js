@@ -49,6 +49,8 @@ async function renderComponent(component, data, extra = {}) {
       { path: '/', component: { render: () => null } },
       { path: '/projects', name: 'projects', component: { render: () => null } },
       { path: '/projects/:id', name: 'project-detail', component: { render: () => null } },
+      { path: '/projects/:id/members', name: 'project-members', component: { render: () => null } },
+      { path: '/projects/:id/kanban', name: 'project-kanban', component: { render: () => null } },
     ],
   })
   await router.push('/')
@@ -65,11 +67,12 @@ test('card oferece link real para o detalhe e remove aviso de indisponibilidade'
   assert.doesNotMatch(html, /espaço interno do projeto estará disponível em breve/)
 })
 
-test('cabeçalho preserva nome e descrição e apresenta criação de tarefa indisponível', async () => {
+test('cabeçalho preserva nome e descrição e leva ao Kanban e à criação de tarefa', async () => {
   for (const role of ['owner', 'admin', 'member']) {
     const html = await renderComponent(Header, { ...project, role })
     assert.match(html, /Nova tarefa/)
-    assert.match(html, /disabled/)
+    assert.match(html, /href="\/projects\/24\/kanban\?new=1"/)
+    assert.match(html, /href="\/projects\/24\/kanban"/)
     assert.match(html, /Feira de Ciências/)
     assert.match(html, /Ciências · 3º ano/)
     assert.doesNotMatch(html, /Gerenciar em Meus Projetos/)

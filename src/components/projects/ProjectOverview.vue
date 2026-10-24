@@ -174,6 +174,7 @@ function initials(member) {
           </ul>
           <p v-else>Nenhum participante disponível.</p>
           <p v-if="members?.length">Todos podem colaborar nas tarefas.</p>
+          <BaseButton variant="ghost" :to="{ name: 'project-members', params: { id: project.id } }">Ver participantes <ArrowRight :size="16" aria-hidden="true" /></BaseButton>
         </section>
       </div>
     </div>
