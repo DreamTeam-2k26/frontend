@@ -1,5 +1,5 @@
 import fluxoLogo from '@/assets/fluxo-logo.png'
-import fluxoLogoCompact from '@/assets/fluxo-logo-compact.png'
+import fluxoLogoCompact from '@/assets/fluxo-logo-compact.svg'
 
 // Marca centralizada. Logo oficial fornecida pela equipe.
 export const appConfig = {

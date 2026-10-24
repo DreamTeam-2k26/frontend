@@ -1,8 +1,17 @@
 <script setup>
+import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { appConfig } from '@/config/app'
 
-defineProps({ compact: Boolean })
+const props = defineProps({ compact: Boolean })
+// Monta no primeiro recolhimento e mantém para preservar o crossfade ao expandir.
+const symbolMounted = ref(props.compact)
+watch(
+  () => props.compact,
+  (compact) => {
+    if (compact) symbolMounted.value = true
+  },
+)
 </script>
 
 <template>
@@ -35,8 +44,8 @@ defineProps({ compact: Boolean })
       </template>
       <span v-else class="brand__name">{{ appConfig.name }}</span>
     </span>
-    <span v-if="appConfig.logoCompact" class="brand__symbol" aria-hidden="true">
-      <img :src="appConfig.logoCompact" alt="" class="brand__symbol-image" />
+    <span v-if="symbolMounted && appConfig.logoCompact" class="brand__symbol" aria-hidden="true">
+      <img :src="appConfig.logoCompact" alt="" width="44" height="24" class="brand__symbol-image" />
     </span>
   </RouterLink>
 </template>
@@ -52,9 +61,7 @@ defineProps({ compact: Boolean })
   width: 8rem;
   height: var(--space-8);
   transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  isolation: isolate;
   overflow: hidden;
-  background-color: var(--color-bg-card);
 }
 .brand--compact {
   width: 2.75rem;
@@ -77,6 +84,9 @@ defineProps({ compact: Boolean })
   pointer-events: none;
 }
 .brand__symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: absolute;
   inset: 0 auto 0 0;
   width: 2.75rem;
@@ -87,28 +97,23 @@ defineProps({ compact: Boolean })
     opacity 0.28s cubic-bezier(0.4, 0, 0.2, 1),
     transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
-  background-color: var(--color-bg-card);
-  isolation: isolate;
   will-change: opacity, transform;
 }
 .brand--compact .brand__symbol {
   opacity: 1;
   transform: none;
 }
-/* Enquadra apenas o símbolo da imagem fornecida, sem alterar o arquivo original. */
-.brand__symbol-image {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 132.5%;
-  max-width: none;
-  height: auto;
-  transform: translate(-51.8%, -49.8%);
-  mix-blend-mode: multiply;
+@starting-style {
+  .brand--compact .brand__symbol {
+    opacity: 0;
+    transform: scale(0.9);
+  }
 }
-:root[data-theme='dark'] .brand__symbol-image {
-  mix-blend-mode: screen;
-  filter: invert(1) grayscale(1);
+.brand__symbol-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 @media (prefers-reduced-motion: reduce) {
   .brand,
