@@ -27,6 +27,9 @@ const editInput = ref(null)
 const removing = reactive({ comment: null, busy: false })
 
 const userId = computed(() => auth.user?.id ?? null)
+// Editar depende de saber quem está logado: se a carga inicial do usuário falhou (ex.: servidor fora do
+// ar naquele momento), busca de novo. Com o usuário já carregado, não faz requisição.
+auth.fetchUser().catch(() => {})
 const now = new Date()
 // Mais recentes primeiro, logo abaixo do campo; "Ver todos" mostra o histórico inteiro.
 const PREVIEW = 3
