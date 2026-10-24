@@ -96,6 +96,13 @@ function onMenu(action) {
   else emit('manage', { action })
 }
 
+// Durante um arrasto a faixa vazia convida a soltar; fora dele, explica o vazio.
+const emptyText = computed(() => {
+  if (dragTaskId !== null) return 'Solte a tarefa aqui.'
+  if (filtered && total) return 'Nenhuma tarefa corresponde aos filtros.'
+  return 'Nenhuma tarefa por aqui.'
+})
+
 const taskDone = (task) => columnsById.get(task.column)?.category === 'done'
 </script>
 
@@ -186,7 +193,7 @@ const taskDone = (task) => columnsById.get(task.column)?.category === 'done'
     </TransitionGroup>
 
     <p v-if="!lane.tasks.length && !isTarget" class="lane__empty">
-      {{ filtered && total ? 'Nenhuma tarefa corresponde aos filtros.' : 'Solte uma tarefa aqui.' }}
+      {{ emptyText }}
     </p>
 
     <button type="button" class="lane__add" @click="emit('add-task')">

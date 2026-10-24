@@ -228,6 +228,7 @@ const dueOf = (task) => dueInfo(task.due_date, today, isDone(task))
 }
 .task-list__row {
   position: relative;
+  cursor: pointer;
   transition: background-color 0.12s ease;
 }
 .task-list__row:hover {

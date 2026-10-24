@@ -52,7 +52,8 @@ defineExpose({ close: requestClose })
     @cancel.prevent="requestClose"
     @click="onBackdropClick"
   >
-    <div class="drawer__panel">
+    <!-- Foco inicial no painel (como no GitHub), sem anel em um botão qualquer. -->
+    <div class="drawer__panel" tabindex="-1" autofocus>
       <slot :close="requestClose" />
     </div>
   </dialog>
@@ -88,6 +89,7 @@ defineExpose({ close: requestClose })
   animation: backdrop-out 0.18s ease-in forwards;
 }
 .drawer__panel {
+  outline: none;
   display: flex;
   flex-direction: column;
   height: 100%;

@@ -44,7 +44,7 @@ const emit = defineEmits({ change: () => true })
 const ids = { button: useId(), label: useId(), list: useId() }
 const button = useTemplateRef('button')
 const list = useTemplateRef('list')
-const floating = useFloating(button, list, { onDismiss: () => close(false) })
+const floating = useFloating(button, list)
 const active = shallowRef(-1)
 
 const selectedIndex = computed(() => options.findIndex((option) => option.value === model.value))

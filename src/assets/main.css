@@ -114,7 +114,8 @@
   /* Camadas */
   --z-header: 20;
   --z-nav: 30;
-  --z-popover: 60;
+  /* Abaixo do cabeçalho (20): menus abertos passam por trás dele ao rolar. */
+  --z-popover: 15;
 }
 
 /* Tema escuro: superfícies grafite-esverdeadas, nunca preto absoluto. */
