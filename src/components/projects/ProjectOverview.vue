@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { ArrowRight, CalendarDays, RotateCw } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectNextCall from '@/features/calls/components/ProjectNextCall.vue'
+import BrainstormShortcut from '@/components/brainstorm/BrainstormShortcut.vue'
 
 const { metrics, upcoming, members } = defineProps({
   project: { type: Object, required: true },
@@ -11,6 +12,8 @@ const { metrics, upcoming, members } = defineProps({
   metrics: { type: Object, required: true },
   upcoming: { type: Object, required: true },
   members: { type: Object, required: true },
+  // Discussões abertas do Brainstorm (null enquanto carrega ou se falhar).
+  brainstormOpen: { type: Number, default: null },
 })
 
 const emit = defineEmits({
@@ -171,6 +174,7 @@ function initials(member) {
           </div>
           <ProjectNextCall :project="project" />
         </section>
+        <BrainstormShortcut :project-id="project.id" :open="brainstormOpen" />
         <section class="panel participants" aria-labelledby="participants-title">
           <div class="section-heading">
             <h2 id="participants-title">Participantes</h2>

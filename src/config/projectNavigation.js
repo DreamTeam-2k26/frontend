@@ -7,6 +7,7 @@ import {
   Link2,
   Video,
   History,
+  Lightbulb,
   Settings,
 } from 'lucide-vue-next'
 
@@ -18,6 +19,7 @@ export const projectSections = [
   { key: 'pastas', label: 'Arquivos', icon: FolderOpen },
   { key: 'conversa', label: 'Conversas', icon: MessageSquare },
   { key: 'reunioes', label: 'Reuniões', icon: Video },
+  { key: 'brainstorm', label: 'Brainstorm', icon: Lightbulb },
   { key: 'membros', label: 'Participantes', icon: UsersRound },
   { key: 'links', label: 'Links de apoio', icon: Link2 },
   { key: 'atividades', label: 'Registros recentes', icon: History },
@@ -35,6 +37,7 @@ const projectRouteNames = new Set([
   'project-members',
   'project-folders',
   'call',
+  'project-brainstorm-topic',
 ])
 
 export function projectIdFromRoute(route) {
@@ -50,6 +53,7 @@ export function projectSectionFromRoute(route) {
   if (route.name === 'project-members') return 'membros'
   if (route.name === 'project-folders') return 'pastas'
   if (route.name === 'call') return 'reunioes'
+  if (route.name === 'project-brainstorm-topic') return 'brainstorm'
   const tab = String(route.query?.aba ?? 'geral')
   return projectTabs.some((section) => section.key === tab) ? tab : 'geral'
 }
