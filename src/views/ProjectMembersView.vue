@@ -112,6 +112,7 @@ watch(
   { immediate: true },
 )
 onBeforeUnmount(() => {
+  clearTimeout(changedTimer)
   generation++
   controller?.abort()
 })
@@ -136,6 +137,9 @@ const confirmationText = computed(() => {
     return `Remover ${name} do projeto? Essa pessoa perderá acesso e suas atribuições serão atualizadas pelo servidor.`
   return `Alterar o papel de ${name} para ${roles[value.action]}?`
 })
+// Linha cujo papel a API acabou de confirmar: destaque breve na tabela.
+const changedId = ref(null)
+let changedTimer
 async function confirm() {
   if (busy.value || offline.value || !confirmation.value) return
   const current = generation,
@@ -152,6 +156,11 @@ async function confirm() {
     message.value = 'Alteração salva com sucesso.'
     window.dispatchEvent(new Event('projects:changed'))
     await load()
+    if (current === generation && !choice.invite && choice.action !== 'remove') {
+      changedId.value = choice.member.id
+      clearTimeout(changedTimer)
+      changedTimer = setTimeout(() => (changedId.value = null), 2400)
+    }
   } catch (cause) {
     if (current === generation) {
       confirmation.value = null
@@ -238,6 +247,7 @@ function permissionError() {
         :members="visible"
         :actor-role="project.role"
         :busy="busy || refreshing || offline"
+        :highlight-id="changedId"
         @action="askMember"
       />
       <template v-if="manager"

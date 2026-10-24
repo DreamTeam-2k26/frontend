@@ -7,6 +7,8 @@ defineProps({
   members: { type: Array, required: true },
   actorRole: { type: String, required: true },
   busy: Boolean,
+  // Participante alterado com sucesso há pouco: a linha recebe um destaque breve.
+  highlightId: { type: [Number, String], default: null },
 })
 defineEmits(['action'])
 </script>
@@ -23,8 +25,13 @@ defineEmits(['action'])
         <th scope="col"><span class="sr-only">Ações</span></th>
       </tr>
     </thead>
-    <tbody>
-      <tr v-for="member in members" :key="member.id">
+    <!-- Linha removida sai com fade; as demais seguem pela identidade (id). -->
+    <TransitionGroup tag="tbody" name="member-row">
+      <tr
+        v-for="member in members"
+        :key="member.id"
+        :class="{ 'member-list__row--changed': highlightId != null && member.id === highlightId }"
+      >
         <td>
           <span class="person"
             ><span class="avatar" aria-hidden="true">{{
@@ -46,7 +53,7 @@ defineEmits(['action'])
           />
         </td>
       </tr>
-    </tbody>
+    </TransitionGroup>
   </table>
 </template>
 <style scoped>
@@ -134,6 +141,22 @@ td {
     grid-column: 2;
     grid-row: 1 / 4;
     width: auto;
+  }
+}
+
+.member-row-leave-active {
+  transition: opacity var(--motion-quick) var(--ease-flow-exit);
+}
+.member-row-leave-to {
+  opacity: 0;
+}
+.member-list__row--changed > td {
+  animation: member-row-changed 2.4s var(--ease-flow) both;
+}
+@keyframes member-row-changed {
+  from,
+  25% {
+    background-color: var(--color-success-soft);
   }
 }
 </style>
