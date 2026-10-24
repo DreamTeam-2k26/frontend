@@ -193,6 +193,10 @@ function onEdit(payload) {
 .window__back,
 .window__info {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   padding: 0.5rem;
   color: var(--color-text-secondary);
   border-radius: 50%;

@@ -32,7 +32,7 @@ const stage = ref('loading') // loading | prejoin | room | over
 
 const { media, view } = useLocalMedia({ keepAlive: true })
 const room = reactive(useCallRoom({ callId, media }))
-const transcription = reactive(useTranscription({ callId, room, view }))
+const transcription = reactive(useTranscription({ callId, room, view, media }))
 
 const me = computed(() => ({
   name: personName(auth.user?.name, auth.user?.email) || 'Você',
@@ -285,8 +285,12 @@ const canEnd = computed(() => !!call.value?.can_manage)
 }
 
 .call-page__back {
+  display: inline-flex;
+  align-items: center;
   align-self: center;
+  min-height: 2.75rem;
   margin-bottom: var(--space-6);
+  padding: 0 var(--space-4);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }

@@ -13,7 +13,7 @@ let counter = 0
 const newId = () =>
   `${Date.now().toString(36)}-${(counter += 1)}-${Math.random().toString(36).slice(2, 6)}`
 
-export function useTranscription({ callId, room, view }) {
+export function useTranscription({ callId, room, view, media }) {
   const supported = recognitionSupported()
   const status = ref(supported ? SPEECH.IDLE : SPEECH.UNSUPPORTED)
   const interim = ref('')
@@ -22,6 +22,8 @@ export function useTranscription({ callId, room, view }) {
   let active = true
 
   const transcriber = new SpeechTranscriber({
+    // Ouve o microfone escolhido na chamada (com cancelamento de eco e ruído), não o padrão do sistema.
+    getTrack: () => (media.audioTrack?.readyState === 'live' ? media.audioTrack : null),
     onFinal: (text, durationMs) =>
       room.sendTranscript({ text, duration_ms: durationMs, client_id: newId() }),
     onInterim: (text) => {
@@ -47,6 +49,18 @@ export function useTranscription({ callId, room, view }) {
     },
     { immediate: true },
   )
+
+  // Trocou de microfone nos Ajustes: a sessão de reconhecimento passa a ouvir a trilha nova.
+  const unsubscribe = media.subscribe(({ kind }) => {
+    if (
+      kind === 'mic' &&
+      transcriber.wanted &&
+      media.audioTrack &&
+      transcriber.track !== media.audioTrack
+    ) {
+      transcriber.restart()
+    }
+  })
 
   async function loadBacklog() {
     try {
@@ -120,6 +134,7 @@ export function useTranscription({ callId, room, view }) {
 
   onBeforeUnmount(() => {
     active = false
+    unsubscribe()
     transcriber.stop()
   })
 

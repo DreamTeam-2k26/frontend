@@ -156,7 +156,7 @@ onMounted(() => {
 .tdialog {
   margin: auto;
   width: min(44rem, calc(100% - 2rem));
-  max-height: 85vh;
+  max-height: calc(100dvh - 2rem);
   padding: 0;
   color: var(--color-text);
   border: 1px solid var(--color-border);
@@ -193,9 +193,15 @@ onMounted(() => {
 
 .tdialog__close {
   display: inline-flex;
-  padding: var(--space-1);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin-right: calc(var(--space-3) * -1);
   color: var(--color-text-secondary);
   border-radius: 50%;
+  touch-action: manipulation;
 }
 
 .tdialog__footer {
@@ -271,6 +277,23 @@ h3 {
   position: absolute;
   left: var(--space-1);
   content: '•';
+}
+
+@media (max-width: 600px) {
+  .tdialog {
+    width: calc(100% - 1rem);
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .tdialog__header,
+  .tdialog__footer,
+  .tdialog__body {
+    padding-inline: var(--space-4);
+  }
+
+  .tdialog__footer {
+    padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  }
 }
 
 .transcript :deep(.tlist) {

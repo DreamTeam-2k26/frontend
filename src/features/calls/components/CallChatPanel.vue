@@ -38,6 +38,11 @@ onBeforeUnmount(() => chat.closeRoom())
   min-width: 0;
 }
 
+/* Aqui não há lista de salas para onde voltar. */
+.call-chat__pane :deep(.window__back) {
+  display: none;
+}
+
 .call-chat__state {
   margin: auto;
   color: var(--color-text-secondary);

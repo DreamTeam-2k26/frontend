@@ -106,9 +106,14 @@ onBeforeUnmount(() => notifier.stop())
 }
 
 @media (max-width: 800px) {
-  /* acima da barra de navegação do celular */
+  /* acima da barra de navegação do celular; o texto quebra em vez de cortar */
   .pill {
     bottom: 5rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .pill__text small {
+    white-space: normal;
   }
 }
 
