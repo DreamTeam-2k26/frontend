@@ -417,6 +417,7 @@ onBeforeUnmount(() => kanban.reset())
             :columns-by-id="kanban.columnsById"
             :composer-saving="composer.saving"
             :composer-error="composer.error"
+            :reorderable="sort === 'manual'"
             @open-task="openTask"
             @add-task="openTaskForm"
             @task-action="taskAction"

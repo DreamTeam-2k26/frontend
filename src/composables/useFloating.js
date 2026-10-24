@@ -9,9 +9,14 @@ const MARGIN = 8
  * que contém o gatilho (camada superior) ou para o `body`.
  * @param {import('vue').Ref<HTMLElement|null>} triggerRef
  * @param {import('vue').Ref<HTMLElement|null>} floatingRef
- * @param {{ align?: 'start'|'end', side?: 'bottom'|'right' }} options
+ * @param {{ align?: 'start'|'end', side?: 'bottom'|'right', onDismiss?: () => void }} options
+ *   onDismiss: chamado quando a página rola por fora do flutuante (fecha, como os menus nativos).
  */
-export function useFloating(triggerRef, floatingRef, { align = 'start', side = 'bottom' } = {}) {
+export function useFloating(
+  triggerRef,
+  floatingRef,
+  { align = 'start', side = 'bottom', onDismiss } = {},
+) {
   const open = shallowRef(false)
   const teleportTo = shallowRef('body')
   const style = reactive({ top: '0px', left: '0px', minWidth: '0px', visibility: 'hidden' })
@@ -50,8 +55,13 @@ export function useFloating(triggerRef, floatingRef, { align = 'start', side = '
     })
   }
 
-  // Rolagem em qualquer ancestral ou redimensionamento mantêm o flutuante colado ao gatilho.
-  const onViewportChange = () => update()
+  // Rolar a página (fora do flutuante) fecha; rolar dentro da lista não. Redimensionar reposiciona.
+  function onScroll(event) {
+    if (floatingRef.value?.contains(event.target)) return
+    if (onDismiss) onDismiss()
+    else update()
+  }
+  const onResize = () => update()
 
   async function show() {
     teleportTo.value = triggerRef.value?.closest('dialog[open]') ?? 'body'
@@ -59,14 +69,14 @@ export function useFloating(triggerRef, floatingRef, { align = 'start', side = '
     open.value = true
     await nextTick()
     update()
-    window.addEventListener('scroll', onViewportChange, true)
-    window.addEventListener('resize', onViewportChange)
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onResize)
   }
 
   function hide() {
     open.value = false
-    window.removeEventListener('scroll', onViewportChange, true)
-    window.removeEventListener('resize', onViewportChange)
+    window.removeEventListener('scroll', onScroll, true)
+    window.removeEventListener('resize', onResize)
   }
 
   onBeforeUnmount(hide)

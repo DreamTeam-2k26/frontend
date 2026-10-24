@@ -19,6 +19,8 @@ defineProps({
   columnsById: { type: Map, required: true },
   composerSaving: { type: Boolean, default: false },
   composerError: { type: String, default: '' },
+  // Soltar escolhe a posição só em ordem manual, agrupado por status.
+  reorderable: { type: Boolean, default: true },
 })
 
 const emit = defineEmits({
@@ -55,6 +57,7 @@ const { drag, onPointerDown } = useBoardDrag(board, {
         :today="today"
         :filtered="filtered"
         :can-manage="canManage && lane.kind === 'column'"
+        :reorderable="reorderable && lane.kind === 'column'"
         :first="index === 0"
         :last="index === lanes.length - 1"
         :columns="columns"

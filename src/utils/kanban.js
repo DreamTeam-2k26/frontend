@@ -184,18 +184,19 @@ export function isHttpUrl(value) {
 
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 }
 
+// label: opção na lista; button: texto do botão quando a opção está ativa.
 export const SORTS = [
-  { value: 'manual', label: 'Manual' },
-  { value: 'due', label: 'Prazo' },
-  { value: 'priority', label: 'Prioridade' },
-  { value: 'title', label: 'Título' },
-  { value: 'recent', label: 'Mais recentes' },
+  { value: 'manual', label: 'Manual', button: 'Ordenar' },
+  { value: 'due', label: 'Por prazo', button: 'Ordenar por prazo' },
+  { value: 'priority', label: 'Por prioridade', button: 'Ordenar por prioridade' },
+  { value: 'title', label: 'Por título', button: 'Ordenar por título' },
+  { value: 'recent', label: 'Mais recentes', button: 'Mais recentes primeiro' },
 ]
 
 export const GROUPS = [
-  { value: 'status', label: 'Status' },
-  { value: 'priority', label: 'Prioridade' },
-  { value: 'assignee', label: 'Responsável' },
+  { value: 'status', label: 'Por status', button: 'Agrupar por status' },
+  { value: 'priority', label: 'Por prioridade', button: 'Agrupar por prioridade' },
+  { value: 'assignee', label: 'Por responsável', button: 'Agrupar por responsável' },
 ]
 
 // Ordem dos cards dentro de cada faixa. "manual" respeita coluna e posição gravadas no servidor.

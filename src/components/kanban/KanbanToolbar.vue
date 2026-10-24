@@ -27,17 +27,8 @@ const active = computed(() => hasActiveFilters(filters))
 const counter = computed(() =>
   active.value ? `${shown} de ${total} tarefas` : `${total} ${total === 1 ? 'tarefa' : 'tarefas'}`,
 )
-const groupOptions = GROUPS.map((option) => ({
-  value: option.value,
-  label: `Agrupar por ${option.label.toLocaleLowerCase('pt-BR')}`,
-  icon: Rows3,
-}))
-const sortOptions = SORTS.map((option) => ({
-  value: option.value,
-  label:
-    option.value === 'manual' ? 'Ordenar' : `Ordenar: ${option.label.toLocaleLowerCase('pt-BR')}`,
-  icon: ArrowDownUp,
-}))
+const groupButton = computed(() => GROUPS.find((option) => option.value === group)?.button)
+const sortButton = computed(() => SORTS.find((option) => option.value === sort)?.button)
 </script>
 
 <template>
@@ -69,7 +60,9 @@ const sortOptions = SORTS.map((option) => ({
       label="Agrupar"
       hide-label
       variant="toolbar"
-      :options="groupOptions"
+      :display="groupButton"
+      :icon="Rows3"
+      :options="GROUPS"
       @change="emit('change', { group: $event })"
     />
     <BaseSelect
@@ -77,7 +70,9 @@ const sortOptions = SORTS.map((option) => ({
       label="Ordenar"
       hide-label
       variant="toolbar"
-      :options="sortOptions"
+      :display="sortButton"
+      :icon="ArrowDownUp"
+      :options="SORTS"
       @change="emit('change', { sort: $event })"
     />
 

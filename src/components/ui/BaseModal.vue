@@ -1,6 +1,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, useId, useTemplateRef } from 'vue'
 import { X } from 'lucide-vue-next'
+import { useScrollLock } from '@/composables/useScrollLock'
 
 // <dialog> nativo: foco preso, Esc fecha e leitores de tela entendem como modal.
 const {
@@ -16,6 +17,7 @@ const {
 })
 
 const emit = defineEmits(['close'])
+useScrollLock()
 
 const dialog = useTemplateRef('dialog')
 const titleId = useId()

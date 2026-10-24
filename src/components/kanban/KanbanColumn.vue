@@ -19,6 +19,7 @@ const {
   columnsById,
   dragTaskId = null,
   dropIndex = null,
+  reorderable = true,
 } = defineProps({
   // Faixa de buildLanes: { id, kind, value, title, tone, column?, tasks } (tarefas já filtradas e ordenadas)
   lane: { type: Object, required: true },
@@ -35,6 +36,8 @@ const {
   // Arrasto em andamento: card arrastado e posição de soltura nesta faixa (null = fora dela).
   dragTaskId: { type: Number, default: null },
   dropIndex: { type: Number, default: null },
+  // Ordem manual em colunas reais: soltar escolhe a posição (mostra a linha de soltura).
+  reorderable: { type: Boolean, default: true },
 })
 
 const emit = defineEmits({
@@ -160,7 +163,10 @@ const taskDone = (task) => columnsById.get(task.column)?.category === 'done'
         v-for="task in lane.tasks"
         :key="task.id"
         class="lane__item"
-        :class="{ 'lane__item--drop-before': isTarget && dropSlots.get(task.id) === dropIndex }"
+        :class="{
+          'lane__item--drop-before':
+            reorderable && isTarget && dropSlots.get(task.id) === dropIndex,
+        }"
       >
         <TaskCard
           :task="task"
@@ -172,7 +178,7 @@ const taskDone = (task) => columnsById.get(task.column)?.category === 'done'
         />
       </li>
       <li
-        v-if="isTarget && dropIndex === dropSlots.size"
+        v-if="reorderable && isTarget && dropIndex === dropSlots.size"
         key="drop-end"
         class="lane__drop"
         aria-hidden="true"
@@ -232,32 +238,98 @@ const taskDone = (task) => columnsById.get(task.column)?.category === 'done'
   border-radius: var(--radius-full);
   background: var(--color-status-todo);
 }
-.lane__dot--done,
-.lane__dot--low {
-  background: var(--color-status-done);
-}
-.lane__dot--high {
-  background: var(--color-danger);
-}
-.lane__dot--medium {
-  background: var(--color-warning);
+.lane__dot::after {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
 }
 .lane__dot--none {
   background: transparent;
   border: 1px dashed var(--color-text-secondary);
 }
-/* "Em andamento" está vivo: ponto âmbar com um halo que pulsa devagar. */
+
+/* Cada estado tem um ritmo próprio, discreto:
+   A fazer "respira" (esperando), Em andamento irradia em âmbar (vivo),
+   Concluído brilha num anel calmo (assentado). */
+.lane__dot--todo {
+  animation: dot-breathe 3.2s ease-in-out infinite;
+}
 .lane__dot--in_progress {
   background: var(--color-warning);
 }
 .lane__dot--in_progress::after {
-  content: '';
-  position: absolute;
   inset: -0.25rem;
-  border-radius: inherit;
   background: var(--color-warning);
   opacity: 0;
-  animation: lane-pulse 2.4s ease-out infinite;
+  animation: dot-radiate 2.4s ease-out infinite;
+}
+.lane__dot--done {
+  background: var(--color-status-done);
+}
+.lane__dot--done::after {
+  inset: -0.1875rem;
+  border: 1.5px solid var(--color-status-done);
+  animation: dot-glow 3.6s ease-in-out infinite;
+}
+
+/* Faixas de prioridade: Alta bate como coração, Média respira em âmbar, Baixa fica parada. */
+.lane__dot--high {
+  background: var(--color-danger);
+  animation: dot-heartbeat 1.8s ease-in-out infinite;
+}
+.lane__dot--medium {
+  background: var(--color-warning);
+  animation: dot-breathe 2.6s ease-in-out infinite;
+}
+.lane__dot--low {
+  background: var(--color-status-done);
+}
+
+@keyframes dot-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+@keyframes dot-radiate {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.6);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+@keyframes dot-glow {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+@keyframes dot-heartbeat {
+  0%,
+  40%,
+  100% {
+    transform: scale(1);
+  }
+  10%,
+  30% {
+    transform: scale(1.35);
+  }
+  20% {
+    transform: scale(1.05);
+  }
 }
 .lane__title {
   min-width: 0;
@@ -378,17 +450,5 @@ const taskDone = (task) => columnsById.get(task.column)?.category === 'done'
 .card-leave-active {
   position: absolute;
   width: calc(100% - 2 * var(--space-3));
-}
-
-@keyframes lane-pulse {
-  0% {
-    opacity: 0.45;
-    transform: scale(0.6);
-  }
-  70%,
-  100% {
-    opacity: 0;
-    transform: scale(1.8);
-  }
 }
 </style>

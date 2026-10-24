@@ -16,6 +16,8 @@ const {
   hideLabel = false,
   disabled = false,
   invalid = false,
+  display = '',
+  icon = undefined,
 } = defineProps({
   label: { type: String, required: true },
   // [{ value, label, dot?: tom, avatar?: { name, src }, icon?, description? }]
@@ -31,6 +33,10 @@ const {
   hideLabel: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
   invalid: { type: Boolean, default: false },
+  // Texto do botão diferente do rótulo da opção (ex.: opção "Por prazo", botão "Ordenar por prazo").
+  display: { type: String, default: '' },
+  // Ícone fixo do botão (as opções ficam só com texto).
+  icon: { type: [Object, Function], default: undefined },
 })
 
 const emit = defineEmits({ change: () => true })
@@ -38,7 +44,7 @@ const emit = defineEmits({ change: () => true })
 const ids = { button: useId(), label: useId(), list: useId() }
 const button = useTemplateRef('button')
 const list = useTemplateRef('list')
-const floating = useFloating(button, list)
+const floating = useFloating(button, list, { onDismiss: () => close(false) })
 const active = shallowRef(-1)
 
 const selectedIndex = computed(() => options.findIndex((option) => option.value === model.value))
@@ -72,10 +78,14 @@ function pick(index) {
   if (changed) emit('change', option.value)
 }
 
+// Rola só a lista (scrollIntoView poderia rolar a página e fechar a lista).
 function scrollActive() {
-  list.value
-    ?.querySelector(`#${CSS.escape(optionId(active.value))}`)
-    ?.scrollIntoView({ block: 'nearest' })
+  const box = list.value
+  const option = box?.querySelector(`#${CSS.escape(optionId(active.value))}`)
+  if (!box || !option) return
+  if (option.offsetTop < box.scrollTop) box.scrollTop = option.offsetTop
+  else if (option.offsetTop + option.offsetHeight > box.scrollTop + box.clientHeight)
+    box.scrollTop = option.offsetTop + option.offsetHeight - box.clientHeight
 }
 
 function move(to) {
@@ -142,7 +152,11 @@ function toggle() {
       @keydown="onKeydown"
     >
       <span class="select__value">
-        <template v-if="selected">
+        <template v-if="display">
+          <component :is="icon" v-if="icon" :size="15" aria-hidden="true" />
+          <span class="select__text">{{ display }}</span>
+        </template>
+        <template v-else-if="selected">
           <span
             v-if="selected.dot"
             class="select__dot"

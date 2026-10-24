@@ -20,7 +20,7 @@ const emit = defineEmits({
 const panelId = useId()
 const trigger = useTemplateRef('trigger')
 const panel = useTemplateRef('panel')
-const floating = useFloating(trigger, panel)
+const floating = useFloating(trigger, panel, { onDismiss: () => close(false) })
 
 const KEYS = ['priority', 'assignee', 'column', 'due']
 const activeCount = computed(() => KEYS.filter((key) => filters[key]).length)

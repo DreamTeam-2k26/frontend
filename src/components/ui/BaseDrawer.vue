@@ -1,5 +1,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue'
+import { useScrollLock } from '@/composables/useScrollLock'
 
 // Painel lateral à direita (como o detalhe de item do GitHub Projects), sobre <dialog> nativo:
 // foco preso, Esc fecha, foco volta para quem abriu. No celular ocupa a tela toda.
@@ -8,6 +9,7 @@ const { labelledby } = defineProps({
 })
 
 const emit = defineEmits(['close'])
+useScrollLock()
 
 const dialog = useTemplateRef('dialog')
 const closing = shallowRef(false)

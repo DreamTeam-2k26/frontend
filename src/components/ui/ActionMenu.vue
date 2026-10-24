@@ -26,8 +26,8 @@ const subList = useTemplateRef('subList')
 const subTrigger = shallowRef(null)
 const subItems = shallowRef([])
 
-const menu = useFloating(trigger, list, { align })
-const submenu = useFloating(subTrigger, subList, { side: 'right' })
+const menu = useFloating(trigger, list, { align, onDismiss: () => close(false) })
+const submenu = useFloating(subTrigger, subList, { side: 'right', onDismiss: () => close(false) })
 const actionable = computed(() => items.filter((item) => !item.separator && !item.disabled))
 
 const buttonsIn = (element) => [

@@ -105,6 +105,13 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
     useKanbanStore().patchTaskLocal(state.taskId, counts)
   }
 
+  // Card do quadro mostra o número de comentários: acompanha a lista sem precisar de F5.
+  function syncCommentCount() {
+    const counts = { comments_count: state.comments.length }
+    if (state.task) state.task = { ...state.task, ...counts }
+    useKanbanStore().patchTaskLocal(state.taskId, counts)
+  }
+
   // Checklist
 
   async function addItem(text) {
@@ -179,7 +186,9 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
       await commentApi.createComment({ task: taskId, body })
       // A resposta de criação não traz a foto do autor: recarrega a lista completa.
       const list = await commentApi.listAllComments(taskId)
-      if (sameTask(taskId)) state.comments = list
+      if (!sameTask(taskId)) return
+      state.comments = list
+      syncCommentCount()
     } catch (cause) {
       return fail(cause, 'Não foi possível publicar o comentário.')
     }
@@ -204,8 +213,9 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
     const taskId = state.taskId
     try {
       await commentApi.deleteComment(comment.id)
-      if (sameTask(taskId))
-        state.comments = state.comments.filter((other) => other.id !== comment.id)
+      if (!sameTask(taskId)) return
+      state.comments = state.comments.filter((other) => other.id !== comment.id)
+      syncCommentCount()
     } catch (cause) {
       return fail(cause, 'Não foi possível excluir o comentário.')
     }

@@ -207,6 +207,7 @@ onBeforeUnmount(() => clearTimeout(celebrateTimer))
   box-shadow: var(--shadow-lg);
 }
 .task-card__top {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -229,6 +230,7 @@ onBeforeUnmount(() => clearTimeout(celebrateTimer))
   animation: done-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .task-card__priority {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   padding: 0.125rem var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
@@ -246,22 +248,40 @@ onBeforeUnmount(() => clearTimeout(celebrateTimer))
   color: var(--color-success);
   background: var(--color-success-soft);
 }
-/* ⋯ só aparece no hover/foco do card (como no GitHub) e fica acima da camada clicável. */
+/* Em repouso o badge de prioridade ocupa o canto; no hover/foco ele desliza para a esquerda e o
+   ⋯ aparece no lugar dele (como no GitHub). O ⋯ fica acima da camada clicável do card. */
 .task-card__menu {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  right: calc(-1 * var(--space-1));
   z-index: 1;
-  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) 0;
   opacity: 0;
-  transition: opacity 0.12s ease;
+  transform: translateY(-50%) scale(0.85);
+  transition:
+    opacity 0.16s ease,
+    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
 }
 .task-card:hover .task-card__menu,
 .task-card:focus-within .task-card__menu,
 .task-card__menu:has([aria-expanded='true']) {
   opacity: 1;
+  transform: translateY(-50%) scale(1);
+  pointer-events: auto;
+}
+.task-card:hover .task-card__priority,
+.task-card:focus-within .task-card__priority,
+.task-card__top:has([aria-expanded='true']) .task-card__priority {
+  transform: translateX(-2.25rem);
 }
 @media (hover: none) {
   .task-card__menu {
     opacity: 1;
+    transform: translateY(-50%);
+    pointer-events: auto;
+  }
+  .task-card__priority {
+    transform: translateX(-2.25rem);
   }
 }
 .task-card__title {
