@@ -375,11 +375,13 @@ body.is-dragging {
 
 /* Diálogos (<dialog class="dialog-motion">, ver useModalDialog): entrada ao abrir e saída no
    clone que substitui o diálogo desmontado. */
+/* Entrada sem fill: um transform mantido após a animação faria o diálogo virar o bloco de
+   referência dos popovers position: fixed dentro dele (BaseSelect) e cortá-los. */
 .dialog-motion[open] {
-  animation: dialog-in var(--motion-base) var(--ease-flow) both;
+  animation: dialog-in var(--motion-base) var(--ease-flow);
 }
 .dialog-motion[open]::backdrop {
-  animation: dialog-backdrop-in var(--motion-base) ease-out both;
+  animation: dialog-backdrop-in var(--motion-base) ease-out;
 }
 .dialog-motion--leaving[open] {
   pointer-events: none;
