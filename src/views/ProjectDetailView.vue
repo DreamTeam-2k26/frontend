@@ -11,6 +11,7 @@ import ProjectMembers from '@/components/projects/ProjectMembers.vue'
 import ProjectChat from '@/components/projects/ProjectChat.vue'
 import ProjectFolders from '@/views/ProjectFoldersView.vue'
 import ProjectCalls from '@/features/calls/components/ProjectCalls.vue'
+import ProjectLinks from '@/components/links/ProjectLinks.vue'
 import { useCallNotifier } from '@/features/calls/stores/callNotifier'
 import { useProjectOverviewStore } from '@/stores/projectOverview'
 
@@ -23,6 +24,7 @@ const TABS = [
   { key: 'membros', label: 'Membros' },
   { key: 'conversa', label: 'Conversa' },
   { key: 'pastas', label: 'Pastas do Projeto' },
+  { key: 'links', label: 'Links de apoio' },
   { key: 'reunioes', label: 'Reuniões' },
 ]
 const tab = computed(() => {
@@ -160,6 +162,7 @@ onBeforeUnmount(() => {
         />
         <ProjectChat v-else-if="tab === 'conversa'" :project-id="project.id" />
         <ProjectFolders v-else-if="tab === 'pastas'" />
+        <ProjectLinks v-else-if="tab === 'links'" :project-id="project.id" />
         <ProjectCalls v-else :project="project" />
       </div>
     </template>

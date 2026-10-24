@@ -75,7 +75,7 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
       const [checklistItems, commentList, linkList] = await Promise.all([
         checklistApi.listAllChecklistItems(taskId, { signal }),
         commentApi.listAllComments(taskId, { signal }),
-        linkApi.listAllSupportLinks(taskId, { signal }),
+        linkApi.listAllSupportLinks(taskId, { project: data.project, signal }),
       ])
       if (current !== version) return
       Object.assign(state, {
@@ -269,6 +269,26 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
     }
   }
 
+  // fields: { title?, url?, task? }. Movido para outra tarefa ou desvinculado (task null): sai desta lista.
+  async function updateLink(link, fields) {
+    const taskId = state.taskId
+    try {
+      const { data } = await linkApi.updateSupportLink(link.id, fields)
+      if (!sameTask(taskId)) return data
+      state.links =
+        data.task === taskId
+          ? state.links.map((other) =>
+              other.id === link.id
+                ? { ...other, ...data, created_by_name: other.created_by_name }
+                : other,
+            )
+          : state.links.filter((other) => other.id !== link.id)
+      return data
+    } catch (cause) {
+      return fail(cause, 'Não foi possível salvar o link.')
+    }
+  }
+
   async function removeLink(link) {
     const taskId = state.taskId
     try {
@@ -394,6 +414,7 @@ export const useTaskDetailStore = defineStore('taskDetailStore', () => {
     editComment,
     removeComment,
     addLink,
+    updateLink,
     removeLink,
   }
 })

@@ -1,20 +1,20 @@
 <script setup>
-import { nextTick, reactive, ref, useId, useTemplateRef } from 'vue'
-import { ExternalLink, Link2, Plus, Trash2 } from 'lucide-vue-next'
+import { computed, nextTick, reactive, ref, useId, useTemplateRef } from 'vue'
+import { Plus } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import SupportLinkDialog from '@/components/links/SupportLinkDialog.vue'
+import SupportLinkList from '@/components/links/SupportLinkList.vue'
 import { useForm } from '@/composables/useForm'
+import { useKanbanStore } from '@/stores/kanban'
 import { useTaskDetailStore } from '@/stores/taskDetail'
 import { apiFieldErrors } from '@/utils/apiErrors'
-import { isHttpUrl } from '@/utils/kanban'
-import { required } from '@/utils/validators'
+import { TITLE_MAX, URL_MAX, linkFormErrors, linkRules } from '@/utils/supportLinks'
 
-const TITLE_MAX = 150
-const URL_MAX = 2048
-
-// Seção do modal de detalhe: links de apoio da tarefa (anexos de arquivo ainda sem API).
+// Seção do modal de detalhe: links de apoio da tarefa (os gerais ficam na aba do projeto).
 const detail = useTaskDetailStore()
+const kanban = useKanbanStore()
 
 const ids = { title: useId() }
 const form = useTemplateRef('form')
@@ -22,20 +22,14 @@ const adding = ref(false)
 const saving = ref(false)
 const serverErrors = ref({})
 const removing = reactive({ link: null, busy: false })
+const editing = reactive({ link: null, saving: false, errors: {} })
 
-const { values, errors, validateField, handleSubmit } = useForm(
-  { title: '', url: '' },
-  {
-    title: [
-      required('Informe um título.'),
-      (value) => (value.trim().length > TITLE_MAX ? `Use no máximo ${TITLE_MAX} caracteres.` : ''),
-    ],
-    url: [
-      required('Informe o endereço.'),
-      (value) => (isHttpUrl(value) ? '' : 'Use um endereço começando com http:// ou https://.'),
-    ],
-  },
+// Só tarefas do projeto aberto: o backend recusa vínculo com tarefa de outro projeto.
+const projectTasks = computed(() =>
+  kanban.tasks.filter((task) => task.project === detail.task?.project),
 )
+
+const { values, errors, validateField, handleSubmit } = useForm({ title: '', url: '' }, linkRules)
 
 async function openForm() {
   adding.value = true
@@ -72,6 +66,23 @@ function save() {
   nextTick(() => form.value?.querySelector('[aria-invalid="true"]')?.focus())
 }
 
+function openEdit(link) {
+  Object.assign(editing, { link, saving: false, errors: {} })
+}
+
+async function saveEdit(fields) {
+  editing.saving = true
+  editing.errors = {}
+  try {
+    await detail.updateLink(editing.link, fields)
+    editing.link = null
+  } catch (cause) {
+    editing.errors = linkFormErrors(cause, 'Não foi possível salvar o link.')
+  } finally {
+    editing.saving = false
+  }
+}
+
 async function confirmRemove() {
   removing.busy = true
   try {
@@ -80,14 +91,6 @@ async function confirmRemove() {
     // Toast exibido pela store.
   } finally {
     Object.assign(removing, { link: null, busy: false })
-  }
-}
-
-const host = (url) => {
-  try {
-    return new URL(url).host
-  } catch {
-    return url
   }
 }
 </script>
@@ -103,25 +106,13 @@ const host = (url) => {
       </button>
     </header>
 
-    <ul v-if="detail.links.length" class="links__list">
-      <li v-for="link in detail.links" :key="link.id" class="links__item">
-        <span class="links__tile" aria-hidden="true"><Link2 :size="16" /></span>
-        <a class="links__anchor" :href="link.url" target="_blank" rel="noopener noreferrer">
-          <span class="links__name">{{ link.title }}</span>
-          <span class="links__host">{{ host(link.url) }}</span>
-          <ExternalLink :size="14" aria-hidden="true" />
-          <span class="visually-hidden">(abre em nova aba)</span>
-        </a>
-        <button
-          type="button"
-          class="links__remove"
-          :aria-label="`Excluir link ${link.title}`"
-          @click="removing.link = link"
-        >
-          <Trash2 :size="16" aria-hidden="true" />
-        </button>
-      </li>
-    </ul>
+    <SupportLinkList
+      v-if="detail.links.length"
+      class="links__list"
+      :links="detail.links"
+      @edit="openEdit"
+      @remove="removing.link = $event"
+    />
     <p v-else-if="!adding" class="links__empty">Nenhum link de apoio.</p>
 
     <form v-if="adding" ref="form" class="links__form" novalidate @submit.prevent="save">
@@ -151,6 +142,15 @@ const host = (url) => {
       </div>
     </form>
 
+    <SupportLinkDialog
+      v-if="editing.link"
+      :link="editing.link"
+      :tasks="projectTasks"
+      :saving="editing.saving"
+      :field-errors="editing.errors"
+      @submit="saveEdit"
+      @close="editing.link = null"
+    />
     <ConfirmDialog
       v-if="removing.link"
       title="Excluir link"
@@ -203,84 +203,7 @@ const host = (url) => {
   background: var(--color-bg-hover);
 }
 .links__list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.links__item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 3rem;
   margin: 0 calc(-1 * var(--space-2));
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-md);
-}
-.links__item:hover {
-  background: var(--color-bg-hover);
-}
-.links__tile {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  color: var(--color-info);
-  background: var(--color-info-soft);
-  border-radius: var(--radius-sm);
-}
-.links__anchor {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  color: var(--color-text);
-  font-size: var(--font-size-sm);
-}
-.links__anchor svg {
-  display: none;
-}
-.links__anchor:hover .links__name {
-  color: var(--color-primary-hover);
-  text-decoration: underline;
-}
-.links__name {
-  overflow: hidden;
-  font-weight: var(--font-weight-medium);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.links__host {
-  overflow: hidden;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.links__remove {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-.links__item:hover .links__remove,
-.links__remove:focus-visible {
-  opacity: 1;
-}
-@media (hover: none) {
-  .links__remove {
-    opacity: 1;
-  }
-}
-.links__remove:hover {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
 }
 .links__empty {
   color: var(--color-text-secondary);
