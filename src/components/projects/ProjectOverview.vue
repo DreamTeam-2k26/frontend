@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { ArrowRight, CalendarDays } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import ProjectNextCall from '@/features/calls/components/ProjectNextCall.vue'
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -146,10 +147,7 @@ function initials(member) {
             <h2 id="meeting-title">Próxima reunião</h2>
             <CalendarDays :size="17" aria-hidden="true" />
           </div>
-          <p>Nenhuma reunião disponível.</p>
-          <BaseButton disabled title="Não há uma reunião disponível para entrar."
-            ><ArrowRight :size="16" aria-hidden="true" /> Entrar na reunião</BaseButton
-          >
+          <ProjectNextCall :project="project" />
         </section>
         <section class="panel participants" aria-labelledby="participants-title">
           <div class="section-heading">
