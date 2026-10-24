@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseDatePicker from '@/components/ui/BaseDatePicker.vue'
 import { fromLocalInput, toLocalInput } from '../lib/callRules'
 
 // Formulário em janela: iniciar agora (só título), agendar ou editar uma reunião agendada.
@@ -38,6 +39,7 @@ function defaultWhen() {
 }
 
 function save() {
+  if (props.saving) return
   problem.value = ''
 
   if (title.value.trim().length > 150) {
@@ -101,10 +103,17 @@ onMounted(async () => {
       </div>
 
       <template v-if="withDate">
-        <div class="field">
-          <label for="call-when">Data e hora</label>
-          <input id="call-when" v-model="when" type="datetime-local" :disabled="saving" required />
-        </div>
+        <BaseDatePicker
+          id="call-when"
+          v-model="when"
+          label="Data e hora"
+          datetime
+          required
+          :disabled="saving"
+          :min="mode === 'schedule' ? toLocalInput(new Date()) : ''"
+          :calendar-title="title || 'Reunião do projeto'"
+          :calendar-description="description"
+        />
         <div class="field">
           <label for="call-description">Descrição (opcional)</label>
           <textarea id="call-description" v-model="description" rows="3" :disabled="saving" />

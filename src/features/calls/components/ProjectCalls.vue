@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { CalendarPlus, FileText, Pencil, Play, Trash2, Video } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
+import GoogleCalendarLink from '@/components/ui/GoogleCalendarLink.vue'
 import { apiMessage, canInvite } from '@/components/projects/memberRules'
 import { formatWhen, isDue, participantsText } from '../lib/callRules'
 import { transcriptBadge } from '../lib/transcript'
@@ -180,6 +181,11 @@ async function cancel(call) {
             <em v-if="isDue(call, now)" class="list__due">Chegou a hora</em>
           </span>
           <p v-if="call.description">{{ call.description }}</p>
+          <GoogleCalendarLink
+            :start="call.scheduled_for"
+            :title="call.title"
+            :description="call.description || ''"
+          />
         </div>
         <div v-if="manager" class="list__actions">
           <BaseButton
