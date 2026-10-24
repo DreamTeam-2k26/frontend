@@ -443,8 +443,8 @@ const taskDone = (task) => columnsById.get(task.column)?.category === 'done'
 .card-enter-active,
 .card-leave-active {
   transition:
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.2s ease;
+    transform var(--motion-slow) var(--ease-flow),
+    opacity var(--motion-base) ease;
 }
 .card-enter-from {
   opacity: 0;
