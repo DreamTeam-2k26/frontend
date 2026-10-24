@@ -25,9 +25,17 @@ function track(...animations) {
   return Promise.all(animations)
 }
 
+// Fade da versão curta: anima a opacidade da própria camada e a motion mantém o valor final (0)
+// mesmo depois de limpar o style. Cancelado no início da próxima etapa, com a camada já escondida;
+// sem isso, a cobertura do login/logout depois de recarregar a página ficava invisível.
+let fade = null
+
 function stopAll() {
   running.forEach((animation) => animation.stop())
   running = []
+  fade?.cancel()
+  fade = null
+  if (root.value) root.value.style.opacity = ''
 }
 
 function setHole(value) {
@@ -106,8 +114,8 @@ async function reveal() {
   stopAll()
   if (lastIntro === 'short') {
     lastIntro = 'full'
-    await track(animate(root.value, { opacity: [1, 0] }, { duration: 0.15, ease: 'easeOut' }))
-    root.value.style.opacity = ''
+    fade = animate(root.value, { opacity: [1, 0] }, { duration: 0.15, ease: 'easeOut' })
+    await fade
     return
   }
   await track(
