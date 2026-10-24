@@ -53,6 +53,7 @@ label {
 
 select {
   width: 100%;
+  min-height: 2.75rem;
   padding: var(--space-2) var(--space-3);
 }
 </style>

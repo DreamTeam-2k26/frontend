@@ -63,6 +63,9 @@ onBeforeUnmount(() => chat.closeRoom())
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
+.project-chat__pane :deep(.window__back) {
+  display: none; /* a conversa já é a do projeto: não há lista de salas para onde voltar */
+}
 .project-chat__state {
   display: flex;
   flex-direction: column;

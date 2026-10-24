@@ -140,7 +140,8 @@ defineEmits(['mic', 'camera', 'screen', 'hand', 'settings', 'panel', 'leave', 'e
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) max(var(--space-4), env(safe-area-inset-right))
+    max(var(--space-3), env(safe-area-inset-bottom)) max(var(--space-4), env(safe-area-inset-left));
   border-top: 1px solid var(--color-border);
   background: var(--color-bg-card);
 }
@@ -159,6 +160,7 @@ defineEmits(['mic', 'camera', 'screen', 'hand', 'settings', 'panel', 'leave', 'e
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-subtle);
+  touch-action: manipulation;
   transition:
     background-color 0.15s ease,
     transform 0.15s ease;
@@ -219,6 +221,29 @@ defineEmits(['mic', 'camera', 'screen', 'hand', 'settings', 'panel', 'leave', 'e
   .control {
     min-width: 3.25rem;
     padding: var(--space-2);
+  }
+
+  .control span {
+    display: none;
+  }
+
+  .control--end span {
+    display: inline;
+  }
+}
+
+/* Celular deitado: uma fileira só, sem rótulos (cada botão continua com 44 px ou mais). */
+@media (max-height: 500px) {
+  .controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-block: var(--space-2);
+  }
+
+  .control {
+    flex-shrink: 0;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
   }
 
   .control span {

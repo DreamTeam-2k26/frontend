@@ -29,7 +29,9 @@ const own = computed(() => {
     return 'Não foi possível transcrever a sua voz agora. Recarregue a página para tentar de novo.'
   if (!props.micOn) return 'Seu microfone está desligado: sua fala não está sendo transcrita.'
 
-  return props.transcription.listening ? 'Ouvindo você…' : 'Preparando o reconhecimento de voz…'
+  return props.transcription.listening
+    ? 'Ouvindo você… Com fones de ouvido a transcrição fica bem mais precisa (o microfone não capta a voz dos outros).'
+    : 'Preparando o reconhecimento de voz…'
 })
 
 function download(format) {

@@ -1,8 +1,12 @@
 // Reconhecimento de fala do navegador (Web Speech API) com reinício automático.
 // Sem Vue: a API do navegador, timers e relógio são injetados (testável com node --test).
 //
-// Limites do navegador: funciona bem no Chrome/Edge; transcreve o microfone padrão do sistema (não o escolhido
-// na chamada) e, no Chrome, o áudio é enviado ao serviço de voz do Google para virar texto.
+// Limites do navegador: funciona bem no Chrome/Edge e, no Chrome, o áudio é enviado ao serviço de voz do Google
+// para virar texto. Navegadores novos aceitam `start(trilha)`: ouvem o MESMO microfone escolhido na chamada, já com
+// cancelamento de eco e ruído; os antigos ignoram o argumento e usam o microfone padrão do sistema.
+//
+// Para não perder fala: nada que o navegador ainda não finalizou é descartado (ao terminar a sessão, ou se a
+// finalização demorar demais, o texto parcial vira fala) e a sessão reinicia quase sem pausa.
 
 export const SPEECH = Object.freeze({
   IDLE: 'idle',
@@ -24,8 +28,10 @@ export const recognitionSupported = (scope = globalThis) => !!recognitionConstru
 
 /** Espera antes de reiniciar: curta no uso normal, crescente (até 10 s) quando há erros em sequência. */
 export function restartDelay(failures) {
-  return failures ? Math.min(10_000, 500 * 2 ** (failures - 1)) : 150
+  return failures ? Math.min(10_000, 500 * 2 ** (failures - 1)) : 50
 }
+
+const STALL_MS = 3000 // texto parcial parado por tanto tempo sem virar final: o navegador "travou", entrega e reinicia
 
 export class SpeechTranscriber {
   /**
@@ -34,12 +40,15 @@ export class SpeechTranscriber {
    * @param {(text: string) => void} [options.onInterim]                  texto parcial ('' ao fechar a fala)
    * @param {(status: string) => void} [options.onStatus]
    * @param {string} [options.lang]
+   * @param {() => MediaStreamTrack|null} [options.getTrack]  trilha de áudio a ouvir (null = microfone padrão)
    */
   constructor({
     onFinal,
     onInterim = () => {},
     onStatus = () => {},
     lang = 'pt-BR',
+    getTrack = () => null,
+    stallMs = STALL_MS,
     RecognitionImpl = recognitionConstructor(),
     setTimeoutImpl = (fn, ms) => globalThis.setTimeout(fn, ms),
     clearTimeoutImpl = (id) => globalThis.clearTimeout(id),
@@ -50,6 +59,8 @@ export class SpeechTranscriber {
       onInterim,
       onStatus,
       lang,
+      getTrack,
+      stallMs,
       RecognitionImpl,
       setTimeoutImpl,
       clearTimeoutImpl,
@@ -62,6 +73,9 @@ export class SpeechTranscriber {
     this.timer = null
     this.failures = 0
     this.utteranceStart = null
+    this.pending = '' // último texto parcial ainda não finalizado pelo navegador
+    this.stallTimer = null
+    this.track = null // trilha em uso nesta sessão
   }
 
   /** Começa a ouvir (e continua, reiniciando sozinho, até `stop()`). */
@@ -79,10 +93,20 @@ export class SpeechTranscriber {
     this.#begin()
   }
 
+  /** Reinicia a sessão agora (ex.: trocou de microfone), sem perder o que estava sendo dito. */
+  restart() {
+    if (!this.wanted) return
+
+    this.#flush()
+    this.#drop()
+    this.#begin()
+  }
+
   /** Para de ouvir. A fala em andamento ainda pode ser entregue como final. */
   stop() {
     this.wanted = false
     this.#clearTimer()
+    this.#clearStall()
     this.#end()
 
     if (this.status !== SPEECH.DENIED && this.status !== SPEECH.UNSUPPORTED) {
@@ -104,17 +128,82 @@ export class SpeechTranscriber {
     recognition.onstart = () => {
       if (this.recognition === recognition) this.#setStatus(SPEECH.LISTENING)
     }
-    recognition.onresult = (event) => this.#onResult(event)
+    recognition.onresult = (event) => this.#onResult(event, recognition)
     recognition.onerror = (event) => this.#onError(event, recognition)
     recognition.onend = () => this.#onEnd(recognition)
     this.recognition = recognition
+    this.track = this.getTrack()
 
     try {
-      recognition.start()
+      this.#startWith(recognition, this.track)
     } catch {
       this.recognition = null
       this.#fail()
     }
+  }
+
+  // Com trilha, se o navegador recusar (trilha inválida), cai para o microfone padrão em vez de ficar surdo.
+  #startWith(recognition, track) {
+    if (!track) return recognition.start()
+
+    try {
+      recognition.start(track)
+    } catch {
+      this.track = null
+      recognition.start()
+    }
+  }
+
+  /** Larga a sessão atual sem esperar por ela (os eventos dela passam a ser ignorados). */
+  #drop() {
+    const recognition = this.recognition
+
+    this.recognition = null
+    this.utteranceStart = null
+    this.#clearStall()
+
+    try {
+      recognition?.abort?.()
+    } catch {
+      // já parado
+    }
+  }
+
+  /** Entrega como fala o texto parcial que o navegador não chegou a finalizar. */
+  #flush() {
+    const text = this.pending
+
+    this.pending = ''
+    this.#clearStall()
+    this.onInterim('')
+
+    if (!text) return
+
+    const duration = this.utteranceStart === null ? 0 : this.now() - this.utteranceStart
+
+    this.utteranceStart = null
+    this.onFinal(text, Math.max(0, duration))
+  }
+
+  #armStall() {
+    this.#clearStall()
+    this.stallTimer = this.setTimeoutImpl(() => this.#onStall(), this.stallMs)
+  }
+
+  #onStall() {
+    this.stallTimer = null
+
+    if (!this.pending || !this.recognition) return
+
+    this.#flush()
+    this.#drop()
+    this.#begin()
+  }
+
+  #clearStall() {
+    if (this.stallTimer !== null) this.clearTimeoutImpl(this.stallTimer)
+
+    this.stallTimer = null
   }
 
   #end() {
@@ -129,7 +218,12 @@ export class SpeechTranscriber {
     }
   }
 
-  #onResult(event) {
+  #onResult(event, recognition) {
+    if (this.recognition !== recognition) return
+
+    const partial = []
+    let finished = false
+
     for (let index = event.resultIndex ?? 0; index < event.results.length; index += 1) {
       const result = event.results[index]
       const text = (result[0]?.transcript ?? '').replace(/\s+/g, ' ').trim()
@@ -143,11 +237,21 @@ export class SpeechTranscriber {
         const duration = this.now() - this.utteranceStart
 
         this.utteranceStart = null
-        this.onInterim('')
+        finished = true
         this.onFinal(text, Math.max(0, duration))
       } else {
-        this.onInterim(text)
+        partial.push(text)
       }
+    }
+
+    this.pending = partial.join(' ')
+
+    if (this.pending) {
+      this.onInterim(this.pending)
+      this.#armStall()
+    } else if (finished) {
+      this.onInterim('')
+      this.#clearStall()
     }
   }
 
@@ -169,9 +273,9 @@ export class SpeechTranscriber {
   #onEnd(recognition) {
     if (this.recognition !== recognition) return
 
+    this.#flush()
     this.recognition = null
     this.utteranceStart = null
-    this.onInterim('')
 
     if (!this.wanted) return
 

@@ -69,6 +69,8 @@ const gridColumns = computed(() => {
 
   return count <= 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4
 })
+// No celular em pé, 1 ou 2 pessoas ocupam a largura toda (quadros maiores); com mais gente, 2 colunas.
+const gridColumnsSmall = computed(() => (total.value + screens.value.length <= 2 ? 1 : 2))
 
 function togglePanel(name) {
   panel.value = panel.value === name ? '' : name
@@ -100,7 +102,7 @@ function openSettings() {
       <div
         class="stage"
         :class="{ 'stage--spotlight': spotlight }"
-        :style="spotlight ? null : { '--cols': gridColumns }"
+        :style="spotlight ? null : { '--cols': gridColumns, '--cols-sm': gridColumnsSmall }"
       >
         <div v-if="spotlight" class="stage__focus">
           <CallTile
@@ -244,7 +246,9 @@ function openSettings() {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: max(var(--space-3), env(safe-area-inset-top))
+    max(var(--space-4), env(safe-area-inset-right)) var(--space-3)
+    max(var(--space-4), env(safe-area-inset-left));
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-card);
 }
@@ -350,9 +354,14 @@ function openSettings() {
 
 .side__close {
   display: inline-flex;
-  padding: var(--space-1);
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: calc(var(--space-2) * -1) calc(var(--space-3) * -1) calc(var(--space-2) * -1) 0;
   color: var(--color-text-secondary);
   border-radius: 50%;
+  touch-action: manipulation;
 }
 
 .people {
@@ -416,6 +425,15 @@ function openSettings() {
   background: var(--color-bg-subtle);
 }
 
+@media (max-width: 600px) {
+  .stage:not(.stage--spotlight) {
+    grid-template-columns: repeat(var(--cols-sm, 1), minmax(0, 1fr));
+    grid-auto-rows: max-content; /* os quadros mantêm a proporção e a área rola, em vez de se sobrepor */
+    align-content: start;
+    padding: var(--space-3);
+  }
+}
+
 @media (max-width: 800px) {
   .room__main {
     flex-direction: column;
@@ -431,6 +449,43 @@ function openSettings() {
 
   .stage--spotlight {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Celular deitado: pouca altura. Cabeçalho enxuto e painel ao lado dos vídeos, não embaixo. */
+@media (max-height: 500px) {
+  .room__header {
+    padding-block: var(--space-2);
+  }
+
+  .room__title span {
+    display: none;
+  }
+
+  .stage {
+    align-content: start;
+    padding: var(--space-2);
+    gap: var(--space-2);
+  }
+
+  .stage__focus :deep(.tile) {
+    min-height: 0;
+  }
+
+  .room__main {
+    flex-direction: row;
+  }
+
+  .side {
+    width: min(20rem, 50%);
+    min-width: 0;
+    max-height: none;
+    border-top: 0;
+    border-left: 1px solid var(--color-border);
+  }
+
+  .stage--spotlight {
+    grid-template-columns: minmax(0, 1fr) minmax(8rem, 12rem);
   }
 }
 </style>
