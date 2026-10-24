@@ -116,6 +116,17 @@
   --z-nav: 30;
   /* Abaixo do cabeçalho (20): menus abertos passam por trás dele ao rolar. */
   --z-popover: 15;
+  /* Camada de marca (abertura, entrada e logout): cobre toda a aplicação. */
+  --z-brand: 1000;
+
+  /* Movimento: durações e curvas compartilhadas (espelhadas em src/utils/motion.js). */
+  --motion-fast: 120ms; /* pressão de botão e ícone */
+  --motion-quick: 180ms; /* menus, indicadores */
+  --motion-base: 220ms; /* páginas, painéis e diálogos */
+  --motion-slow: 280ms; /* listas e cards */
+  --ease-flow: cubic-bezier(0.22, 1, 0.36, 1); /* entrada: rápida no início, assenta suave */
+  --ease-flow-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* desenho e troca de estado */
+  --ease-flow-exit: cubic-bezier(0.4, 0, 1, 1); /* saída: acelera para fora */
 }
 
 /* Tema escuro: superfícies grafite-esverdeadas, nunca preto absoluto. */
