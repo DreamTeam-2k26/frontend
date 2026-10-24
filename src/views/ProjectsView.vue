@@ -84,6 +84,8 @@ async function save({ invitees = [], ...values }) {
     else projects.value = [saved, ...projects.value]
     search.value = ''
     success.value = isEditing ? 'Projeto atualizado com sucesso.' : 'Projeto criado com sucesso.'
+    // Apenas projetos já abertos são atualizados na sidebar; não popula todos.
+    window.dispatchEvent(new CustomEvent('sidebar:project-updated', { detail: { project: saved } }))
     if (!isEditing && invitees.length) {
       const result = await inviteMany(saved.id, invitees, inviteUser)
       if (result.sent.length)
