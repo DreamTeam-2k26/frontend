@@ -189,8 +189,9 @@ onBeforeUnmount(() => clearTimeout(celebrateTimer))
   user-select: none;
   -webkit-touch-callout: none;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
+    opacity var(--motion-quick) var(--ease-flow);
 }
 .task-card:hover {
   border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
@@ -230,7 +231,7 @@ onBeforeUnmount(() => clearTimeout(celebrateTimer))
   animation: done-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .task-card__priority {
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--motion-base) var(--ease-flow);
   padding: 0.125rem var(--space-2);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
@@ -258,8 +259,8 @@ onBeforeUnmount(() => clearTimeout(celebrateTimer))
   opacity: 0;
   transform: translateY(-50%) scale(0.85);
   transition:
-    opacity 0.16s ease,
-    transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    opacity var(--motion-quick) ease,
+    transform var(--motion-base) var(--ease-flow);
   pointer-events: none;
 }
 .task-card:hover .task-card__menu,

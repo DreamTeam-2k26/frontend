@@ -10,6 +10,7 @@ import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
 import CallNotifier from '@/features/calls/components/CallNotifier.vue'
 import { useChatStore } from '@/features/chat/stores/chat'
+import { pageKey } from '@/utils/pageTransition'
 
 // O chat fica ligado em todas as páginas logadas para avisar de mensagens novas.
 const chat = useChatStore()
@@ -46,7 +47,15 @@ onBeforeUnmount(() => chat.stop())
     </AppHeader>
     <SideBar class="layout__sidebar" />
     <main class="layout__main">
-      <RouterView />
+      <!-- Só o conteúdo entra suave; header, sidebar, chat e avisos seguem montados. O wrapper
+           garante um elemento raiz para a transição, qualquer que seja a view. -->
+      <RouterView v-slot="{ Component, route }">
+        <Transition name="page">
+          <div :key="pageKey(route)" class="layout__page">
+            <component :is="Component" />
+          </div>
+        </Transition>
+      </RouterView>
     </main>
     <AppFooter class="layout__footer" />
     <MobileNavBar class="layout__mobile-nav" />
@@ -83,6 +92,26 @@ onBeforeUnmount(() => chat.stop())
 
 .layout__footer {
   grid-area: footer;
+}
+
+.layout__page {
+  min-width: 0;
+}
+
+/* Só entrada: a página anterior sai na hora, sem atrasar a navegação. */
+.page-leave-active {
+  display: none;
+}
+
+.page-enter-active {
+  transition:
+    opacity var(--motion-base) var(--ease-flow),
+    transform var(--motion-base) var(--ease-flow);
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 .layout__mobile-nav {

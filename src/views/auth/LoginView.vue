@@ -1,19 +1,21 @@
 <script setup>
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import AuthCard from '@/components/auth/AuthCard.vue'
 import GoogleSignIn from '@/components/auth/GoogleSignIn.vue'
 import LoginForm from '@/components/auth/LoginForm.vue'
-import { authDestination, authQuery } from '@/utils/authRedirect'
+import { authQuery } from '@/utils/authRedirect'
+import { useAuthEntry } from '@/composables/useAuthEntry'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
-const router = useRouter()
 const route = useRoute()
+const enterApp = useAuthEntry()
 
 async function onSubmit(credentials) {
   try {
     if ((await authStore.login(credentials)) === false) return
-    router.push(authDestination(route.query.redirect))
+    // Só depois da resposta positiva da API.
+    enterApp()
   } catch {
     // Store já mostra toast de erro.
   }
@@ -24,10 +26,7 @@ async function onSubmit(credentials) {
   <AuthCard title="Bem-vindo ao Fluxo" subtitle="Entre na sua conta para continuar de onde parou.">
     <div class="auth-actions">
       <LoginForm :loading="authStore.loading" @submit="onSubmit" />
-      <GoogleSignIn
-        :disabled="authStore.loading"
-        @success="router.push(authDestination(route.query.redirect))"
-      />
+      <GoogleSignIn :disabled="authStore.loading" @success="enterApp" />
     </div>
 
     <template #footer>

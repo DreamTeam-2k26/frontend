@@ -11,6 +11,8 @@ import {
 } from '@/components/members/teamState'
 import { useAuthStore } from '@/stores/auth'
 import { useConnection } from '@/composables/useConnection'
+import { AnimatePresence, motion } from 'motion-v'
+import { EASE, MOTION } from '@/utils/motion'
 const emit = defineEmits(['accepted'])
 const auth = useAuthStore()
 const invites = ref([]),
@@ -126,36 +128,45 @@ async function respond(invite, accept) {
       >Abrir projeto aceito</BaseButton
     >
     <ul v-if="!loading">
-      <li v-for="invite in invites" :key="invite.id">
-        <div>
-          <h3>{{ invite.project_name }}</h3>
-          <p>
-            {{ invite.invited_by_name || 'Uma pessoa da equipe' }} convidou você como
-            {{ roles[invite.role] }}.
-          </p>
-          <p>
-            {{
-              invite.expires_at
-                ? `Validade: ${formatDate(invite.expires_at)}`
-                : 'Sem expiração informada'
-            }}
-          </p>
-        </div>
-        <div v-if="inviteStatus(invite, now) === 'pending'" class="actions">
-          <BaseButton
-            variant="secondary"
-            :disabled="busy !== null || offline"
-            @click="respond(invite, false)"
-            >Recusar</BaseButton
-          ><BaseButton
-            :loading="busy === invite.id"
-            :disabled="busy !== null || offline"
-            @click="respond(invite, true)"
-            >Aceitar</BaseButton
-          >
-        </div>
-        <p v-else>{{ statuses[inviteStatus(invite, now)] }}</p>
-      </li>
+      <!-- Convite respondido (após a API) recolhe em vez de sumir de repente. -->
+      <AnimatePresence>
+        <motion.li
+          v-for="invite in invites"
+          :key="invite.id"
+          :exit="{ opacity: 0, height: 0, paddingBlock: 0, marginBlock: 0 }"
+          :transition="{ duration: MOTION.slow, ease: EASE.flow }"
+          class="received-invites__item"
+        >
+          <div>
+            <h3>{{ invite.project_name }}</h3>
+            <p>
+              {{ invite.invited_by_name || 'Uma pessoa da equipe' }} convidou você como
+              {{ roles[invite.role] }}.
+            </p>
+            <p>
+              {{
+                invite.expires_at
+                  ? `Validade: ${formatDate(invite.expires_at)}`
+                  : 'Sem expiração informada'
+              }}
+            </p>
+          </div>
+          <div v-if="inviteStatus(invite, now) === 'pending'" class="actions">
+            <BaseButton
+              variant="secondary"
+              :disabled="busy !== null || offline"
+              @click="respond(invite, false)"
+              >Recusar</BaseButton
+            ><BaseButton
+              :loading="busy === invite.id"
+              :disabled="busy !== null || offline"
+              @click="respond(invite, true)"
+              >Aceitar</BaseButton
+            >
+          </div>
+          <p v-else>{{ statuses[inviteStatus(invite, now)] }}</p>
+        </motion.li>
+      </AnimatePresence>
     </ul>
   </section>
 </template>
@@ -192,6 +203,11 @@ header span {
 li {
   padding-block: var(--space-3);
   border-top: 1px solid var(--color-border);
+}
+/* Recorte para o recolhimento; a margem preserva o anel de foco dos botões. */
+.received-invites__item {
+  overflow: clip;
+  overflow-clip-margin: 4px;
 }
 li p {
   margin-top: var(--space-1);

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, shallowRef } from 'vue'
+import { computed, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { LogOut } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
@@ -8,9 +8,12 @@ import { getGoogleLink } from '@/api/auth'
 import { googleAuthError } from '@/utils/googleAuthError'
 import ProfileForm from '@/components/user/ProfileForm.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useAppTransition } from '@/composables/useAppTransition'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const transition = useAppTransition()
+const leaving = shallowRef(false)
 const status = shallowRef('loading') // loading | ready | error
 const loadError = shallowRef('')
 const googleLinked = shallowRef(null)
@@ -50,9 +53,15 @@ async function load() {
   }
 }
 
+// Confirmação breve no formulário depois que a API aceita o salvamento.
+const justSaved = shallowRef(false)
+let savedTimer
 async function onSubmit(changes) {
   try {
     await authStore.updateProfile(changes)
+    justSaved.value = true
+    clearTimeout(savedTimer)
+    savedTimer = setTimeout(() => (justSaved.value = false), 2500)
   } catch {
     // Store já mostra toast de erro; o formulário mantém o que foi digitado.
   }
@@ -60,10 +69,25 @@ async function onSubmit(changes) {
 
 // O layout logado é desmontado ao ir para o login, o que também desliga o chat e os avisos de chamada.
 async function onLogout() {
-  // Primeiro sai da página: limpar o usuário antes faria o formulário do perfil renderizar sem dados.
-  await router.replace({ name: 'login' })
-  authStore.logout()
+  if (leaving.value) return
+  // Desmonta o formulário (depende de user.name) antes de qualquer limpeza e bloqueia novos cliques.
+  leaving.value = true
+  try {
+    // A marca cobre a troca; a sessão é encerrada assim que o login monta, sem esperar a revelação.
+    await transition.cover(async () => {
+      try {
+        // Primeiro sai da página: limpar o usuário antes faria o perfil renderizar sem dados.
+        await router.replace({ name: 'login' })
+      } finally {
+        authStore.logout()
+      }
+    })
+  } catch {
+    // Navegação falhou: a sessão já foi encerrada; o guard leva ao login no próximo acesso.
+  }
 }
+
+onBeforeUnmount(() => clearTimeout(savedTimer))
 
 onMounted(() => {
   load()
@@ -92,10 +116,11 @@ onMounted(() => {
     </div>
 
     <ProfileForm
-      v-else
+      v-else-if="!leaving"
       :key="formKey"
       :user="authStore.user"
       :saving="authStore.saving"
+      :just-saved="justSaved"
       @submit="onSubmit"
     />
 
@@ -118,7 +143,7 @@ onMounted(() => {
         <h2 id="session-title" class="profile-page__error-title">Sessão</h2>
         <p class="profile-page__subtitle">Sai da sua conta neste navegador.</p>
       </div>
-      <BaseButton variant="secondary" @click="onLogout">
+      <BaseButton variant="secondary" :disabled="leaving" @click="onLogout">
         <LogOut :size="16" aria-hidden="true" /> Sair da conta
       </BaseButton>
     </section>

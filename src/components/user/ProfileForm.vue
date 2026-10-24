@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, shallowRef, useTemplateRef } from 'vue'
-import { ImageUp, Mail, Trash2, UserRound, Crop } from 'lucide-vue-next'
+import { CircleCheck, ImageUp, Mail, Trash2, UserRound, Crop } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
@@ -11,10 +11,16 @@ import { required } from '@/utils/validators'
 // Mesmos formatos aceitos pelo uploader do backend.
 const ACCEPTED_TYPES = ['image/png', 'image/jpeg']
 
-const { user, saving = false } = defineProps({
+const {
+  user,
+  saving = false,
+  justSaved = false,
+} = defineProps({
   // Resposta de GET /users/me/: { id, email, name, profile_picture }
   user: { type: Object, required: true },
   saving: { type: Boolean, default: false },
+  // Salvamento confirmado pela API há pouco: mostra a confirmação breve no rodapé.
+  justSaved: { type: Boolean, default: false },
 })
 
 const emit = defineEmits({
@@ -44,8 +50,10 @@ const avatarSrc = computed(() => {
 const hasPicture = computed(() => Boolean(avatarSrc.value))
 const nameChanged = computed(() => values.name.trim() !== (user.name ?? ''))
 const dirty = computed(() => nameChanged.value || Boolean(photo.value) || removePhoto.value)
+const saved = computed(() => justSaved && !saving && !dirty.value)
 const status = computed(() => {
   if (saving) return 'Salvando alterações...'
+  if (saved.value) return 'Alterações salvas.'
   return dirty.value ? 'Você tem alterações não salvas.' : 'Nenhuma alteração para salvar.'
 })
 
@@ -196,7 +204,14 @@ onBeforeUnmount(() => setPreview(null))
     </section>
 
     <footer class="profile-form__footer">
-      <p class="profile-form__status" aria-live="polite">{{ status }}</p>
+      <p
+        class="profile-form__status"
+        :class="{ 'profile-form__status--saved': saved }"
+        aria-live="polite"
+      >
+        <CircleCheck v-if="saved" class="profile-form__saved-icon" :size="16" aria-hidden="true" />
+        {{ status }}
+      </p>
       <div class="profile-form__buttons">
         <BaseButton variant="ghost" :disabled="!dirty || saving" @click="discard">
           Descartar
@@ -302,8 +317,33 @@ onBeforeUnmount(() => setPreview(null))
 }
 
 .profile-form__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
+}
+
+.profile-form__status--saved {
+  color: var(--color-success);
+  animation: profile-saved-in var(--motion-slow) var(--ease-flow) both;
+}
+
+.profile-form__saved-icon {
+  animation: profile-saved-check var(--motion-slow) var(--ease-flow) both;
+}
+
+@keyframes profile-saved-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes profile-saved-check {
+  from {
+    transform: scale(0.4);
+  }
 }
 
 .profile-form__buttons {

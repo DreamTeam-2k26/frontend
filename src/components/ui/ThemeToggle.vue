@@ -17,7 +17,16 @@ const label = computed(() =>
     :title="label"
     @click="toggleTheme"
   >
-    <component :is="isDark ? Moon : Sun" :size="20" aria-hidden="true" />
+    <span class="theme-toggle__icon">
+      <Transition name="theme-icon" mode="out-in">
+        <component
+          :is="isDark ? Moon : Sun"
+          :key="isDark ? 'moon' : 'sun'"
+          :size="20"
+          aria-hidden="true"
+        />
+      </Transition>
+    </span>
     <span class="theme-toggle__label">Tema {{ isDark ? 'escuro' : 'claro' }}</span>
   </button>
 </template>
@@ -40,6 +49,28 @@ const label = computed(() =>
   font-weight: var(--font-weight-medium);
   line-height: var(--line-height-base);
   white-space: nowrap;
+}
+
+.theme-toggle__icon {
+  display: inline-flex;
+}
+
+/* Sol e lua giram na troca, sem mudar o tamanho do botão. */
+.theme-icon-enter-active,
+.theme-icon-leave-active {
+  transition:
+    opacity var(--motion-quick) var(--ease-flow),
+    transform var(--motion-quick) var(--ease-flow);
+}
+
+.theme-icon-enter-from {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+
+.theme-icon-leave-to {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.6);
 }
 
 .theme-toggle:hover {

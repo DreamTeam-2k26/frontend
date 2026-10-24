@@ -1,6 +1,10 @@
 <script setup>
 import AppBrand from '@/components/layout/AppBrand.vue'
 import { appConfig } from '@/config/app'
+import { useAppTransition } from '@/composables/useAppTransition'
+
+// A ilustração só começa a se desenhar quando a abertura revela a tela.
+const { contentReady } = useAppTransition()
 
 const year = new Date().getFullYear()
 
@@ -13,7 +17,7 @@ const stages = [
 </script>
 
 <template>
-  <div class="auth-layout">
+  <div class="auth-layout" :class="{ 'auth-layout--ready': contentReady }">
     <aside class="auth-layout__panel">
       <AppBrand class="auth-layout__brand" />
 
@@ -59,7 +63,12 @@ const stages = [
     </aside>
 
     <main class="auth-layout__content">
-      <RouterView />
+      <!-- Login ↔ cadastro: só o cartão troca; a entrada dele fica com o AuthCard. -->
+      <RouterView v-slot="{ Component, route: current }">
+        <Transition name="auth-swap" mode="out-in">
+          <component :is="Component" :key="current.name" />
+        </Transition>
+      </RouterView>
     </main>
   </div>
 </template>
@@ -194,6 +203,23 @@ const stages = [
   from {
     opacity: 0;
   }
+}
+
+/* Pausada (no primeiro quadro, ainda invisível) enquanto a camada de marca cobre a tela. */
+.auth-layout:not(.auth-layout--ready) .flow__path,
+.auth-layout:not(.auth-layout--ready) .flow__node {
+  animation-play-state: paused;
+}
+
+.auth-swap-leave-active {
+  transition:
+    opacity var(--motion-quick) var(--ease-flow-exit),
+    transform var(--motion-quick) var(--ease-flow-exit);
+}
+
+.auth-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 @media (prefers-reduced-motion: reduce) {

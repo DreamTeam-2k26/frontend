@@ -81,7 +81,7 @@ onMounted(() => {
 <template>
   <dialog
     ref="dialog"
-    class="tdialog"
+    class="tdialog dialog-motion"
     aria-labelledby="tdialog-title"
     @close="emit('close')"
     @click.self="dialog.close()"

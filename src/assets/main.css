@@ -116,6 +116,17 @@
   --z-nav: 30;
   /* Abaixo do cabeçalho (20): menus abertos passam por trás dele ao rolar. */
   --z-popover: 15;
+  /* Camada de marca (abertura, entrada e logout): cobre toda a aplicação. */
+  --z-brand: 1000;
+
+  /* Movimento: durações e curvas compartilhadas (espelhadas em src/utils/motion.js). */
+  --motion-fast: 120ms; /* pressão de botão e ícone */
+  --motion-quick: 180ms; /* menus, indicadores */
+  --motion-base: 220ms; /* páginas, painéis e diálogos */
+  --motion-slow: 280ms; /* listas e cards */
+  --ease-flow: cubic-bezier(0.22, 1, 0.36, 1); /* entrada: rápida no início, assenta suave */
+  --ease-flow-in-out: cubic-bezier(0.65, 0, 0.35, 1); /* desenho e troca de estado */
+  --ease-flow-exit: cubic-bezier(0.4, 0, 1, 1); /* saída: acelera para fora */
 }
 
 /* Tema escuro: superfícies grafite-esverdeadas, nunca preto absoluto. */
@@ -353,6 +364,70 @@ body.is-dragging {
 ::selection {
   color: var(--color-on-primary);
   background-color: var(--color-button-primary-bg);
+}
+
+/* Troca de tema (useTheme + View Transitions): crossfade curto da página inteira. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--motion-slow);
+  animation-timing-function: var(--ease-flow);
+}
+
+/* Diálogos (<dialog class="dialog-motion">, ver useModalDialog): entrada ao abrir e saída no
+   clone que substitui o diálogo desmontado. */
+/* Entrada sem fill: um transform mantido após a animação faria o diálogo virar o bloco de
+   referência dos popovers position: fixed dentro dele (BaseSelect) e cortá-los. */
+.dialog-motion[open] {
+  animation: dialog-in var(--motion-base) var(--ease-flow);
+}
+.dialog-motion[open]::backdrop {
+  animation: dialog-backdrop-in var(--motion-base) ease-out;
+}
+.dialog-motion--leaving[open] {
+  pointer-events: none;
+  animation: dialog-out var(--motion-quick) var(--ease-flow-exit) both;
+}
+.dialog-motion--leaving[open]::backdrop {
+  animation: dialog-backdrop-out var(--motion-quick) ease-in both;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+@keyframes dialog-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes dialog-backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Celular: o diálogo ocupa a tela e sobe um pouco de baixo para cima. */
+@media (max-width: 599px) {
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  @keyframes dialog-out {
+    to {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

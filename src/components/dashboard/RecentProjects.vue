@@ -1,6 +1,8 @@
 <script setup>
 import { ChevronRight } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
+import { motion } from 'motion-v'
+import { listItemMotion } from '@/utils/motion'
 import ProjectCard from '@/components/projects/ProjectCard.vue'
 defineProps({
   projects: { type: Array, required: true },
@@ -17,9 +19,14 @@ defineProps({
       </RouterLink>
     </header>
     <ul class="recent-projects__list" aria-label="Projetos atualizados recentemente">
-      <li v-for="project in projects" :key="project.id">
+      <!-- Saída do carregamento: os primeiros cards entram em sequência curta. -->
+      <motion.li
+        v-for="(project, index) in projects"
+        :key="project.id"
+        v-bind="listItemMotion(index)"
+      >
         <ProjectCard :project="project" compact :preview="demo" />
-      </li>
+      </motion.li>
     </ul>
   </section>
 </template>

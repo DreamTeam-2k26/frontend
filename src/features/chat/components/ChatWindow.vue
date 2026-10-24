@@ -122,8 +122,10 @@ function onEdit(payload) {
       </button>
     </header>
 
+    <!-- Troca de conversa: a lista nova entra só com fade (sem deslocar a rolagem do histórico). -->
     <MessageList
       :key="room.id"
+      class="window__messages"
       :messages="messages?.items ?? []"
       :me-id="meId"
       :members="members"
@@ -245,6 +247,10 @@ function onEdit(payload) {
     animation: swap-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
+  .window__messages {
+    animation: messages-in var(--motion-base) var(--ease-flow) both;
+  }
+
   .dots i {
     animation: dot-bounce 1.2s ease-in-out infinite;
   }
@@ -262,6 +268,12 @@ function onEdit(payload) {
   from {
     opacity: 0;
     transform: translateX(0.5rem);
+  }
+}
+
+@keyframes messages-in {
+  from {
+    opacity: 0;
   }
 }
 

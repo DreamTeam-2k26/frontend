@@ -1,41 +1,47 @@
 <script setup>
+import { computed } from 'vue'
+import { Mic, Video } from 'lucide-vue-next'
+import BaseSelect from '@/components/ui/BaseSelect.vue'
+
 // Escolha de microfone e câmera. `view` é o espelho reativo de useLocalMedia.
-defineProps({
+// Mesmo seletor do restante do app (Kanban, tarefas), em vez do <select> nativo.
+const { view } = defineProps({
   view: { type: Object, required: true },
-  idPrefix: { type: String, default: 'device' },
 })
-defineEmits(['select'])
+const emit = defineEmits(['select'])
+
+function deviceOptions(devices, emptyLabel) {
+  if (!devices.length) return [{ value: '', label: emptyLabel }]
+  return [
+    { value: '', label: 'Padrão do sistema' },
+    ...devices.map((device) => ({ value: device.id, label: device.label })),
+  ]
+}
+
+const micOptions = computed(() => deviceOptions(view.devices.mic, 'Nenhum microfone encontrado'))
+const cameraOptions = computed(() =>
+  deviceOptions(view.devices.camera, 'Nenhuma câmera encontrada'),
+)
 </script>
 
 <template>
   <div class="devices">
-    <label :for="`${idPrefix}-mic`">Microfone</label>
-    <select
-      :id="`${idPrefix}-mic`"
-      :value="view.deviceIds.mic"
+    <BaseSelect
+      :model-value="view.deviceIds.mic ?? ''"
+      label="Microfone"
+      :icon="Mic"
+      :options="micOptions"
       :disabled="!view.devices.mic.length"
-      @change="$emit('select', 'mic', $event.target.value)"
-    >
-      <option v-if="!view.devices.mic.length" value="">Nenhum microfone encontrado</option>
-      <option v-else value="">Padrão do sistema</option>
-      <option v-for="device in view.devices.mic" :key="device.id" :value="device.id">
-        {{ device.label }}
-      </option>
-    </select>
-
-    <label :for="`${idPrefix}-camera`">Câmera</label>
-    <select
-      :id="`${idPrefix}-camera`"
-      :value="view.deviceIds.camera"
+      @change="emit('select', 'mic', $event)"
+    />
+    <BaseSelect
+      :model-value="view.deviceIds.camera ?? ''"
+      label="Câmera"
+      :icon="Video"
+      :options="cameraOptions"
       :disabled="!view.devices.camera.length"
-      @change="$emit('select', 'camera', $event.target.value)"
-    >
-      <option v-if="!view.devices.camera.length" value="">Nenhuma câmera encontrada</option>
-      <option v-else value="">Padrão do sistema</option>
-      <option v-for="device in view.devices.camera" :key="device.id" :value="device.id">
-        {{ device.label }}
-      </option>
-    </select>
+      @change="emit('select', 'camera', $event)"
+    />
   </div>
 </template>
 
@@ -43,17 +49,6 @@ defineEmits(['select'])
 .devices {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-}
-
-label {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-select {
-  width: 100%;
-  min-height: 2.75rem;
-  padding: var(--space-2) var(--space-3);
+  gap: var(--space-3);
 }
 </style>

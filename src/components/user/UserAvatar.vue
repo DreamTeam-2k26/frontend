@@ -35,7 +35,15 @@ watch(
 
 <template>
   <span class="avatar" :class="`avatar--${size}`" aria-hidden="true">
-    <img v-if="imageUrl && !failed" :src="imageUrl" alt="" class="avatar__image" @error="failed = true" />
+    <!-- key por URL: a foto nova entra com fade em vez de trocar de repente. -->
+    <img
+      v-if="imageUrl && !failed"
+      :key="imageUrl"
+      :src="imageUrl"
+      alt=""
+      class="avatar__image"
+      @error="failed = true"
+    />
     <span v-else-if="initials">{{ initials }}</span>
     <UserRound v-else :size="iconSize" />
   </span>
@@ -78,5 +86,12 @@ watch(
   width: 100%;
   height: 100%;
   object-fit: cover;
+  animation: avatar-in var(--motion-base) var(--ease-flow) both;
+}
+
+@keyframes avatar-in {
+  from {
+    opacity: 0;
+  }
 }
 </style>

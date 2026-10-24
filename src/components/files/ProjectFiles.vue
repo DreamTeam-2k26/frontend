@@ -9,6 +9,7 @@ import FileDestination from './FileDestination.vue'
 import FileList from './FileList.vue'
 import { useProjectFiles } from '@/composables/useProjectFiles'
 import { useConnection } from '@/composables/useConnection'
+import { useTweenedNumber } from '@/composables/useTweenedNumber'
 import { sameFolder } from '@/components/folders/folderState'
 import {
   acceptFiles,
@@ -37,6 +38,11 @@ const busy = ref(false),
   choosing = ref(false)
 const input = ref(null),
   dragging = ref(false)
+// Barra acompanha o progresso real do envio, deslizando entre os eventos do navegador.
+const shownProgress = useTweenedNumber(() => progress.value, { duration: 0.25 })
+// Arquivo que a API acabou de confirmar: destacado por instantes na lista.
+const highlightId = ref(null)
+let highlightTimer
 const destination = ref({ id: props.folderId, name: props.folderName })
 const configuredLimit = Number(import.meta.env.VITE_PROJECT_FILE_MAX_UPLOAD_MB)
 const maxMB = Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : 20
@@ -93,7 +99,7 @@ async function action({ file, action }) {
   destination.value = { id: props.folderId, name: props.folderName }
   if (action === 'move') choosing.value = true
 }
-async function run(callback, success, download = false) {
+async function run(callback, success, download = false, highlight = false) {
   if (busy.value || offline.value) return
   const current = context
   busy.value = true
@@ -112,6 +118,12 @@ async function run(callback, success, download = false) {
     choosing.value = false
     message.value = success
     if (!download) await refresh()
+    // fileClient.upload devolve o próprio arquivo criado (não a resposta do axios).
+    if (highlight && active && current === context && result?.id != null) {
+      highlightId.value = result.id
+      clearTimeout(highlightTimer)
+      highlightTimer = setTimeout(() => (highlightId.value = null), 2400)
+    }
   } catch (cause) {
     if (!active || current !== context) return
     operationError.value = fileError(cause)
@@ -139,6 +151,8 @@ function sendUpload() {
         },
       ),
     'Arquivo enviado com sucesso.',
+    false,
+    true,
   )
 }
 function rename() {
@@ -183,6 +197,7 @@ watch(
 )
 onBeforeUnmount(() => {
   active = false
+  clearTimeout(highlightTimer)
   context++
   mutationController?.abort()
   dispose()
@@ -212,7 +227,13 @@ onBeforeUnmount(() => {
         >Tentar novamente</BaseButton
       >
     </div>
-    <FileList v-else-if="items.length" :files="items" :busy="busy || offline" @action="action" />
+    <FileList
+      v-else-if="items.length"
+      :files="items"
+      :busy="busy || offline"
+      :highlight-id="highlightId"
+      @action="action"
+    />
     <p v-else class="file-state">Nenhum arquivo compartilhado neste local.</p>
     <FolderDialog v-if="operation === 'upload'" title="Enviar arquivos" :busy="busy" @close="close">
       <p>Os documentos poderão ser acessados pelos membros do projeto. Envie um arquivo por vez.</p>
@@ -257,7 +278,7 @@ onBeforeUnmount(() => {
       <div v-if="busy" role="status">
         <progress
           v-if="progress !== null"
-          :value="progress"
+          :value="shownProgress"
           max="100"
           aria-label="Progresso do envio"
         />

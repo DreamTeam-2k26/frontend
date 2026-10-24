@@ -89,7 +89,6 @@ onBeforeUnmount(() => stopWatch())
 
       <DeviceSelect
         :view="view"
-        id-prefix="prejoin"
         @select="(kind, id) => emit('select', kind, id)"
       />
 

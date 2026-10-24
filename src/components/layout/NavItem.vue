@@ -1,5 +1,6 @@
 <script setup>
 import { RouterLink } from 'vue-router'
+import NavIndicator from './NavIndicator.vue'
 
 const {
   item,
@@ -26,6 +27,7 @@ const {
     :title="collapsed ? item.label : undefined"
     :active-class="item.exact ? '' : 'nav-item--active'"
     exact-active-class="nav-item--active"
+    v-slot="{ isActive, isExactActive }"
   >
     <component
       :is="item.icon"
@@ -35,6 +37,9 @@ const {
       aria-hidden="true"
     />
     <span class="nav-item__label" :class="{ 'sr-only': collapsed }">{{ item.label }}</span>
+    <template v-if="item.exact ? isExactActive : isActive">
+      <NavIndicator :group="`nav-${variant}`" :placement="variant === 'mobile' ? 'top' : 'edge'" />
+    </template>
   </RouterLink>
 </template>
 
@@ -63,7 +68,7 @@ const {
   color: var(--color-text);
 }
 
-/* Ativo: texto forte + barra de destaque (forma, não só cor). */
+/* Ativo: texto forte + barra de destaque (NavIndicator: forma, não só cor). */
 .nav-item--active,
 .nav-item--active:hover {
   color: var(--color-text);
@@ -74,15 +79,10 @@ const {
   color: var(--color-primary);
 }
 
-.nav-item--active::before {
-  position: absolute;
-  content: '';
-  background-color: var(--color-primary);
-  border-radius: var(--radius-full);
-}
-
+/* Tamanho fixo: o svg global (max-width: 100%) não pode encolher o ícone em itens estreitos. */
 .nav-item__icon {
   flex-shrink: 0;
+  max-width: none;
 }
 
 .nav-item__label {
@@ -104,14 +104,6 @@ const {
   background-color: var(--color-bg-hover);
 }
 
-/* Barra na borda da sidebar, como no Figma: recua o padding lateral da SideBar. */
-.nav-item--sidebar.nav-item--active::before {
-  top: var(--space-1);
-  bottom: var(--space-1);
-  left: calc(-1 * var(--space-3));
-  width: 3px;
-}
-
 .nav-item--collapsed {
   justify-content: center;
 }
@@ -131,14 +123,6 @@ const {
 
 .nav-item--mobile.nav-item--active {
   font-weight: var(--font-weight-semibold);
-}
-
-.nav-item--mobile.nav-item--active::before {
-  top: 0;
-  left: 50%;
-  width: 1.5rem;
-  height: 3px;
-  transform: translateX(-50%);
 }
 
 /* Rótulos de várias palavras quebram em até duas linhas ("Salas de / Projeto"). */

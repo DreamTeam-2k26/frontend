@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { motion } from 'motion-v'
 import { ArrowLeft, Settings } from 'lucide-vue-next'
 import { getProject } from '@/api/projects'
 import { projectError } from '@/components/projects/projectState'
@@ -180,35 +181,51 @@ onBeforeUnmount(() => {
             role="img"
             aria-label="Chamada em andamento"
           />
+          <!-- Sublinhado único que desliza até a aba ativa. -->
+          <motion.span
+            v-if="tab === item.key"
+            layout-id="project-tab-indicator"
+            class="project-detail__indicator"
+            :transition="{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }"
+            aria-hidden="true"
+          />
         </button>
       </div>
-      <div
-        :id="`panel-${tab}`"
-        role="tabpanel"
-        :aria-labelledby="`tab-${tab}`"
-        :aria-label="TABS.find((item) => item.key === tab)?.label"
-      >
-        <ProjectOverview
-          v-if="tab === 'geral'"
-          :project="project"
-          :brainstorm-open="brainstormOpen"
-          :metrics="overview.metrics"
-          :upcoming="overview.upcoming"
-          :members="overview.members"
-          @retry="overview.retry"
-        />
-        <ProjectMembers
-          v-else-if="tab === 'membros'"
-          :project="project"
-          @changed="reloadOverview"
-        />
-        <ProjectChat v-else-if="tab === 'conversa'" :project-id="project.id" />
-        <ProjectFolders v-else-if="tab === 'pastas'" />
-        <ProjectLinks v-else-if="tab === 'links'" :project-id="project.id" />
-        <BrainstormBoard v-else-if="tab === 'brainstorm'" :key="project.id" :project="project" />
-        <ProjectActivities v-else-if="tab === 'atividades'" :key="project.id" :project="project" />
-        <ProjectCalls v-else :project="project" />
-      </div>
+      <!-- Troca de seção (?aba=) anima só o painel; o projeto e o layout continuam montados. -->
+      <Transition name="section">
+        <div
+          :id="`panel-${tab}`"
+          :key="tab"
+          role="tabpanel"
+          :aria-labelledby="`tab-${tab}`"
+          :aria-label="TABS.find((item) => item.key === tab)?.label"
+        >
+          <ProjectOverview
+            v-if="tab === 'geral'"
+            :project="project"
+            :brainstorm-open="brainstormOpen"
+            :metrics="overview.metrics"
+            :upcoming="overview.upcoming"
+            :members="overview.members"
+            @retry="overview.retry"
+          />
+          <ProjectMembers
+            v-else-if="tab === 'membros'"
+            :project="project"
+            @changed="reloadOverview"
+          />
+          <ProjectChat v-else-if="tab === 'conversa'" :project-id="project.id" />
+          <ProjectFolders v-else-if="tab === 'pastas'" />
+          <ProjectLinks v-else-if="tab === 'links'" :project-id="project.id" />
+          <BrainstormBoard v-else-if="tab === 'brainstorm'" :key="project.id" :project="project" />
+          <ProjectActivities
+            v-else-if="tab === 'atividades'"
+            :key="project.id"
+            :project="project"
+          />
+          <ProjectCalls v-else :project="project" />
+        </div>
+      </Transition>
     </template>
   </section>
 </template>
@@ -242,6 +259,7 @@ onBeforeUnmount(() => {
   overflow-y: hidden;
 }
 .project-detail__tabs button {
+  position: relative;
   padding: var(--space-3) var(--space-4);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -262,7 +280,26 @@ onBeforeUnmount(() => {
 }
 .project-detail__tabs button.is-active {
   color: var(--color-primary-hover);
-  border-bottom-color: var(--color-primary);
+}
+.project-detail__indicator {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--color-primary);
+}
+.section-leave-active {
+  display: none;
+}
+.section-enter-active {
+  transition:
+    opacity var(--motion-base) var(--ease-flow),
+    transform var(--motion-base) var(--ease-flow);
+}
+.section-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
 }
 .project-detail__state {
   display: flex;

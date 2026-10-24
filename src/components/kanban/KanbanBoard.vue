@@ -103,15 +103,15 @@ const { drag, onPointerDown } = useBoardDrag(board, {
 
 /* Colunas novas crescem no lugar; reordenar desliza. */
 .lane-move {
-  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform var(--motion-slow) var(--ease-flow);
 }
 .lane-enter-active {
-  animation: lane-in 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: lane-in var(--motion-slow) var(--ease-flow);
 }
 .lane-leave-active {
   transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
+    opacity var(--motion-quick) var(--ease-flow-exit),
+    transform var(--motion-quick) var(--ease-flow-exit);
 }
 .lane-leave-to {
   opacity: 0;

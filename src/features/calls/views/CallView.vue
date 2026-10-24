@@ -144,6 +144,8 @@ const canEnd = computed(() => !!call.value?.can_manage)
 </script>
 
 <template>
+  <!-- Cada estado (loading → prejoin → room → over) entra com fade curto; nada espera a saída,
+       então câmera, microfone e limpeza seguem no ritmo da chamada. -->
   <div class="call-page">
     <div v-if="stage === 'loading'" class="call-page__state" role="status">Carregando chamada…</div>
 
@@ -212,6 +214,14 @@ const canEnd = computed(() => !!call.value?.can_manage)
 </template>
 
 <style scoped>
+.call-page > * {
+  animation: call-stage-in var(--motion-base) var(--ease-flow) both;
+}
+@keyframes call-stage-in {
+  from {
+    opacity: 0;
+  }
+}
 .call-page {
   position: fixed;
   inset: 0;

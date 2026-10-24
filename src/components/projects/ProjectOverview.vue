@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { ArrowRight, CalendarDays, RotateCw } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectNextCall from '@/features/calls/components/ProjectNextCall.vue'
+import { useTweenedNumber } from '@/composables/useTweenedNumber'
 import BrainstormShortcut from '@/components/brainstorm/BrainstormShortcut.vue'
 
 const { metrics, upcoming, members } = defineProps({
@@ -74,6 +75,12 @@ function initials(member) {
     .join('')
     .toLocaleUpperCase('pt-BR')
 }
+
+// Indicadores deslizam do valor anterior ao atualizar (refresh), nunca a partir do zero.
+const shownTotal = useTweenedNumber(() => stats.value?.total ?? null)
+const shownDone = useTweenedNumber(() => stats.value?.done ?? null)
+const shownOverdue = useTweenedNumber(() => stats.value?.overdue ?? null)
+const shownProgress = useTweenedNumber(() => stats.value?.progress ?? null)
 </script>
 
 <template>
@@ -88,17 +95,17 @@ function initials(member) {
     <dl class="overview__metrics" :class="{ 'is-refreshing': metrics.status === 'refreshing' }">
       <div class="panel metric">
         <dt>Tarefas no projeto</dt>
-        <dd>{{ metric(stats?.total) }}</dd>
+        <dd>{{ metric(shownTotal) }}</dd>
         <p>{{ totalCaption }}</p>
       </div>
       <div class="panel metric">
         <dt>Concluídas</dt>
-        <dd>{{ metric(stats?.done) }}</dd>
+        <dd>{{ metric(shownDone) }}</dd>
         <p>{{ stats ? `${stats.progress}% do projeto` : 'Progresso indisponível' }}</p>
       </div>
       <div class="panel metric" :class="{ 'metric--alert': stats?.overdue }">
         <dt>Tarefas atrasadas</dt>
-        <dd :class="{ metric__danger: stats?.overdue }">{{ metric(stats?.overdue) }}</dd>
+        <dd :class="{ metric__danger: stats?.overdue }">{{ metric(shownOverdue) }}</dd>
         <p>{{ overdueCaption }}</p>
       </div>
     </dl>
@@ -107,12 +114,12 @@ function initials(member) {
       <section class="panel deliveries" aria-labelledby="progress-title">
         <div class="section-heading">
           <h2 id="progress-title">Progresso geral</h2>
-          <strong class="progress-value">{{ stats ? `${stats.progress}%` : '—' }}</strong>
+          <strong class="progress-value">{{ stats ? `${shownProgress}%` : '—' }}</strong>
         </div>
         <p class="progress-caption">{{ progressCaption }}</p>
         <progress
           v-if="stats"
-          :value="stats.progress"
+          :value="shownProgress"
           max="100"
           aria-label="Progresso geral do projeto"
         >

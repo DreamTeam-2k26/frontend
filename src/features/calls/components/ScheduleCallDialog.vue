@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseDatePicker from '@/components/ui/BaseDatePicker.vue'
 import { fromLocalInput, toLocalInput } from '../lib/callRules'
+import { useModalDialog } from '@/composables/useModalDialog'
 
 // Formulário em janela: iniciar agora (só título), agendar ou editar uma reunião agendada.
 const props = defineProps({
@@ -72,8 +73,10 @@ function save() {
   emit('save', payload)
 }
 
+// Abre ao montar (antes do foco abaixo), sai animado e devolve o foco a quem abriu.
+useModalDialog(dialog)
+
 onMounted(async () => {
-  dialog.value.showModal()
   await nextTick()
   dialog.value.querySelector('input')?.focus()
 })
@@ -82,7 +85,7 @@ onMounted(async () => {
 <template>
   <dialog
     ref="dialog"
-    class="call-form"
+    class="call-form dialog-motion"
     aria-labelledby="call-form-title"
     @cancel.prevent="!saving && emit('close')"
   >

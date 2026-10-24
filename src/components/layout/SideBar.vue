@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { RefreshCw } from 'lucide-vue-next'
 import NavItem from './NavItem.vue'
+import NavIndicator from './NavIndicator.vue'
 import AppBrand from './AppBrand.vue'
 import UserAvatar from '@/components/user/UserAvatar.vue'
 import { personName } from '@/components/projects/memberRules'
@@ -134,64 +135,70 @@ const userName = computed(() =>
         </ul>
       </section>
 
-      <section
-        v-if="activeProject || loadingProject || projectLoadError"
-        class="sidebar__group sidebar__project-group"
-        :aria-label="activeProject ? 'Projeto ' + activeProject.name : 'Projeto atual'"
-      >
-        <h2
-          v-if="activeProject"
-          class="sidebar__heading sidebar__project-heading"
-          :class="{ 'sr-only': collapsed }"
-          :title="activeProject.name"
+      <Transition name="sidebar-project">
+        <section
+          v-if="activeProject || loadingProject || projectLoadError"
+          class="sidebar__group sidebar__project-group"
+          :aria-label="activeProject ? 'Projeto ' + activeProject.name : 'Projeto atual'"
         >
-          {{ activeProject.name }}
-        </h2>
-        <h2 v-else class="sidebar__heading" :class="{ 'sr-only': collapsed }">Projeto atual</h2>
-        <p v-if="loadingProject && !collapsed" class="sidebar__state" role="status">
-          Carregando projeto…
-        </p>
-        <div v-else-if="projectLoadError && !collapsed" class="sidebar__state" role="alert">
-          <p>{{ projectLoadError }}</p>
-          <button
-            v-if="currentProjectId"
-            type="button"
-            class="sidebar__retry"
-            @click="loadCurrentProject(currentProjectId)"
+          <h2
+            v-if="activeProject"
+            class="sidebar__heading sidebar__project-heading"
+            :class="{ 'sr-only': collapsed }"
+            :title="activeProject.name"
           >
-            <RefreshCw :size="14" aria-hidden="true" /> Tentar novamente
-          </button>
-        </div>
-        <ul
-          v-if="activeProject"
-          class="sidebar__list"
-          :aria-label="'Navegação de ' + activeProject.name"
-        >
-          <li v-for="section in projectSections" :key="section.key">
-            <RouterLink
-              :to="projectSectionLocation(activeProject.id, section.key)"
-              class="sidebar__section-link"
-              :class="{
-                'sidebar__section-link--collapsed': collapsed,
-                'sidebar__section-link--active': isProjectSectionActive(
-                  route,
-                  activeProject.id,
-                  section.key,
-                ),
-              }"
-              :title="collapsed ? section.label : undefined"
-              :aria-current="
-                isProjectSectionActive(route, activeProject.id, section.key) ? 'page' : undefined
-              "
+            {{ activeProject.name }}
+          </h2>
+          <h2 v-else class="sidebar__heading" :class="{ 'sr-only': collapsed }">Projeto atual</h2>
+          <p v-if="loadingProject && !collapsed" class="sidebar__state" role="status">
+            Carregando projeto…
+          </p>
+          <div v-else-if="projectLoadError && !collapsed" class="sidebar__state" role="alert">
+            <p>{{ projectLoadError }}</p>
+            <button
+              v-if="currentProjectId"
+              type="button"
+              class="sidebar__retry"
+              @click="loadCurrentProject(currentProjectId)"
             >
-              <component :is="section.icon" :size="20" aria-hidden="true" />
-              <span class="sidebar__section-name" :class="{ 'sr-only': collapsed }">{{
-                section.label
-              }}</span>
-            </RouterLink>
-          </li>
-        </ul>
-      </section>
+              <RefreshCw :size="14" aria-hidden="true" /> Tentar novamente
+            </button>
+          </div>
+          <ul
+            v-if="activeProject"
+            class="sidebar__list"
+            :aria-label="'Navegação de ' + activeProject.name"
+          >
+            <li v-for="section in projectSections" :key="section.key">
+              <RouterLink
+                :to="projectSectionLocation(activeProject.id, section.key)"
+                class="sidebar__section-link"
+                :class="{
+                  'sidebar__section-link--collapsed': collapsed,
+                  'sidebar__section-link--active': isProjectSectionActive(
+                    route,
+                    activeProject.id,
+                    section.key,
+                  ),
+                }"
+                :title="collapsed ? section.label : undefined"
+                :aria-current="
+                  isProjectSectionActive(route, activeProject.id, section.key) ? 'page' : undefined
+                "
+              >
+                <component :is="section.icon" :size="20" aria-hidden="true" />
+                <span class="sidebar__section-name" :class="{ 'sr-only': collapsed }">{{
+                  section.label
+                }}</span>
+                <NavIndicator
+                  v-if="isProjectSectionActive(route, activeProject.id, section.key)"
+                  group="nav-project"
+                />
+              </RouterLink>
+            </li>
+          </ul>
+        </section>
+      </Transition>
     </nav>
     <RouterLink
       :to="{ name: 'profile' }"
@@ -256,6 +263,14 @@ const userName = computed(() =>
   overflow-x: hidden;
   padding: var(--space-8) var(--space-3);
 }
+/* Recolhida, a barra de rolagem (~17 px) apertava os itens e o svg global (max-width: 100%)
+   encolhia os ícones. Some só nesse modo; roda do mouse e teclado continuam rolando. */
+.sidebar--collapsed .sidebar__nav {
+  scrollbar-width: none;
+}
+.sidebar--collapsed .sidebar__nav::-webkit-scrollbar {
+  display: none;
+}
 .sidebar__group + .sidebar__group {
   margin-top: var(--space-8);
 }
@@ -305,15 +320,18 @@ const userName = computed(() =>
   font-weight: var(--font-weight-bold);
   background-color: var(--color-bg-hover);
 }
-.sidebar__section-link--active::before {
-  position: absolute;
-  content: '';
-  top: var(--space-1);
-  bottom: var(--space-1);
-  left: calc(-1 * var(--space-3));
-  width: 3px;
-  border-radius: var(--radius-full);
-  background-color: var(--color-primary);
+.sidebar-project-enter-active {
+  transition:
+    opacity var(--motion-base) var(--ease-flow),
+    transform var(--motion-base) var(--ease-flow);
+}
+.sidebar-project-enter-from {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.sidebar__section-link > svg {
+  flex-shrink: 0;
+  max-width: none;
 }
 .sidebar__section-link--active > svg {
   color: var(--color-primary);

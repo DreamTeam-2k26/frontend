@@ -1,25 +1,17 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref } from 'vue'
 import { X } from 'lucide-vue-next'
+import { useModalDialog } from '@/composables/useModalDialog'
 defineProps({ title: { type: String, required: true }, busy: Boolean })
 const emit = defineEmits(['close'])
 const dialog = ref(null)
-let previousFocus
-onMounted(() => {
-  previousFocus = document.activeElement
-  dialog.value.showModal()
-})
-onBeforeUnmount(() => {
-  dialog.value?.close()
-  nextTick(() => {
-    if (previousFocus?.isConnected) previousFocus.focus()
-  })
-})
+// Abre ao montar, sai animado e devolve o foco a quem abriu.
+useModalDialog(dialog)
 </script>
 <template>
   <dialog
     ref="dialog"
-    class="team-dialog"
+    class="team-dialog dialog-motion"
     aria-labelledby="team-dialog-title"
     :aria-busy="busy"
     @cancel.prevent="!busy && emit('close')"
