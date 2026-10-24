@@ -13,9 +13,11 @@ import {
   projectFieldErrors,
 } from '@/components/projects/projectState'
 import { listProjects, createProject, updateProject } from '@/api/projects'
+import { useCallNotifier } from '@/features/calls/stores/callNotifier'
 import { inviteUser } from '@/api/projectMembers'
 import { inviteMany, inviteSummary } from '@/components/projects/memberRules'
 
+const callNotifier = useCallNotifier()
 const projects = ref([])
 const search = ref('')
 const loading = ref(true)
@@ -148,7 +150,12 @@ onBeforeUnmount(() => {
       @clear="search = ''"
       @create="openForm()"
     />
-    <ProjectList v-else :projects="filtered" @edit="openForm" />
+    <ProjectList
+      v-else
+      :projects="filtered"
+      :live-calls="callNotifier.liveCalls"
+      @edit="openForm"
+    />
     <ProjectForm
       v-if="formOpen"
       :project="editing"
