@@ -55,9 +55,11 @@ export class ChatSocket {
       WebSocketImpl,
       stableAfterMs,
       backoff,
-      setTimeoutImpl,
-      clearTimeoutImpl,
     })
+    // Embrulhados: guardar `setTimeout` nativo como método do objeto e chamá-lo daí dá
+    // "Illegal invocation" no navegador (nos testes, com funções falsas, passaria despercebido).
+    this.setTimeoutImpl = (fn, ms) => setTimeoutImpl(fn, ms)
+    this.clearTimeoutImpl = (id) => clearTimeoutImpl(id)
 
     this.status = STATUS.IDLE
     this.socket = null

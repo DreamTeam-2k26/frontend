@@ -67,6 +67,12 @@ const router = createRouter({
           },
         },
         {
+          path: 'projects/:id(\\d+)/calls/:callId(\\d+)',
+          name: 'call',
+          component: () => import('@/features/calls/views/CallView.vue'),
+          meta: { requiresAuth: true, title: 'Chamada' },
+        },
+        {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/SettingsView.vue'),
