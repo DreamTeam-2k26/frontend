@@ -1,25 +1,19 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, useId } from 'vue'
+import { ref, useId } from 'vue'
+import { useModalDialog } from '@/composables/useModalDialog'
 const props = defineProps({ title: { type: String, required: true }, busy: Boolean })
 const emit = defineEmits(['close'])
 const dialog = ref(null)
 const titleId = useId()
-let previousFocus
-onMounted(() => {
-  previousFocus = document.activeElement
-  dialog.value.showModal()
-})
-onBeforeUnmount(() => {
-  dialog.value?.close()
-  if (previousFocus?.isConnected) previousFocus.focus()
-  else document.getElementById('new-folder')?.focus()
+useModalDialog(dialog, {
+  fallbackFocus: () => document.getElementById('new-folder')?.focus(),
 })
 </script>
 
 <template>
   <dialog
     ref="dialog"
-    class="folder-dialog"
+    class="folder-dialog dialog-motion"
     :aria-labelledby="titleId"
     :aria-busy="busy"
     @cancel.prevent="!props.busy && emit('close')"

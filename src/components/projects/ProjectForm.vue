@@ -1,9 +1,10 @@
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import UserPicker from '@/components/projects/UserPicker.vue'
 import { useForm } from '@/composables/useForm'
+import { useModalDialog } from '@/composables/useModalDialog'
 import { required } from '@/utils/validators'
 
 const props = defineProps({
@@ -36,13 +37,14 @@ function save() {
   submit()
   nextTick(() => dialog.value?.querySelector('[aria-invalid="true"]')?.focus())
 }
-onMounted(() => dialog.value.showModal())
+// Abre ao montar; ao fechar, sai animado e devolve o foco a quem abriu.
+useModalDialog(dialog)
 </script>
 
 <template>
   <dialog
     ref="dialog"
-    class="project-form"
+    class="project-form dialog-motion"
     aria-labelledby="project-form-title"
     @cancel.prevent="!saving && emit('close')"
   >

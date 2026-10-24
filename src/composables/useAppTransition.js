@@ -1,4 +1,5 @@
 import { computed, reactive } from 'vue'
+import { prefersReducedMotion } from '@/utils/motion'
 import { createTransitionCoordinator } from '@/utils/transitionCoordinator'
 
 function safeSessionStorage() {
@@ -7,11 +8,6 @@ function safeSessionStorage() {
   } catch {
     return null
   }
-}
-
-// Lido a cada etapa: a regra CSS de movimento reduzido não cancela as esperas do JavaScript.
-export function prefersReducedMotion() {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 }
 
 // Instância única: App.vue monta a camada e as telas de login/perfil pedem a cobertura.

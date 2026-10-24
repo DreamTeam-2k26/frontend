@@ -1,6 +1,7 @@
 <script setup>
-import { onBeforeUnmount, onMounted, useId, useTemplateRef } from 'vue'
+import { useId, useTemplateRef } from 'vue'
 import { X } from 'lucide-vue-next'
+import { useModalDialog } from '@/composables/useModalDialog'
 import { useScrollLock } from '@/composables/useScrollLock'
 
 // <dialog> nativo: foco preso, Esc fecha e leitores de tela entendem como modal.
@@ -21,27 +22,18 @@ useScrollLock()
 
 const dialog = useTemplateRef('dialog')
 const titleId = useId()
-let previousFocus = null
+// Devolve o foco para quem abriu o modal (ex.: o card) quando a saída termina.
+useModalDialog(dialog)
 
 function onBackdropClick(event) {
   if (event.target === dialog.value) emit('close')
 }
-
-onMounted(() => {
-  previousFocus = document.activeElement
-  dialog.value?.showModal()
-})
-
-// Devolve o foco para quem abriu o modal (ex.: o card).
-onBeforeUnmount(() => {
-  if (previousFocus?.isConnected) previousFocus.focus()
-})
 </script>
 
 <template>
   <dialog
     ref="dialog"
-    class="modal"
+    class="modal dialog-motion"
     :class="`modal--${size}`"
     :aria-labelledby="labelledby ?? (title ? titleId : undefined)"
     @cancel.prevent="emit('close')"
