@@ -18,6 +18,7 @@ import {
 import { useFolderExplorer } from '@/composables/useFolderExplorer'
 import { getProject } from '@/api/projects'
 import folders from '@/api/folders'
+import ProjectFiles from '@/components/files/ProjectFiles.vue'
 
 const route = useRoute()
 const locationParams = computed(() => ({ id: route.params.id, folderId: route.query.pasta }))
@@ -25,6 +26,7 @@ const { project, currentFolder, items, loading, error, status, load, dispose } =
   getProject,
   folders,
 })
+const filePanel = ref(null)
 const search = ref('')
 const success = ref('')
 const operation = ref(null)
@@ -93,7 +95,10 @@ function move(parent) {
 }
 function remove() {
   const id = selected.value.id
-  return run(() => folders.remove(id), 'Pasta e suas subpastas foram excluídas.')
+  return run(
+    () => folders.remove(id),
+    'Pasta, subpastas e seus arquivos foram excluídos permanentemente.',
+  )
 }
 watch(
   () => [route.params.id, route.query.pasta],
@@ -122,7 +127,10 @@ onBeforeUnmount(() => {
         <h2 id="folders-title">Arquivos</h2>
         <p>Materiais, pastas e documentos compartilhados.</p>
       </div>
-      <BaseButton disabled title="O envio de arquivos ainda não está disponível na API.">
+      <BaseButton
+        :disabled="loading || !!error || !project || filePanel?.busy || filePanel?.offline"
+        @click="filePanel?.openUpload()"
+      >
         <Upload :size="16" aria-hidden="true" /> Enviar arquivo
       </BaseButton>
     </header>
@@ -202,29 +210,14 @@ onBeforeUnmount(() => {
         >
         <BaseButton v-else @click="openOperation('form')">Nova pasta</BaseButton>
       </div>
-      <section class="recent-files" aria-labelledby="recent-files-title">
-        <div class="section-heading">
-          <h2 id="recent-files-title">Arquivos recentes</h2>
-          <span>Ordenar: mais recentes</span>
-        </div>
-        <div class="files-table-wrapper">
-          <table class="files-table">
-            <thead>
-              <tr>
-                <th scope="col">Arquivo</th>
-                <th scope="col">Modificado</th>
-                <th scope="col">Por</th>
-                <th scope="col"><span class="sr-only">Ações</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colspan="4" class="files-empty">Nenhum arquivo compartilhado neste local.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <ProjectFiles
+        ref="filePanel"
+        :key="`${project.id}:${currentFolder?.id ?? 'root'}`"
+        :project-id="project.id"
+        :folder-id="currentFolder?.id ?? null"
+        :folder-name="currentFolder?.name || 'Raiz do projeto'"
+        @unavailable="refresh"
+      />
     </template>
     <FolderForm
       v-if="operation === 'form'"
@@ -341,57 +334,5 @@ p {
 .section-heading > span {
   color: var(--color-text-secondary);
   font-size: var(--font-size-xs);
-}
-.recent-files {
-  display: grid;
-  min-width: 0;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-}
-.files-table-wrapper {
-  min-width: 0;
-  overflow-x: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-}
-.files-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  text-align: left;
-  font-size: var(--font-size-xs);
-}
-.files-table th {
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-subtle);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.files-table th:first-child {
-  width: 49%;
-}
-.files-table th:nth-child(2) {
-  width: 26%;
-}
-.files-table td {
-  padding: var(--space-5) var(--space-4);
-  border-top: 1px solid var(--color-border);
-}
-.files-empty {
-  text-align: center;
-  color: var(--color-text-secondary);
-}
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
 }
 </style>
