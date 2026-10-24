@@ -60,6 +60,16 @@ async function renderComponent(component, data, extra = {}) {
 }
 const render = (overrides = {}) => renderComponent(Card, { ...project, ...overrides })
 
+// Seções da store da Visão geral (#42): { status, data, error }.
+const section = (status, data = null, error = '') => ({ status, data, error })
+const idleSections = () => ({
+  metrics: section('idle'),
+  upcoming: section('idle'),
+  members: section('idle'),
+})
+const people = (count) =>
+  Array.from({ length: count }, (_, index) => ({ id: index, user_name: `Pessoa ${index + 1}` }))
+
 test('card oferece link real para o detalhe e remove aviso de indisponibilidade', async () => {
   const html = await render()
   assert.match(html, /href="\/projects\/24"/)
@@ -80,52 +90,85 @@ test('cabeçalho preserva nome e descrição e leva ao Kanban e à criação de 
 })
 
 test('resumo usa campos reais do detalhe e não métricas da lista ou do Figma', async () => {
-  const html = await renderComponent(Overview, {
-    ...project,
-    created_by: 17,
-    created_at: '2026-10-23T15:00:00Z',
-    updated_at: '2026-10-24T15:00:00Z',
-  })
+  const html = await renderComponent(
+    Overview,
+    {
+      ...project,
+      created_by: 17,
+      created_at: '2026-10-23T15:00:00Z',
+      updated_at: '2026-10-24T15:00:00Z',
+    },
+    idleSections(),
+  )
   assert.match(html, /datetime="2026-10-23T15:00:00Z"/)
   assert.match(html, /datetime="2026-10-24T15:00:00Z"/)
   assert.match(html, /#17/)
   assert.match(html, /#24/)
   assert.doesNotMatch(html, /68%|5 membros|8 de 12|Alinhamento da equipe/)
-  const missing = await renderComponent(Overview, { ...project })
+  const missing = await renderComponent(Overview, { ...project }, idleSections())
   assert.match(missing, /Não informada/)
   assert.match(missing, /Não informado/)
 })
 
-test('dashboard calcula indicadores e entregas a partir das tarefas e etapas reais', async () => {
-  const tasks = Array.from({ length: 12 }, (_, index) => ({
-    id: index + 1,
-    column: index < 8 ? 3 : 1,
-    title: `Entrega ${index + 1}`,
-    due_date: `2026-10-${24 + (index % 4)}`,
-    priority: 'high',
-    is_overdue: index === 8,
-  }))
+test('visão geral mostra indicadores do dashboard, entregas e participantes', async () => {
   const html = await renderComponent(Overview, project, {
-    overview: {
-      tasks,
-      columns: [
-        { id: 1, category: 'todo' },
-        { id: 2, category: 'in_progress' },
-        { id: 3, category: 'done' },
-      ],
-      members: Array.from({ length: 5 }, (_, index) => ({
-        id: index,
-        user_name: `Pessoa ${index + 1}`,
-      })),
-    },
+    metrics: section('ready', {
+      total: 12,
+      done: 8,
+      pending: 4,
+      todo: 3,
+      inProgress: 1,
+      overdue: 1,
+      progress: 67,
+    }),
+    upcoming: section('ready', [
+      { id: 9, title: 'Entrega 9', due_date: '2026-10-24', priority: 'high', is_overdue: true },
+    ]),
+    members: section('ready', people(5)),
   })
   assert.match(html, /8 de 12 tarefas concluídas/)
   assert.match(html, /67%/)
-  assert.match(html, /Distribuídas em 3 etapas/)
+  assert.match(html, /4 pendentes/)
+  assert.match(html, /A fazer/)
+  assert.match(html, /Em andamento/)
   assert.match(html, /5 membros/)
   assert.match(html, /Entrega 9/)
+  assert.match(html, /\(atrasada\)/)
   assert.doesNotMatch(html, /Entrega 1</)
   assert.match(html, /Próxima reunião/)
+})
+
+test('falha nos indicadores mostra erro com nova tentativa e mantém participantes', async () => {
+  const html = await renderComponent(Overview, project, {
+    metrics: section('error', null, 'Não foi possível carregar os indicadores.'),
+    upcoming: section('ready', []),
+    members: section('ready', people(2)),
+  })
+  assert.match(html, /Não foi possível carregar os indicadores\./)
+  assert.match(html, /Tentar novamente/)
+  assert.doesNotMatch(html, /\d+% do projeto/)
+  assert.match(html, /2 membros/)
+  assert.match(html, /Próxima reunião/)
+})
+
+test('projeto sem tarefas mostra zeros reais', async () => {
+  const html = await renderComponent(Overview, project, {
+    metrics: section('ready', {
+      total: 0,
+      done: 0,
+      pending: 0,
+      todo: 0,
+      inProgress: 0,
+      overdue: 0,
+      progress: 0,
+    }),
+    upcoming: section('ready', []),
+    members: section('ready', people(1)),
+  })
+  assert.match(html, /Nenhuma tarefa criada ainda/)
+  assert.match(html, /0 de 0 tarefas concluídas/)
+  assert.match(html, /Nenhuma tarefa atrasada/)
+  assert.match(html, /Nenhuma entrega pendente/)
 })
 
 test('card renderiza progresso e total reais, três avatares e quantidade excedente', async () => {

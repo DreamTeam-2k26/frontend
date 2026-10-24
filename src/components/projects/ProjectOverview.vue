@@ -1,42 +1,59 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ArrowRight, CalendarDays } from 'lucide-vue-next'
+import { ArrowRight, CalendarDays, RotateCw } from 'lucide-vue-next'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import ProjectNextCall from '@/features/calls/components/ProjectNextCall.vue'
 
-const props = defineProps({
+const { metrics, upcoming, members } = defineProps({
   project: { type: Object, required: true },
-  overview: { type: Object, default: null },
-  loading: Boolean,
+  // Seções da store projectOverview: { status: idle|loading|refreshing|ready|error, data, error }
+  metrics: { type: Object, required: true },
+  upcoming: { type: Object, required: true },
+  members: { type: Object, required: true },
 })
-const tasks = computed(() => props.overview?.tasks)
-const columns = computed(() => props.overview?.columns)
-const members = computed(() => props.overview?.members)
-const complete = (task) =>
-  columns.value?.find((column) => column.id === task.column)?.category === 'done'
-const done = computed(() =>
-  tasks.value && columns.value ? tasks.value.filter(complete).length : null,
-)
-const progress = computed(() =>
-  done.value === null
-    ? null
-    : tasks.value.length
-      ? Math.round((done.value / tasks.value.length) * 100)
-      : 0,
-)
-const overdue = computed(() => tasks.value?.filter((task) => task.is_overdue).length ?? null)
-const upcoming = computed(() =>
-  tasks.value && columns.value
-    ? tasks.value
-        .filter((task) => task.due_date && !complete(task))
-        .sort((a, b) => a.due_date.localeCompare(b.due_date))
-        .slice(0, 3)
-    : null,
-)
+
+const emit = defineEmits({
+  retry: (section) => ['metrics', 'upcoming', 'members'].includes(section),
+})
+
+const loading = (section) => section.status === 'idle' || section.status === 'loading'
+const stats = computed(() => metrics.data)
+const busy = computed(() => loading(metrics) || loading(upcoming) || loading(members))
+const metric = (value) => (loading(metrics) ? '…' : (value ?? '—'))
+const plural = (count, one, many) => `${count} ${count === 1 ? one : many}`
+
+const totalCaption = computed(() => {
+  if (loading(metrics)) return 'Carregando indicadores…'
+  if (!stats.value) return 'Indicadores indisponíveis'
+  if (!stats.value.total) return 'Nenhuma tarefa criada ainda'
+  return plural(stats.value.pending, 'pendente', 'pendentes')
+})
+const progressCaption = computed(() => {
+  if (stats.value) {
+    const { done, total } = stats.value
+    return `${done} de ${total} ${total === 1 ? 'tarefa concluída' : 'tarefas concluídas'}`
+  }
+  return loading(metrics) ? 'Carregando progresso…' : 'Progresso indisponível'
+})
+const overdueCaption = computed(() => {
+  if (!stats.value) return 'Prazos indisponíveis'
+  return stats.value.overdue ? 'Precisa de atenção' : 'Nenhuma tarefa atrasada'
+})
+
+// Distribuição das tarefas por situação (abaixo da barra de progresso).
+const breakdown = computed(() => {
+  if (!stats.value) return []
+  const { todo, inProgress, done } = stats.value
+  return [
+    { key: 'todo', label: 'A fazer', value: todo },
+    { key: 'doing', label: 'Em andamento', value: inProgress },
+    { key: 'done', label: 'Concluídas', value: done },
+  ]
+})
+
 const roles = { owner: 'Dono', admin: 'Administrador', member: 'Membro' }
 const priorities = { high: 'Alta', medium: 'Média', low: 'Baixa' }
-const metric = (value) => (props.loading ? '…' : (value ?? '—'))
 function dueDate(value) {
   const date = new Date(`${value}T12:00:00`)
   return Number.isNaN(date.getTime())
@@ -57,38 +74,29 @@ function initials(member) {
 </script>
 
 <template>
-  <div class="overview" :aria-busy="loading">
-    <dl class="overview__metrics">
+  <div class="overview" :aria-busy="busy">
+    <div v-if="metrics.status === 'error'" class="panel overview__alert" role="alert">
+      <p>{{ metrics.error }}</p>
+      <BaseButton variant="secondary" @click="emit('retry', 'metrics')">
+        <RotateCw :size="15" aria-hidden="true" /> Tentar novamente
+      </BaseButton>
+    </div>
+
+    <dl class="overview__metrics" :class="{ 'is-refreshing': metrics.status === 'refreshing' }">
       <div class="panel metric">
         <dt>Tarefas no projeto</dt>
-        <dd>{{ metric(tasks?.length) }}</dd>
-        <p>
-          {{
-            loading
-              ? 'Carregando tarefas…'
-              : columns
-                ? `Distribuídas em ${columns.length} etapas`
-                : 'Etapas indisponíveis'
-          }}
-        </p>
+        <dd>{{ metric(stats?.total) }}</dd>
+        <p>{{ totalCaption }}</p>
       </div>
       <div class="panel metric">
         <dt>Concluídas</dt>
-        <dd>{{ metric(done) }}</dd>
-        <p>{{ progress === null ? 'Progresso indisponível' : `${progress}% do projeto` }}</p>
+        <dd>{{ metric(stats?.done) }}</dd>
+        <p>{{ stats ? `${stats.progress}% do projeto` : 'Progresso indisponível' }}</p>
       </div>
-      <div class="panel metric">
+      <div class="panel metric" :class="{ 'metric--alert': stats?.overdue }">
         <dt>Tarefas atrasadas</dt>
-        <dd class="metric__danger">{{ metric(overdue) }}</dd>
-        <p>
-          {{
-            overdue === null
-              ? 'Prazos indisponíveis'
-              : overdue
-                ? 'Precisa de atenção'
-                : 'Nenhuma tarefa atrasada'
-          }}
-        </p>
+        <dd :class="{ metric__danger: stats?.overdue }">{{ metric(stats?.overdue) }}</dd>
+        <p>{{ overdueCaption }}</p>
       </div>
     </dl>
 
@@ -96,24 +104,31 @@ function initials(member) {
       <section class="panel deliveries" aria-labelledby="progress-title">
         <div class="section-heading">
           <h2 id="progress-title">Progresso geral</h2>
-          <strong class="progress-value">{{ progress === null ? '—' : `${progress}%` }}</strong>
+          <strong class="progress-value">{{ stats ? `${stats.progress}%` : '—' }}</strong>
         </div>
-        <p class="progress-caption">
-          {{
-            done === null
-              ? 'Progresso indisponível'
-              : `${done} de ${tasks.length} tarefas concluídas`
-          }}
-        </p>
+        <p class="progress-caption">{{ progressCaption }}</p>
         <progress
-          v-if="progress !== null"
-          :value="progress"
+          v-if="stats"
+          :value="stats.progress"
           max="100"
           aria-label="Progresso geral do projeto"
         >
-          {{ progress }}%
+          {{ stats.progress }}%
         </progress>
         <div v-else class="progress-empty" aria-hidden="true" />
+
+        <ul v-if="stats?.total" class="breakdown" aria-label="Tarefas por situação">
+          <li v-for="item in breakdown" :key="item.key" class="breakdown__item">
+            <span
+              class="breakdown__dot"
+              :class="`breakdown__dot--${item.key}`"
+              aria-hidden="true"
+            />
+            {{ item.label }}
+            <strong>{{ item.value }}</strong>
+          </li>
+        </ul>
+
         <div class="section-heading deliveries__heading">
           <h2>Próximas entregas</h2>
           <RouterLink
@@ -123,11 +138,16 @@ function initials(member) {
             Abrir Kanban <span aria-hidden="true">→</span>
           </RouterLink>
         </div>
-        <p v-if="loading" role="status">Carregando próximas entregas…</p>
-        <p v-else-if="!upcoming">Não foi possível carregar as entregas.</p>
-        <p v-else-if="!upcoming.length">Nenhuma entrega com prazo definida.</p>
+        <p v-if="loading(upcoming)" role="status">Carregando próximas entregas…</p>
+        <div v-else-if="upcoming.status === 'error'" class="section-error" role="alert">
+          <p>{{ upcoming.error }}</p>
+          <button type="button" class="retry-link" @click="emit('retry', 'upcoming')">
+            Tentar novamente
+          </button>
+        </div>
+        <p v-else-if="!upcoming.data?.length">Nenhuma entrega pendente com prazo definido.</p>
         <ul v-else class="delivery-list">
-          <li v-for="task in upcoming" :key="task.id">
+          <li v-for="task in upcoming.data" :key="task.id">
             <span class="delivery-list__title">{{ task.title }}</span>
             <span
               v-if="priorities[task.priority]"
@@ -135,7 +155,10 @@ function initials(member) {
               :class="`priority--${task.priority}`"
               >{{ priorities[task.priority] }}</span
             >
-            <time :datetime="task.due_date">{{ dueDate(task.due_date) }}</time>
+            <time :datetime="task.due_date" :class="{ 'is-late': task.is_overdue }">
+              {{ dueDate(task.due_date) }}
+              <span v-if="task.is_overdue" class="visually-hidden">(atrasada)</span>
+            </time>
           </li>
         </ul>
       </section>
@@ -151,28 +174,40 @@ function initials(member) {
         <section class="panel participants" aria-labelledby="participants-title">
           <div class="section-heading">
             <h2 id="participants-title">Participantes</h2>
-            <span v-if="members"
-              >{{ members.length }} {{ members.length === 1 ? 'membro' : 'membros' }}</span
-            >
+            <span v-if="members.data">{{ plural(members.data.length, 'membro', 'membros') }}</span>
           </div>
-          <p v-if="loading" role="status">Carregando participantes…</p>
-          <p v-else-if="!members">Não foi possível carregar os participantes.</p>
-          <ul v-else-if="members.length" class="avatars" aria-label="Participantes do projeto">
+          <p v-if="loading(members)" role="status">Carregando participantes…</p>
+          <div v-else-if="members.status === 'error'" class="section-error" role="alert">
+            <p>{{ members.error }}</p>
+            <button type="button" class="retry-link" @click="emit('retry', 'members')">
+              Tentar novamente
+            </button>
+          </div>
+          <ul
+            v-else-if="members.data?.length"
+            class="avatars"
+            aria-label="Participantes do projeto"
+          >
             <li
-              v-for="member in members.slice(0, 5)"
+              v-for="member in members.data.slice(0, 5)"
               :key="member.id"
               :title="member.user_name || 'Participante'"
               :aria-label="member.user_name || 'Participante'"
             >
               {{ initials(member) }}
             </li>
-            <li v-if="members.length > 5" :aria-label="`Mais ${members.length - 5} participantes`">
-              +{{ members.length - 5 }}
+            <li
+              v-if="members.data.length > 5"
+              :aria-label="`Mais ${members.data.length - 5} participantes`"
+            >
+              +{{ members.data.length - 5 }}
             </li>
           </ul>
           <p v-else>Nenhum participante disponível.</p>
-          <p v-if="members?.length">Todos podem colaborar nas tarefas.</p>
-          <BaseButton variant="ghost" :to="{ name: 'project-members', params: { id: project.id } }">Ver participantes <ArrowRight :size="16" aria-hidden="true" /></BaseButton>
+          <p v-if="members.data?.length">Todos podem colaborar nas tarefas.</p>
+          <BaseButton variant="ghost" :to="{ name: 'project-members', params: { id: project.id } }"
+            >Ver participantes <ArrowRight :size="16" aria-hidden="true"
+          /></BaseButton>
         </section>
       </div>
     </div>
@@ -398,6 +433,76 @@ time {
 }
 .project-info dd {
   color: var(--color-text);
+}
+.overview__alert {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-color: color-mix(in srgb, var(--color-danger) 40%, var(--color-border));
+  background: var(--color-danger-soft);
+}
+.overview__alert p {
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+/* Atualizando o mesmo projeto: os números atuais ficam, esmaecidos, até chegarem os novos. */
+.overview__metrics {
+  transition: opacity 0.2s ease;
+}
+.overview__metrics.is-refreshing {
+  opacity: 0.6;
+}
+/* Atrasadas só ganham destaque quando existem. */
+.metric--alert {
+  border-color: color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+}
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin-top: var(--space-4);
+}
+.breakdown__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+.breakdown__item strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.breakdown__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-status-todo);
+}
+.breakdown__dot--doing {
+  background: var(--color-warning);
+}
+.breakdown__dot--done {
+  background: var(--color-status-done);
+}
+.section-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding-block: var(--space-3);
+}
+.retry-link {
+  color: var(--color-primary-hover);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+time.is-late {
+  color: var(--color-status-late);
+  font-weight: var(--font-weight-semibold);
 }
 @media (max-width: 700px) {
   .overview__metrics,
