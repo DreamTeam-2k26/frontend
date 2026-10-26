@@ -1,78 +1,84 @@
-# .
+# Fluxo · Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Frontend do **Fluxo**, uma plataforma de gestão de projetos em equipe desenvolvida pela equipe [DreamTeam-2k26](https://github.com/DreamTeam-2k26) para o hackathon de 2026.
 
-## Recommended IDE Setup
+🔗 **Aplicação:** [fluxo-beige-three.vercel.app](https://fluxo-beige-three.vercel.app) · **Backend:** [DreamTeam-2k26/backend](https://github.com/DreamTeam-2k26/backend)
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## Funcionalidades
 
-## Recommended Browser Setup
+- **Projetos:** criação, configurações, membros e convites por link
+- **Quadro Kanban:** tarefas com responsável, descrição, comentários e anexos, movidas entre colunas
+- **Chat e chamadas** em tempo real (WebSocket)
+- **Pastas e arquivos** do projeto
+- **Brainstorm** por tópicos
+- **Dashboard, calendário, atividades e links** do projeto
+- **Autenticação** com JWT e login com Google
+- Perfil de usuário com foto
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+## Tecnologias
 
-## Customize configuration
+- Vue 3 + Vite
+- Pinia
+- Vue Router
+- Axios
+- GSAP e Motion (animações)
+- Lucide Icons
+- vue3-toastify
+- Testes com o test runner nativo do Node (`node --test`)
+- Oxlint, ESLint e Prettier
+- Deploy na Vercel
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+## Como rodar
 
-## Project Setup
-
-```sh
+```bash
+git clone https://github.com/DreamTeam-2k26/frontend.git
+cd frontend
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
+cp .env.example .env
 npm run dev
 ```
 
-### Compile and Minify for Production
+A aplicação sobe em `http://localhost:5173`. O backend precisa estar rodando (veja o [README do backend](https://github.com/DreamTeam-2k26/backend)).
 
-```sh
-npm run build
+### Variáveis de ambiente
+
+| Variável | Descrição |
+|---|---|
+| `VITE_API_URL` | URL da API com `/api` (HTTPS em produção) |
+| `VITE_ACCESS_TOKEN_KEY` | Chave do access token no armazenamento local |
+| `VITE_REFRESH_TOKEN_KEY` | Chave do refresh token no armazenamento local |
+| `VITE_GOOGLE_CLIENT_ID` | Client ID público do OAuth do Google (o mesmo `GOOGLE_CLIENT_ID` do Django) |
+
+> Nunca coloque `client_secret` ou chaves privadas em variáveis `VITE_*`: elas vão para o bundle público.
+
+### Scripts
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | Servidor de desenvolvimento |
+| `npm run build` | Build de produção |
+| `npm run preview` | Pré-visualiza o build |
+| `npm run lint` | Oxlint + ESLint com correção automática |
+| `npm run format` | Formata `src/` com Prettier |
+| `npm run test:<módulo>` | Testes por módulo: `kanban`, `projects`, `chat`, `calls`, `members`, `folders`, `files`, `calendar`, `dashboard`, `activities`, `links`, `google` |
+
+## Estrutura
+
+```
+src/
+├── api/ e services/   # Comunicação com a API
+├── components/        # Componentes reutilizáveis
+├── composables/       # Lógica reutilizável
+├── features/          # Módulos maiores (chat, calls)
+├── layouts/           # Layouts das páginas
+├── router/            # Rotas
+├── stores/            # Stores Pinia
+├── views/             # Telas (Projetos, Kanban, Membros, Pastas, Brainstorm, Perfil...)
+└── utils/
+tests/                 # Testes por módulo
+docs/                  # Design e documentação de issues
 ```
 
-### Lint with [ESLint](https://eslint.org/)
+## Equipe
 
-```sh
-npm run lint
-```
-
-## Tema claro e escuro
-
-O controle na área de ações do Header alterna os temas existentes em `main.css`.
-Na primeira visita, sempre inicia no tema claro (não segue `prefers-color-scheme`).
-A escolha explícita é salva em `localStorage` na chave `fluxo-theme` e vale nas
-próximas visitas. O tema claro remove `data-theme` da raiz;
-o escuro aplica `data-theme="dark"`.
-
-`public/theme-init.js` roda de forma síncrona no `<head>`, antes do CSS e do Vue,
-para restaurar o tema antes da primeira pintura. Se o storage estiver bloqueado,
-a alternância continua funcionando na sessão, sem persistência após recarregar.
-Para voltar ao padrão (claro), remova a chave `fluxo-theme` e recarregue.
-
-`ThemeToggle.vue` e `useTheme.js` podem ser reutilizados em outras telas. A integração
-usa o slot `actions` do Header em `DefaultLayout.vue`, preservando o componente
-AppHeader e a lógica da Sidebar para as respectivas tasks.
-
-## Salas de Projeto (chat em tempo real)
-
-Funcionalidade em `src/features/chat/` (rota `/chat`, exige login). Conversa com o app Django `chat` do backend por REST (`/api/chat/`) e por **um** WebSocket por aba (`/ws/chat/`), sempre com o JWT do sistema principal.
-
-- `lib/` — lógica pura, sem Vue: `chatState.js` (aplica os eventos do servidor), `socketClient.js` (reconexão com backoff, tratamento do código 4401), `urls.js`, `format.js`, `errors.js`.
-- `stores/chat.js` — store Pinia que liga API, WebSocket e estado.
-- `components/`, `views/ChatView.vue` — interface (lista de salas, conversa, anexos, participantes, nova sala).
-- `api/api.js` renova o token expirado (401) uma vez e repete a requisição; `api/session.js` faz a renovação.
-
-Variáveis de ambiente: veja `.env.example` (`VITE_API_URL` precisa apontar para a API; a origem do WebSocket é derivada dela).
-
-Testes da lógica pura (não precisam de `npm install`):
-
-```sh
-npm run test:chat
-```
+Desenvolvido pela equipe **DreamTeam-2k26**. As tarefas são organizadas no Kanban e nas issues do GitHub, com uma branch por issue e pull requests revisados antes do merge.
