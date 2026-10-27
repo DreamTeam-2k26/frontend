@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { Paperclip, SendHorizontal, X } from 'lucide-vue-next'
+import { shouldCompress } from '../lib/image'
 
 const MAX_LENGTH = 2000
 
@@ -81,7 +82,8 @@ function onFile(event) {
 
   if (!file) return
 
-  if (file.size > maxFileMb * 1024 * 1024) {
+  // Foto grande passa: o envio a reduz antes (lib/image.js).
+  if (!shouldCompress(file) && file.size > maxFileMb * 1024 * 1024) {
     fileError.value = `O arquivo passa do limite de ${maxFileMb} MB.`
 
     return
