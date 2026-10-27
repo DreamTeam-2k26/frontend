@@ -18,6 +18,7 @@ import {
   typingUsers,
 } from '../lib/chatState'
 import { apiErrorMessage } from '../lib/errors'
+import { compressImage } from '../lib/image'
 import ChatToast from '../components/ChatToast.vue'
 import { messagePreview } from '../lib/format'
 import { ChatSocket, STATUS } from '../lib/socketClient'
@@ -398,7 +399,8 @@ export const useChatStore = defineStore('chatStore', () => {
     if (!roomId || !file) return false
 
     try {
-      const message = await chatApi.sendMessage(roomId, { file, replyTo })
+      const upload = await compressImage(file)
+      const message = await chatApi.sendMessage(roomId, { file: upload, replyTo })
 
       handleEvent({ type: 'message.new', room: roomId, message })
 
