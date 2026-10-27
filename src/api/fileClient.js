@@ -1,5 +1,6 @@
 import { loadProjectPages } from './projectPagination.js'
 import { assertProject, sameFolder, unavailableFolder } from '../components/folders/folderState.js'
+import { toMemoryFile } from '../utils/files.js'
 
 // Recebe o Axios compartilhado: JWT/refresh e baseURL continuam centralizados.
 export function createFileClient(api) {
@@ -26,7 +27,7 @@ export function createFileClient(api) {
     async upload({ project, folder = null, file, name }, { signal, onUploadProgress } = {}) {
       const body = new FormData()
       body.append('project', String(project))
-      body.append('file', file)
+      body.append('file', await toMemoryFile(file))
       if (folder !== null) body.append('folder', String(folder))
       if (name?.trim()) body.append('name', name.trim())
       // O navegador determina Content-Type e boundary do multipart.

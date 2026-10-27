@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
-import { MAX_UPLOAD_MB, fileKind, formatBytes, uploadError } from '../files.js'
+import { MAX_UPLOAD_MB, fileKind, formatBytes, toMemoryFile, uploadError } from '../files.js'
 
 describe('fileKind', () => {
   test('pela extensão', () => {
@@ -34,4 +34,17 @@ describe('uploadError', () => {
       new RegExp(`${MAX_UPLOAD_MB} MB`),
     ))
   test('recusa arquivo vazio', () => assert.match(uploadError(file('vazio.txt', 0)), /vazio/))
+})
+
+describe('toMemoryFile', () => {
+  test('cópia em memória com mesmo nome, tipo e conteúdo', async () => {
+    const original = new File(['foto'], 'camera.jpg', { type: 'image/jpeg', lastModified: 123 })
+    const copy = await toMemoryFile(original)
+
+    assert.notEqual(copy, original)
+    assert.equal(copy.name, 'camera.jpg')
+    assert.equal(copy.type, 'image/jpeg')
+    assert.equal(copy.lastModified, 123)
+    assert.equal(await copy.text(), 'foto')
+  })
 })

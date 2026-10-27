@@ -1,5 +1,6 @@
 // Chamadas REST do chat (a instância `api` já envia o JWT e renova o token expirado).
 import api from '@/api/api'
+import { toMemoryFile } from '@/utils/files'
 
 const unwrap = (response) => response.data
 
@@ -28,11 +29,11 @@ export const listMessages = (roomId, before = null) =>
   api.get(`/chat/rooms/${roomId}/messages/`, { params: before ? { before } : {} }).then(unwrap)
 
 /** Texto (JSON) ou arquivo (multipart). Nunca os dois na mesma mensagem. */
-export function sendMessage(roomId, { body = null, file = null, replyTo = null }) {
+export async function sendMessage(roomId, { body = null, file = null, replyTo = null }) {
   if (file) {
     const form = new FormData()
 
-    form.append('file', file)
+    form.append('file', await toMemoryFile(file))
     if (replyTo) form.append('reply_to', String(replyTo))
 
     return api.post(`/chat/rooms/${roomId}/messages/`, form).then(unwrap)
