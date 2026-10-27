@@ -1,13 +1,14 @@
 import api from './api'
 import { createFileClient } from './fileClient'
+import { toMemoryFile } from '@/utils/files'
 
 export default createFileClient(api)
 
 // Envio de arquivo ao projeto (multipart). O backend valida tamanho e tipo pelo conteúdo.
-export function uploadFile({ project, file }, { onProgress, signal } = {}) {
+export async function uploadFile({ project, file }, { onProgress, signal } = {}) {
   const body = new FormData()
   body.append('project', project)
-  body.append('file', file)
+  body.append('file', await toMemoryFile(file))
   return api.post('/files/', body, {
     signal,
     onUploadProgress: (event) => onProgress?.(event.total ? event.loaded / event.total : 0),

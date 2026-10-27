@@ -39,6 +39,16 @@ export function formatBytes(bytes) {
   return `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} ${units[unit]}`
 }
 
+// Copia o arquivo para a memória antes do upload. No Chrome do Android, a foto tirada pela câmera
+// ainda muda no disco depois de escolhida e o envio aborta (net::ERR_UPLOAD_FILE_CHANGED), sem
+// chegar ao servidor.
+export async function toMemoryFile(file) {
+  return new File([await file.arrayBuffer()], file.name, {
+    type: file.type,
+    lastModified: file.lastModified,
+  })
+}
+
 export function uploadError(file) {
   if (!file.size) return `“${file.name}” está vazio.`
   if (!ALLOWED_EXTENSIONS.includes(extensionOf(file.name)))
