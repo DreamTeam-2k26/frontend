@@ -146,7 +146,7 @@ test('apenas um lado inicia mesmo em entradas simultâneas', () => {
   assert.equal(shouldInitiateConnection(2, 2), false)
 })
 
-test('quem entra oferece: 3 transceivers (áudio, câmera, tela) e a oferta vai ao outro', async () => {
+test('ofertante eleito cria 3 transceivers (áudio, câmera, tela) e envia uma oferta', async () => {
   const { mesh, sent, statuses } = build()
 
   mesh.connect(2)
