@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { PeerMesh } from '../lib/peerMesh.js'
+import { PeerMesh, shouldInitiateConnection } from '../lib/peerMesh.js'
 
 class FakeStream {
   constructor() {
@@ -136,6 +136,15 @@ function build(overrides = {}) {
 
   return { mesh, sent, streams, statuses, local }
 }
+
+test('apenas um lado inicia mesmo em entradas simultâneas', () => {
+  assert.equal(shouldInitiateConnection(1, 2), false)
+  assert.equal(shouldInitiateConnection(2, 1), true)
+  assert.equal(shouldInitiateConnection(10, 5), true)
+  assert.equal(shouldInitiateConnection(5, 10), false)
+  assert.equal(shouldInitiateConnection(null, 2), false)
+  assert.equal(shouldInitiateConnection(2, 2), false)
+})
 
 test('quem entra oferece: 3 transceivers (áudio, câmera, tela) e a oferta vai ao outro', async () => {
   const { mesh, sent, statuses } = build()
