@@ -1,0 +1,25 @@
+name: Validacao frontend
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  calls-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Testes das chamadas
+        run: npm run test:calls
+      - name: Build
+        run: npm run build
