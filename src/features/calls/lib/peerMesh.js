@@ -1,7 +1,7 @@
 // Malha de conexões WebRTC (todos com todos). Sem Vue nem navegador: o RTCPeerConnection é injetado.
 //
 // Regras que evitam conflito de negociação:
-// - Só quem ENTRA na chamada cria a oferta para cada pessoa que já estava; os demais só respondem.
+// - Em cada par, só o maior userId cria a oferta; o outro apenas responde, mesmo em entrada simultânea.
 // - Cada conexão nasce com 3 "transceivers" fixos, sempre nesta ordem: 0 áudio, 1 câmera, 2 tela.
 //   Ligar/desligar câmera, microfone ou tela só troca a trilha (replaceTrack), sem renegociar,
 //   e o receptor sabe qual é qual pela posição do transceiver.
@@ -62,7 +62,7 @@ export class PeerMesh {
     return this.peers.has(userId)
   }
 
-  /** Começa uma conexão como quem OFERECE (use para quem já estava na chamada quando você entrou). */
+  /** Começa uma conexão como ofertante; use apenas no lado eleito por shouldInitiateConnection. */
   connect(userId) {
     if (this.closed || this.peers.has(userId)) return
 
