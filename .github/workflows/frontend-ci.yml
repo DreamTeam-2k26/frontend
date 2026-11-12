@@ -21,5 +21,11 @@ jobs:
         run: npm ci
       - name: Testes das chamadas
         run: npm run test:calls
+      - name: Testes do Kanban
+        run: npm run test:kanban
+      - name: Testes do chat
+        run: npm run test:chat
+      - name: Lint das chamadas sem autofix
+        run: npx eslint src/features/calls
       - name: Build
         run: npm run build
