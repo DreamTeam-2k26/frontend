@@ -217,6 +217,16 @@ test('candidatos antes da descrição remota esperam e são aplicados depois', a
   assert.equal(pc.candidates.length, 2)
 })
 
+test('candidatos ICE antes da oferta aguardam a criação da conexão', async () => {
+  const { mesh } = build()
+
+  await mesh.handleSignal(5, { candidate: { c: 'antes' } })
+  assert.equal(FakePC.instances.length, 0)
+
+  await mesh.handleSignal(5, { description: { type: 'offer', sdp: 'o' } })
+  assert.deepEqual(FakePC.instances[0].candidates, [{ c: 'antes' }])
+})
+
 test('trilhas remotas: câmera+áudio num stream e tela em outro, pela posição', async () => {
   const { mesh, streams } = build()
 
