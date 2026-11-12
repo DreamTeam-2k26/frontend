@@ -2,7 +2,7 @@ import { computed, onBeforeUnmount, reactive, ref, shallowRef } from 'vue'
 import { refreshAccessToken } from '@/api/session'
 import { getAccessToken } from '@/utils/token'
 import { ChatSocket, STATUS } from '../../chat/lib/socketClient'
-import { PeerMesh } from '../lib/peerMesh'
+import { PeerMesh, shouldInitiateConnection } from '../lib/peerMesh'
 import { watchSpeaking } from '../lib/speaking'
 import { mergeSegments } from '../lib/transcript'
 import { callsSocketUrl } from '../lib/urls'
@@ -44,6 +44,7 @@ export function useCallRoom({ callId, media }) {
   let unsubscribe = () => {}
   const stopPeerSpeaking = new Map()
   let pendingSegments = []
+  const pendingSignals = new Map()
 
   const peerList = computed(() =>
     Object.values(peers).sort((a, b) => a.joinedOrder - b.joinedOrder),
@@ -98,6 +99,8 @@ export function useCallRoom({ callId, media }) {
   }
 
   function addPeer(info) {
+    if (peers[info.user]) return
+
     peers[info.user] = reactive({
       user: info.user,
       name: info.name,
@@ -109,9 +112,15 @@ export function useCallRoom({ callId, media }) {
       speaking: false,
       joinedOrder: order++,
     })
+
+    // SDP e ICE podem chegar antes de peer.joined: processe-os na ordem de chegada.
+    const queued = pendingSignals.get(info.user) ?? []
+    pendingSignals.delete(info.user)
+    queued.forEach((data) => mesh?.handleSignal(info.user, data))
   }
 
   function dropPeer(userId) {
+    pendingSignals.delete(userId)
     mesh?.remove(userId)
     stopPeerSpeaking.get(userId)?.()
     stopPeerSpeaking.delete(userId)
@@ -137,6 +146,7 @@ export function useCallRoom({ callId, media }) {
   }
 
   function resetMesh(iceServers) {
+    pendingSignals.clear()
     mesh?.closeAll()
     stopPeerSpeaking.forEach((stop) => stop())
     stopPeerSpeaking.clear()
@@ -160,7 +170,7 @@ export function useCallRoom({ callId, media }) {
         resetMesh(event.ice_servers)
         event.peers.forEach((info) => {
           addPeer(info)
-          mesh.connect(info.user)
+          if (shouldInitiateConnection(selfId.value, info.user)) mesh.connect(info.user)
         })
         phase.value = PHASE.LIVE
         transcriptionOn.value = !!event.transcription
@@ -171,7 +181,10 @@ export function useCallRoom({ callId, media }) {
         flushSegments()
         break
       case 'peer.joined':
-        if (!peers[event.peer.user]) addPeer(event.peer)
+        // Reconexão do socket: a sessão WebRTC anterior pode estar obsoleta.
+        if (peers[event.peer.user]) dropPeer(event.peer.user)
+        addPeer(event.peer)
+        if (shouldInitiateConnection(selfId.value, event.peer.user)) mesh?.connect(event.peer.user)
         break
       case 'peer.left':
         dropPeer(event.user)
@@ -180,7 +193,13 @@ export function useCallRoom({ callId, media }) {
         if (peers[event.user]) peers[event.user].state = { ...EMPTY_STATE, ...event.state }
         break
       case 'signal':
-        mesh?.handleSignal(event.from, event.data)
+        if (peers[event.from]) {
+          mesh?.handleSignal(event.from, event.data)
+        } else {
+          // Um sinal pode chegar antes de peer.joined; limitar a fila evita crescimento sem controle.
+          const queued = pendingSignals.get(event.from) ?? []
+          if (queued.length < 32) pendingSignals.set(event.from, [...queued, event.data])
+        }
         break
       case 'transcription.changed':
         transcriptionBy.value = event.by ?? null

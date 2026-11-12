@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { PeerMesh } from '../lib/peerMesh.js'
+import { PeerMesh, shouldInitiateConnection } from '../lib/peerMesh.js'
 
 class FakeStream {
   constructor() {
@@ -137,7 +137,16 @@ function build(overrides = {}) {
   return { mesh, sent, streams, statuses, local }
 }
 
-test('quem entra oferece: 3 transceivers (áudio, câmera, tela) e a oferta vai ao outro', async () => {
+test('apenas um lado inicia mesmo em entradas simultâneas', () => {
+  assert.equal(shouldInitiateConnection(1, 2), false)
+  assert.equal(shouldInitiateConnection(2, 1), true)
+  assert.equal(shouldInitiateConnection(10, 5), true)
+  assert.equal(shouldInitiateConnection(5, 10), false)
+  assert.equal(shouldInitiateConnection(null, 2), false)
+  assert.equal(shouldInitiateConnection(2, 2), false)
+})
+
+test('ofertante eleito cria 3 transceivers (áudio, câmera, tela) e envia uma oferta', async () => {
   const { mesh, sent, statuses } = build()
 
   mesh.connect(2)
@@ -206,6 +215,16 @@ test('candidatos antes da descrição remota esperam e são aplicados depois', a
   assert.deepEqual(pc.candidates, [{ c: 1 }])
   await mesh.handleSignal(2, { candidate: { c: 2 } })
   assert.equal(pc.candidates.length, 2)
+})
+
+test('candidatos ICE antes da oferta aguardam a criação da conexão', async () => {
+  const { mesh } = build()
+
+  await mesh.handleSignal(5, { candidate: { c: 'antes' } })
+  assert.equal(FakePC.instances.length, 0)
+
+  await mesh.handleSignal(5, { description: { type: 'offer', sdp: 'o' } })
+  assert.deepEqual(FakePC.instances[0].candidates, [{ c: 'antes' }])
 })
 
 test('trilhas remotas: câmera+áudio num stream e tela em outro, pela posição', async () => {

@@ -1,14 +1,20 @@
 // Malha de conexões WebRTC (todos com todos). Sem Vue nem navegador: o RTCPeerConnection é injetado.
 //
 // Regras que evitam conflito de negociação:
-// - Só quem ENTRA na chamada cria a oferta para cada pessoa que já estava; os demais só respondem.
+// - Em cada par, só o maior userId cria a oferta; o outro apenas responde, mesmo em entrada simultânea.
 // - Cada conexão nasce com 3 "transceivers" fixos, sempre nesta ordem: 0 áudio, 1 câmera, 2 tela.
 //   Ligar/desligar câmera, microfone ou tela só troca a trilha (replaceTrack), sem renegociar,
 //   e o receptor sabe qual é qual pela posição do transceiver.
 
+// Uma única ponta faz a oferta por par, mesmo em entradas simultâneas.
+export function shouldInitiateConnection(selfId, remoteId) {
+  return Number.isSafeInteger(selfId) && Number.isSafeInteger(remoteId) && selfId > remoteId
+}
+
 export const SLOT = Object.freeze({ AUDIO: 0, CAMERA: 1, SCREEN: 2 })
 const SLOT_KINDS = ['audio', 'video', 'video']
 const DISCONNECTED_GRACE_MS = 6000
+const MAX_EARLY_CANDIDATES = 32
 
 export class PeerMesh {
   /**
@@ -48,6 +54,7 @@ export class PeerMesh {
     this.setTimeoutImpl = (fn, ms) => setTimeoutImpl(fn, ms)
     this.clearTimeoutImpl = (id) => clearTimeoutImpl(id)
     this.peers = new Map()
+    this.earlyCandidates = new Map()
     this.closed = false
   }
 
@@ -55,7 +62,7 @@ export class PeerMesh {
     return this.peers.has(userId)
   }
 
-  /** Começa uma conexão como quem OFERECE (use para quem já estava na chamada quando você entrou). */
+  /** Começa uma conexão como ofertante; use apenas no lado eleito por shouldInitiateConnection. */
   connect(userId) {
     if (this.closed || this.peers.has(userId)) return
 
@@ -81,6 +88,7 @@ export class PeerMesh {
 
   /** Fecha a conexão com uma pessoa (ela saiu). */
   remove(userId) {
+    this.earlyCandidates.delete(userId)
     const peer = this.peers.get(userId)
 
     if (!peer) return
@@ -105,6 +113,7 @@ export class PeerMesh {
 
   closeAll() {
     this.closed = true
+    this.earlyCandidates.clear()
     ;[...this.peers.keys()].forEach((userId) => this.remove(userId))
   }
 
@@ -121,6 +130,9 @@ export class PeerMesh {
     }
 
     this.peers.set(userId, peer)
+    // Pode chegar ICE antes da oferta: preserve os candidatos até existir um PC.
+    peer.pending.push(...(this.earlyCandidates.get(userId) ?? []))
+    this.earlyCandidates.delete(userId)
     this.onStatus(userId, 'connecting')
 
     pc.onicecandidate = (event) => {
@@ -196,7 +208,13 @@ export class PeerMesh {
   async #handleCandidate(userId, candidate) {
     const peer = this.peers.get(userId)
 
-    if (!peer) return
+    if (!peer) {
+      const queued = this.earlyCandidates.get(userId) ?? []
+      if (queued.length < MAX_EARLY_CANDIDATES) {
+        this.earlyCandidates.set(userId, [...queued, candidate])
+      }
+      return
+    }
 
     // Candidato antes da descrição remota: guarda e aplica depois.
     if (!peer.pc.remoteDescription) {
