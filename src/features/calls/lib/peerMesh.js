@@ -6,6 +6,11 @@
 //   Ligar/desligar câmera, microfone ou tela só troca a trilha (replaceTrack), sem renegociar,
 //   e o receptor sabe qual é qual pela posição do transceiver.
 
+// Uma única ponta faz a oferta por par, mesmo em entradas simultâneas.
+export function shouldInitiateConnection(selfId, remoteId) {
+  return Number.isSafeInteger(selfId) && Number.isSafeInteger(remoteId) && selfId > remoteId
+}
+
 export const SLOT = Object.freeze({ AUDIO: 0, CAMERA: 1, SCREEN: 2 })
 const SLOT_KINDS = ['audio', 'video', 'video']
 const DISCONNECTED_GRACE_MS = 6000
